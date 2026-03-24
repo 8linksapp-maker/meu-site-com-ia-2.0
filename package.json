@@ -12,8 +12,8 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/node": "^10.0.3",
     "@astrojs/react": "^5.0.1",
+    "@astrojs/vercel": "^8.0.4",
     "@octokit/rest": "^22.0.1",
     "@supabase/supabase-js": "^2.100.0",
     "@tailwindcss/vite": "^4.2.2",
