@@ -1,0 +1,112 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Como Usar">
+  <div class="max-w-4xl">
+    <div class="mb-10">
+      <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Central de Ajuda</h1>
+      <p class="text-gray-500 mt-2 text-lg">Tudo o que você precisa saber para dominar a geração e publicação dos sites.</p>
+    </div>
+    
+    <div class="space-y-10 pb-20">
+      
+      {/* SEÇÃO 1: COMO FUNCIONA */}
+      <section class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-[#7c3aed]/5 rounded-bl-full -mr-10 -mt-10 pointer-events-none"></div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3 relative z-10">
+          <span class="w-12 h-12 bg-[#7c3aed]/10 text-[#7c3aed] flex items-center justify-center rounded-2xl text-xl shadow-inner">🚀</span>
+          A Mágica por Trás: Como Funciona?
+        </h2>
+        <div class="space-y-4 text-gray-600 leading-relaxed relative z-10">
+          <p>Diferente de construtores de arrastar e soltar que criam códigos pesados, a plataforma <strong>Meu Site Com IA</strong> entrega um código-fonte profissional diretamente na sua mão. O processo inteiro acontece em 3 passos invisíveis:</p>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
+            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200/60 hover:border-[#7c3aed]/30 transition-colors">
+              <h3 class="font-bold text-gray-900 mb-2 flex items-center gap-2"><span class="bg-[#7c3aed] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span> O Modelo</h3>
+              <p class="text-sm">Você escolhe um Template na Vitrine e clica em Fazer Deploy.</p>
+            </div>
+            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200/60 hover:border-black/30 transition-colors">
+              <h3 class="font-bold text-gray-900 mb-2 flex items-center gap-2"><span class="bg-black text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span> Arquivamento</h3>
+              <p class="text-sm">Injetamos uma cópia blindada desse site direto dentro da sua conta do <strong>GitHub</strong> na mesma hora.</p>
+            </div>
+            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200/60 hover:border-black/30 transition-colors">
+              <h3 class="font-bold text-gray-900 mb-2 flex items-center gap-2"><span class="bg-black text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span> O Servidor</h3>
+              <p class="text-sm">A <strong>Vercel</strong> puxa esse código, monta o site, aplica o cadeado de segurança (HTTPS) e entrega online.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SEÇÃO 2: POR QUE TOKENS? */}
+      <section class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+          <span class="w-12 h-12 bg-amber-50 text-amber-600 flex items-center justify-center rounded-2xl text-xl shadow-inner">🔑</span>
+          Por que preciso das Chaves (Tokens)?
+        </h2>
+        <div class="text-gray-600 leading-relaxed space-y-4">
+          <p>Nós não somos donos dos seus sites, <strong>você é!</strong></p>
+          <p>Para que a nossa inteligência consiga criar a cópia do código na sua conta (GitHub) e ligar o servidor grátis para você (Vercel), você precisa nos dar uma "chave da porta da frente". Essa chave temporária se chama <strong>Token</strong>.</p>
+          <p>Ao salvar seus tokens na aba <a href="/configuracoes" class="text-[#7c3aed] font-medium hover:underline">Configurações</a>, nosso robô ganha a permissão restrita de criar repositórios e hospedar sites na sua nuvem sem precisar da sua senha pessoal.</p>
+        </div>
+      </section>
+
+      {/* SEÇÃO 3: O QUE É GITHUB */}
+      <section class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+          <span class="w-12 h-12 bg-gray-100 text-gray-900 flex items-center justify-center rounded-2xl text-xl shadow-inner">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          </span>
+          O que é GitHub?
+        </h2>
+        <div class="text-gray-600 leading-relaxed space-y-4">
+          <p>O <strong>GitHub</strong> é o maior pendrive na nuvem para programadores do mundo (pertence à Microsoft). É lá que os códigos de computador ficam guardados em formato de texto. Chamamos essas pastas de <strong>Repositórios</strong>.</p>
+          <p>Você precisa de uma conta gratuita lá para que nossos computadores enviem as matrizes dos sites (Templates) diretamente para a sua gaveta privada.</p>
+          <div class="mt-4 p-5 bg-gray-50 border border-gray-200 rounded-2xl">
+            <h4 class="font-bold text-gray-900 mb-2">Como gerar seu Token do GitHub:</h4>
+            <ol class="list-decimal pl-5 space-y-1 text-sm">
+              <li>Crie sua conta no <a href="https://github.com" target="_blank" class="font-semibold underline">github.com</a></li>
+              <li>Acesse <a href="https://github.com/settings/tokens/new" target="_blank" class="font-semibold underline">Settings > Developer Settings > Tokens (Classic)</a></li>
+              <li>Dê um nome, escolha "No Expiration" e marque a caixinha <code>repo</code>. Gere e copie a chave.</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      {/* SEÇÃO 4: O QUE É VERCEL */}
+      <section class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+          <span class="w-12 h-12 bg-black text-white flex items-center justify-center rounded-2xl text-xl shadow-inner">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M24 22.525H0l12-21.05 12 21.05z" /></svg>
+          </span>
+          O que é a Vercel?
+        </h2>
+        <div class="text-gray-600 leading-relaxed space-y-4">
+          <p>A <strong>Vercel</strong> é a infraestrutura de hospedagem da nova geração. Ela não é como as antigas (Locaweb, Hostgator). A Vercel "lê" o seu código direto do GitHub e cria o site na ponta, pulverizando ele pelo mundo para abrir em milissegundos.</p>
+          <p>Nós usamos a Vercel porque ela oferece certificado de segurança de graça, suporte para a nossa tecnologia principal (Astro), e não cobra hospedagem de início.</p>
+          <div class="mt-4 p-5 bg-gray-50 border border-gray-200 rounded-2xl">
+            <h4 class="font-bold text-gray-900 mb-2">Como gerar seu Token da Vercel:</h4>
+            <ol class="list-decimal pl-5 space-y-1 text-sm">
+              <li>Crie sua conta no <a href="https://vercel.com" target="_blank" class="font-semibold underline">vercel.com</a></li>
+              <li>Vá em Editar Perfil, clique na aba <strong>Tokens</strong> no painel de Account Settings.</li>
+              <li>Crie um token dando um nome qualquer e scope "Full Access". Copie a chave longa.</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      {/* SEÇÃO 5: O QUE É ASTRO */}
+      <section class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+          <span class="w-12 h-12 bg-[#7c3aed]/10 text-[#7c3aed] flex items-center justify-center rounded-2xl text-xl shadow-inner">⚡</span>
+          Por que usamos Astro.js?
+        </h2>
+        <div class="text-gray-600 leading-relaxed space-y-4">
+          <p>Sabe por que a maioria dos sites feitos em WordPress são lentos no celular? Porque eles enviam blocos gigantes de configurações pro celular do cliente processar (JavaScript).</p>
+          <p>O <strong>Astro.js</strong> é o Framework do futuro. Ele compila todas as decorações do site e envia só o <strong>HTML puro de altíssima velocidade</strong>. Resultado: Os sites que você gera nesta plataforma carregam antes da pessoa piscar, e o Google ama isso (ranqueando infinitamente melhor nas pesquisas de SEO).</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</DashboardLayout>

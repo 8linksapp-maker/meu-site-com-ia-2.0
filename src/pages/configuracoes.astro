@@ -1,0 +1,12 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import ConfigSettings from '../components/ConfigSettings';
+---
+
+<DashboardLayout title="Configurações">
+  <div class="mb-6">
+    <p class="text-gray-600">Gerencie seu acesso e tokens de API da Vercel e Github.</p>
+  </div>
+  
+  <ConfigSettings client:load />
+</DashboardLayout>

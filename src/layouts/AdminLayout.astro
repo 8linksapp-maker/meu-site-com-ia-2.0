@@ -1,0 +1,147 @@
+---
+import '../styles/global.css';
+import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings } from 'lucide-react';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+const pathname = new URL(Astro.request.url).pathname;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title} | Admin SaaS</title>
+	</head>
+	<body class="bg-gray-50 text-gray-900 flex h-screen overflow-hidden">
+    <div id="admin-loader" class="fixed inset-0 bg-white z-50 flex items-center justify-center">
+      <div class="text-[#7c3aed] font-medium">Verificando permissões...</div>
+    </div>
+
+    <aside class="w-64 bg-gray-900 text-white border-r border-gray-800 flex flex-col h-full">
+      <div class="h-16 flex items-center px-6 border-b border-gray-800">
+        <h1 class="text-xl font-bold text-white">Admin Panel</h1>
+      </div>
+      
+      <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+        <a 
+          href="/admin" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname === '/admin' || pathname === '/admin/'
+              ? 'bg-[#7c3aed] text-white font-medium' 
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          Dashboard
+        </a>
+        <a 
+          href="/admin/usuarios" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/usuarios') 
+              ? 'bg-[#7c3aed] text-white font-medium' 
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <Users className="w-5 h-5" />
+          Usuários
+        </a>
+        <a 
+          href="/admin/templates" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/templates') 
+              ? 'bg-[#7c3aed] text-white font-medium' 
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <FileStack className="w-5 h-5" />
+          Templates
+        </a>
+        <a 
+          href="/admin/categorias" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/categorias') 
+              ? 'bg-[#7c3aed] text-white font-medium' 
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <Tags className="w-5 h-5" />
+          Categorias
+        </a>
+        <a 
+          href="/admin/configuracoes" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/configuracoes') 
+              ? 'bg-[#7c3aed] text-white font-medium' 
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <Settings className="w-5 h-5" />
+          Configurações
+        </a>
+      </nav>
+
+      <div class="p-4 border-t border-gray-800">
+        <a href="/sites" class="flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-400 hover:bg-gray-800 hover:text-white transition-colors text-left mb-2">
+          Voltar ao App
+        </a>
+        <button id="logout-btn" class="flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-400 hover:bg-red-500/10 hover:text-red-500 transition-colors text-left">
+          <LogOut className="w-5 h-5" />
+          Sair
+        </button>
+      </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-gray-100">
+      <header class="h-16 bg-white shadow-sm flex items-center px-8">
+        <h2 class="text-xl font-semibold text-gray-800">{title}</h2>
+      </header>
+      
+      <div class="flex-1 overflow-y-auto p-8">
+        <slot />
+      </div>
+    </main>
+
+    <script>
+      import { supabase } from '../lib/supabase';
+      
+      async function checkAdminAuth() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          window.location.href = '/';
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.role !== 'admin') {
+          window.location.href = '/sites';
+          return;
+        }
+
+        // Removendo o loader se for admin
+        const loader = document.getElementById('admin-loader');
+        if (loader) loader.style.display = 'none';
+      }
+
+      checkAdminAuth();
+
+      async function handleLogout() {
+        await supabase.auth.signOut();
+        window.location.href = '/';
+      }
+
+      document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+    </script>
+	</body>
+</html>

@@ -1,0 +1,12 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import CategoriesManagerComponent from '../../components/admin/CategoriesManager';
+---
+
+<AdminLayout title="Categorias de Templates">
+  <div class="mb-6">
+    <p class="text-gray-600">Crie as categorias mestre do sistema para organizar seus templates (ex: Landing Page, App Web, Blog Local, etc).</p>
+  </div>
+  
+  <CategoriesManagerComponent client:load />
+</AdminLayout>
