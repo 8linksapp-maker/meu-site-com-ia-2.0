@@ -404,8 +404,8 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
                                     </span>
                                 </div>
                             </div>
-                        )
-                    })
+                        );
+                    });
                 })()}
             </div>
 
@@ -484,12 +484,7 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
                                     )}
 
                                     <div className="mt-5 space-y-2.5">
-                                        {hasTokens === false && (
-                                            <div className="bg-red-50 text-red-600 p-2.5 rounded-lg text-xs mb-3 border border-red-100">
-                                                Configure os tokens primeiro.
-                                            </div>
-                                        )}
-                                        {subscriptionStatus !== 'active' && hasTokens !== false && (
+                                        {subscriptionStatus !== 'active' && (
                                             <div className="bg-amber-50 text-amber-700 p-2.5 rounded-lg text-xs mb-3 border border-amber-200">
                                                 Sua assinatura está inativa. <a href="#" className="font-bold underline hover:text-amber-900 transition">Assine agora</a> para criar sites ilimitados.
                                             </div>
@@ -511,7 +506,7 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
                                             </a>
                                         )}
                                         <button
-                                            disabled={hasTokens === false || subscriptionStatus !== 'active'}
+                                            disabled={subscriptionStatus !== 'active'}
                                             onClick={() => setIsDeployMode(true)}
                                             className="w-full flex items-center justify-center gap-2 py-2.5 lg:py-3 px-4 rounded-xl bg-[#7c3aed] text-white hover:bg-[#6d28d9] font-bold text-xs shadow-[0_8px_20px_-6px_rgba(124,58,237,0.5)] hover:shadow-[0_12px_25px_-8px_rgba(124,58,237,0.6)] hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                         >
