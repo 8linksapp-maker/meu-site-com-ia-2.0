@@ -13,6 +13,8 @@ export default function TemplatesManager() {
     const [description, setDescription] = useState('');
     const [repo, setRepo] = useState('');
     const [previewUrl, setPreviewUrl] = useState('');
+    const [isLocked, setIsLocked] = useState(false);
+    const [releaseDate, setReleaseDate] = useState('');
 
     const [existingImages, setExistingImages] = useState<string[]>([]);
     const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
@@ -73,7 +75,9 @@ export default function TemplatesManager() {
             preview_url: previewUrl,
             image_url: primaryImageUrl,
             images: finalImagesArray,
-            category_ids: selectedCategories
+            category_ids: selectedCategories,
+            is_locked: isLocked,
+            release_date: releaseDate || null
         };
 
         if (editId) {
@@ -111,6 +115,8 @@ export default function TemplatesManager() {
             setDescription(template.description || '');
             setRepo(template.repo || '');
             setPreviewUrl(template.preview_url || '');
+            setIsLocked(template.is_locked || false);
+            setReleaseDate(template.release_date ? new Date(template.release_date).toISOString().slice(0, 16) : '');
 
             // Garantir que templates antigos que usavam field 'image_url' simples entrem pro state the array do carrosel
             const dbImages = template.images?.length > 0
@@ -127,6 +133,8 @@ export default function TemplatesManager() {
             setPreviewUrl('');
             setExistingImages([]);
             setSelectedCategories([]);
+            setIsLocked(false);
+            setReleaseDate('');
         }
         setIsModalOpen(true);
     };
@@ -302,8 +310,6 @@ export default function TemplatesManager() {
                                 )}
                             </div>
 
-                            <hr className="border-gray-100" />
-
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Categorias / Tags</label>
                                 {categories.length === 0 ? (
@@ -331,6 +337,37 @@ export default function TemplatesManager() {
                                 )}
                             </div>
 
+                            <hr className="border-gray-100" />
+
+                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700">Travar Template (Em Desenvolvimento)</label>
+                                        <p className="text-xs text-gray-500">Ao travar, os botões de preview e criação de site ficarão desabilitados para o usuário.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsLocked(!isLocked)}
+                                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isLocked ? 'bg-[#7c3aed]' : 'bg-gray-200'}`}
+                                    >
+                                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isLocked ? 'translate-x-5' : 'translate-x-0'}`} />
+                                    </button>
+                                </div>
+
+                                {isLocked && (
+                                    <div className="mt-4 pt-4 border-t border-gray-200 animate-fade-in">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Data e Hora de Liberação</label>
+                                        <input
+                                            type="datetime-local"
+                                            value={releaseDate}
+                                            onChange={e => setReleaseDate(e.target.value)}
+                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#7c3aed] focus:border-[#7c3aed] sm:text-sm"
+                                        />
+                                        <p className="mt-1 text-[10px] text-gray-400">Opcional. Apenas informativo para o usuário na vitrine.</p>
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="flex gap-3 justify-end mt-8 border-t border-gray-100 pt-6">
                                 <button type="button" onClick={closeModal} className="px-6 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancelar</button>
                                 <button type="submit" disabled={loading} className="px-6 py-2.5 text-sm bg-[#7c3aed] text-white rounded-lg font-bold shadow-md hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:transform-none transition">
@@ -338,9 +375,10 @@ export default function TemplatesManager() {
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            )}
-        </div>
+                    </div >
+                </div >
+            )
+            }
+        </div >
     );
 }

@@ -174,155 +174,169 @@ export default function TemplateDetails({ templateId }: { templateId: string }) 
                     </div>
                 )}
 
-                <div className="mb-8">
-                    {/* Botões de Ação Principais */}
-                    {!isDeployMode ? (
-                        <div className="space-y-3">
-                            {hasTokens === false && (
-                                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-xs mb-4">
-                                    <strong>Aviso:</strong> Você precisa configurar seus Tokens na aba "Configurações" antes de instanciar sites automáticos.
+                {/* Botões de Ação Principais */}
+                {template.is_locked && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-4 rounded-xl text-xs mb-6 animate-fade-in">
+                        <div className="flex items-center gap-2 mb-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            <strong className="uppercase tracking-wider">Em Desenvolvimento</strong>
+                        </div>
+                        <p className="leading-relaxed opacity-90">
+                            {template.release_date
+                                ? `Este template será liberado em: ${new Date(template.release_date).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })}`
+                                : "Este template está sendo preparado e estará disponível em breve."
+                            }
+                        </p>
+                    </div>
+                )}
+
+                {!isDeployMode ? (
+                    <div className="space-y-3">
+                        {hasTokens === false && (
+                            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-xs mb-4">
+                                <strong>Aviso:</strong> Você precisa configurar seus Tokens na aba "Configurações" antes de instanciar sites automáticos.
+                            </div>
+                        )}
+
+                        <a
+                            href={template.is_locked ? '#' : `https://github.com/${template.repo}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => template.is_locked && e.preventDefault()}
+                            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition border ${template.is_locked ? 'bg-gray-800/50 text-gray-500 border-gray-700 cursor-not-allowed' : 'bg-white/5 hover:bg-white/10 text-white border-white/10'}`}
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
+                            {template.is_locked ? 'Link Bloqueado' : 'Repositório Github'}
+                        </a>
+
+                        <button
+                            onClick={() => setIsDeployMode(true)}
+                            disabled={hasTokens === false || template.is_locked}
+                            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#22c55e] hover:bg-[#16a34a] text-white rounded-lg font-bold transition disabled:opacity-50 disabled:bg-gray-700 disabled:shadow-none disabled:cursor-not-allowed shadow-[0_0_15px_rgba(34,197,94,0.4)]"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+                            {template.is_locked ? 'Em Desenvolvimento' : 'Fazer Deploy Automático'}
+                        </button>
+                    </div>
+                ) : (
+                    // FLUJO INLINE DE DEPLOY (Substitui o Pop Up Antigo)
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-5 animate-fade-in">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Configurar Site</h3>
+                            <button
+                                onClick={() => { setIsDeployMode(false); setStatus(''); }}
+                                disabled={loading}
+                                className="text-gray-500 hover:text-white"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleDeploy} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-1">Nome do Repositório (Alvo)</label>
+                                <input
+                                    type="text"
+                                    required
+                                    disabled={loading}
+                                    placeholder="ex: meu-site-oficial"
+                                    value={repoName}
+                                    onChange={(e) => setRepoName(e.target.value)}
+                                    className="w-full px-3 py-2.5 bg-black/40 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-[#a78bfa] transition disabled:opacity-50"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-1">Senha de Administrador (Novo Paintel)</label>
+                                <input
+                                    type="password"
+                                    required
+                                    disabled={loading}
+                                    placeholder="**********"
+                                    value={adminPassword}
+                                    onChange={(e) => setAdminPassword(e.target.value)}
+                                    className="w-full px-3 py-2.5 bg-black/40 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-[#a78bfa] transition disabled:opacity-50"
+                                />
+                            </div>
+
+                            {status && (
+                                <div className={`p-3 rounded-lg text-xs leading-relaxed ${status.includes('Erro') || status.includes('❌') ? 'bg-red-500/10 text-red-400 border border-red-500/20' : status.includes('✅') ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-[#a78bfa]/10 text-[#a78bfa] border border-[#a78bfa]/20'}`}>
+                                    <div className="font-semibold mb-1">{status}</div>
+                                    {loading && (
+                                        <div className="w-full bg-black/50 rounded-full h-1 mt-2 overflow-hidden relative">
+                                            <div className="absolute top-0 bottom-0 left-0 bg-[#a78bfa] w-1/2 rounded-full animate-pulse"></div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
-                            <a
-                                href={`https://github.com/${template.repo}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white/5 hover:bg-white/10 text-white rounded-lg font-medium transition border border-white/10"
-                            >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
-                                Repositório Github
-                            </a>
-
-                            <button
-                                onClick={() => setIsDeployMode(true)}
-                                disabled={hasTokens === false}
-                                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#22c55e] hover:bg-[#16a34a] text-white rounded-lg font-bold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(34,197,94,0.4)]"
-                            >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
-                                Fazer Deploy Automático
-                            </button>
-                        </div>
-                    ) : (
-                        // FLUJO INLINE DE DEPLOY (Substitui o Pop Up Antigo)
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-5 animate-fade-in">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Configurar Site</h3>
-                                <button
-                                    onClick={() => { setIsDeployMode(false); setStatus(''); }}
-                                    disabled={loading}
-                                    className="text-gray-500 hover:text-white"
-                                >
-                                    ✕
-                                </button>
-                            </div>
-
-                            <form onSubmit={handleDeploy} className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-400 mb-1">Nome do Repositório (Alvo)</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        disabled={loading}
-                                        placeholder="ex: meu-site-oficial"
-                                        value={repoName}
-                                        onChange={(e) => setRepoName(e.target.value)}
-                                        className="w-full px-3 py-2.5 bg-black/40 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-[#a78bfa] transition disabled:opacity-50"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-400 mb-1">Senha de Administrador (Novo Paintel)</label>
-                                    <input
-                                        type="password"
-                                        required
-                                        disabled={loading}
-                                        placeholder="**********"
-                                        value={adminPassword}
-                                        onChange={(e) => setAdminPassword(e.target.value)}
-                                        className="w-full px-3 py-2.5 bg-black/40 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-[#a78bfa] transition disabled:opacity-50"
-                                    />
-                                </div>
-
-                                {status && (
-                                    <div className={`p-3 rounded-lg text-xs leading-relaxed ${status.includes('Erro') || status.includes('❌') ? 'bg-red-500/10 text-red-400 border border-red-500/20' : status.includes('✅') ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-[#a78bfa]/10 text-[#a78bfa] border border-[#a78bfa]/20'}`}>
-                                        <div className="font-semibold mb-1">{status}</div>
-                                        {loading && (
-                                            <div className="w-full bg-black/50 rounded-full h-1 mt-2 overflow-hidden relative">
-                                                <div className="absolute top-0 bottom-0 left-0 bg-[#a78bfa] w-1/2 rounded-full animate-pulse"></div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {deployedUrl ? (
-                                    <div className="mt-4 flex flex-col gap-2">
-                                        <a
-                                            href={`https://${deployedUrl}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="w-full flex justify-center py-2.5 px-4 rounded-lg text-sm font-bold text-black bg-[#22c55e] hover:bg-[#16a34a] transition shadow-[0_0_15px_rgba(34,197,94,0.4)]"
-                                        >
-                                            Abrir Site no Ar ↗
-                                        </a>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setIsDeployMode(false);
-                                                setRepoName('');
-                                                setAdminPassword('');
-                                                setStatus('');
-                                                setDeployedUrl('');
-                                            }}
-                                            className="w-full flex justify-center py-2 px-4 rounded-lg text-xs font-medium text-gray-400 border border-gray-800 hover:bg-white/5 transition"
-                                        >
-                                            Criar Outro Novo
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-sm font-bold text-black bg-white hover:bg-gray-200 disabled:opacity-50 transition mt-2 truncate"
+                            {deployedUrl ? (
+                                <div className="mt-4 flex flex-col gap-2">
+                                    <a
+                                        href={`https://${deployedUrl}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full flex justify-center py-2.5 px-4 rounded-lg text-sm font-bold text-black bg-[#22c55e] hover:bg-[#16a34a] transition shadow-[0_0_15px_rgba(34,197,94,0.4)]"
                                     >
-                                        {loading ? 'Preparando...' : 'Iniciar Instalação Automática'}
+                                        Abrir Site no Ar ↗
+                                    </a>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsDeployMode(false);
+                                            setRepoName('');
+                                            setAdminPassword('');
+                                            setStatus('');
+                                            setDeployedUrl('');
+                                        }}
+                                        className="w-full flex justify-center py-2 px-4 rounded-lg text-xs font-medium text-gray-400 border border-gray-800 hover:bg-white/5 transition"
+                                    >
+                                        Criar Outro Novo
                                     </button>
-                                )}
-                            </form>
-                        </div>
-                    )}
-                </div>
+                                </div>
+                            ) : (
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-sm font-bold text-black bg-white hover:bg-gray-200 disabled:opacity-50 transition mt-2 truncate"
+                                >
+                                    {loading ? 'Preparando...' : 'Iniciar Instalação Automática'}
+                                </button>
+                            )}
+                        </form>
+                    </div>
+                )}
+            </div>
 
-                {/* Detalhes Adicionais (Bottom Sidebar) */}
-                <div className="flex-1 border-t border-gray-800 pt-6">
-                    <h4 className="text-white text-sm font-bold mb-4 uppercase tracking-wider">Características</h4>
-                    <ul className="space-y-3 text-sm text-gray-400">
-                        <li className="flex justify-between items-center">
-                            <span>Licença</span>
-                            <span className="text-white">Uso Vitalício</span>
-                        </li>
-                        <li className="flex justify-between items-center">
-                            <span>Tecnologias</span>
-                            <span className="text-white">Astro, React, Tailwind</span>
-                        </li>
-                        <li className="flex justify-between items-center">
-                            <span>Painel CMS</span>
-                            <span className="text-white">Integração Nativa</span>
-                        </li>
-                        <li className="flex justify-between items-center">
-                            <span>Responsividade</span>
-                            <span className="text-white">Mobile-First</span>
-                        </li>
-                        <li className="flex justify-between items-center">
-                            <span>Deploy</span>
-                            <span className="text-white">Automático (Vercel)</span>
-                        </li>
-                    </ul>
+            {/* Detalhes Adicionais (Bottom Sidebar) */}
+            <div className="flex-1 border-t border-gray-800 pt-6">
+                <h4 className="text-white text-sm font-bold mb-4 uppercase tracking-wider">Características</h4>
+                <ul className="space-y-3 text-sm text-gray-400">
+                    <li className="flex justify-between items-center">
+                        <span>Licença</span>
+                        <span className="text-white">Uso Vitalício</span>
+                    </li>
+                    <li className="flex justify-between items-center">
+                        <span>Tecnologias</span>
+                        <span className="text-white">Astro, React, Tailwind</span>
+                    </li>
+                    <li className="flex justify-between items-center">
+                        <span>Painel CMS</span>
+                        <span className="text-white">Integração Nativa</span>
+                    </li>
+                    <li className="flex justify-between items-center">
+                        <span>Responsividade</span>
+                        <span className="text-white">Mobile-First</span>
+                    </li>
+                    <li className="flex justify-between items-center">
+                        <span>Deploy</span>
+                        <span className="text-white">Automático (Vercel)</span>
+                    </li>
+                </ul>
 
-                    <p className="mt-8 text-xs text-gray-500 leading-relaxed text-justify">
-                        {template.description || 'Nenhuma descrição fornecida para este repositório. O processo de deploy automatizado clonará este escopo diretamente para uma engine otimizada da Vercel atrelada ao seu GitHub.'}
-                    </p>
-                </div>
+                <p className="mt-8 text-xs text-gray-500 leading-relaxed text-justify">
+                    {template.description || 'Nenhuma descrição fornecida para este repositório. O processo de deploy automatizado clonará este escopo diretamente para uma engine otimizada da Vercel atrelada ao seu GitHub.'}
+                </p>
             </div>
             {/* INJECT ANIMATION IN LINE FOR COMPONENT PURPOSES */}
             <style>{`

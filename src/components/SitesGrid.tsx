@@ -376,6 +376,14 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill={favoriteIds.includes(template.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                                     </button>
                                 </div>
+                                {template.is_locked && (
+                                    <div className="absolute top-3 left-3 z-10">
+                                        <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm flex items-center gap-1 uppercase tracking-wider">
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                            Em Breve
+                                        </span>
+                                    </div>
+                                )}
                                 {template.image_url ? (
                                     <div className="h-48 w-full bg-gray-100 overflow-hidden relative">
                                         <img src={template.image_url} alt={template.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
@@ -484,7 +492,21 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
                                     )}
 
                                     <div className="mt-5 space-y-2.5">
-                                        {subscriptionStatus !== 'active' && (
+                                        {selectedTemplate.is_locked && (
+                                            <div className="bg-amber-50 text-amber-800 p-4 rounded-xl border border-amber-200 mb-4 animate-fade-in shadow-sm">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                                    <span className="font-bold text-sm">Este template está em desenvolvimento</span>
+                                                </div>
+                                                <p className="text-xs opacity-90">
+                                                    {selectedTemplate.release_date
+                                                        ? `Data prevista de liberação: ${new Date(selectedTemplate.release_date).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })}`
+                                                        : "Aguarde novidades! Em breve ele estará disponível para você."
+                                                    }
+                                                </p>
+                                            </div>
+                                        )}
+                                        {subscriptionStatus !== 'active' && !selectedTemplate.is_locked && (
                                             <div className="bg-amber-50 text-amber-700 p-2.5 rounded-lg text-xs mb-3 border border-amber-200">
                                                 Sua assinatura está inativa. <a href="#" className="font-bold underline hover:text-amber-900 transition">Assine agora</a> para criar sites ilimitados.
                                             </div>
@@ -493,6 +515,11 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
                                             <button disabled className="w-full flex items-center justify-center gap-2 py-2.5 lg:py-3 px-4 border-2 border-gray-100 rounded-xl text-xs font-bold text-gray-400 bg-gray-50 cursor-not-allowed opacity-60">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                                                 Prévia Cadastrada (Assine)
+                                            </button>
+                                        ) : selectedTemplate.is_locked ? (
+                                            <button disabled className="w-full flex items-center justify-center gap-2 py-2.5 lg:py-3 px-4 border-2 border-amber-100 rounded-xl text-xs font-bold text-amber-600 bg-amber-50 cursor-not-allowed opacity-70">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                                Preview Indisponível
                                             </button>
                                         ) : (
                                             <a
@@ -506,12 +533,12 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
                                             </a>
                                         )}
                                         <button
-                                            disabled={subscriptionStatus !== 'active'}
+                                            disabled={subscriptionStatus !== 'active' || selectedTemplate.is_locked}
                                             onClick={() => setIsDeployMode(true)}
-                                            className="w-full flex items-center justify-center gap-2 py-2.5 lg:py-3 px-4 rounded-xl bg-[#7c3aed] text-white hover:bg-[#6d28d9] font-bold text-xs shadow-[0_8px_20px_-6px_rgba(124,58,237,0.5)] hover:shadow-[0_12px_25px_-8px_rgba(124,58,237,0.6)] hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                            className="w-full flex items-center justify-center gap-2 py-2.5 lg:py-3 px-4 rounded-xl bg-[#7c3aed] text-white hover:bg-[#6d28d9] font-bold text-xs shadow-[0_8px_20px_-6px_rgba(124,58,237,0.5)] hover:shadow-[0_12px_25px_-8px_rgba(124,58,237,0.6)] hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:bg-gray-400 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none"
                                         >
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
-                                            {subscriptionStatus !== 'active' ? 'Bloqueado' : 'Criar site'}
+                                            {selectedTemplate.is_locked ? 'Em Desenvolvimento' : (subscriptionStatus !== 'active' ? 'Bloqueado' : 'Criar site')}
                                         </button>
                                     </div>
 
