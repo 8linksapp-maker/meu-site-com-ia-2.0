@@ -72,7 +72,7 @@ serve(async (req) => {
                 // 2. DISPARO DO E-MAIL DE ACESSO OFICIAL DO SUPABASE (Reset Password para o /login)
                 console.log(`Enviando e-mail de acesso via Reset Password para: ${siteUrl}`);
                 const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(customerEmail, {
-                    redirectTo: siteUrl,
+                    redirectTo: `${siteUrl.replace(/\/$/, '')}/update-password`,
                 });
                 if (resetError) {
                     console.warn("Aviso: Falha ao enviar e-mail de reset (Rate Limit/Spam), mas seguindo o processo de cadastro...", resetError.message);
