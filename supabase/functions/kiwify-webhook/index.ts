@@ -85,8 +85,7 @@ serve(async (req) => {
                 subscription_status: 'active',
                 payment_provider: 'kiwify',
                 kiwify_subscription_id: subscriptionId,
-                subscription_period_end: expiryDate ? new Date(expiryDate).toISOString() : null,
-                updated_at: new Date().toISOString()
+                subscription_period_end: expiryDate ? new Date(expiryDate).toISOString() : null
             }, { onConflict: 'id' });
 
             if (profileError) throw profileError;
