@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 
@@ -9,6 +9,24 @@ export default function Login() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [mode, setMode] = useState<'login' | 'magic_link' | 'recovery'>('login');
+
+    useEffect(() => {
+        // Verifica se já existe uma sessão ao carregar
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                window.location.href = '/sites';
+            }
+        });
+
+        // Escuta mudanças (ex: quando o link mágico é validado)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (session && event === 'SIGNED_IN') {
+                window.location.href = '/sites';
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
 
     const handleAuth = async (e: FormEvent) => {
         e.preventDefault();
