@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings } from 'lucide-react';
+import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings, Menu, X } from 'lucide-react';
 
 interface Props {
 	title: string;
@@ -20,13 +20,20 @@ const pathname = new URL(Astro.request.url).pathname;
 		<title>{title} | Admin SaaS</title>
 	</head>
 	<body class="bg-gray-50 text-gray-900 flex h-screen overflow-hidden">
-    <div id="admin-loader" class="fixed inset-0 bg-white z-50 flex items-center justify-center">
+    <div id="admin-loader" class="fixed inset-0 bg-white z-[60] flex items-center justify-center">
       <div class="text-[#7c3aed] font-medium">Verificando permissões...</div>
     </div>
 
-    <aside class="w-64 bg-gray-900 text-white border-r border-gray-800 flex flex-col h-full">
-      <div class="h-16 flex items-center px-6 border-b border-gray-800">
+    <!-- Overlay Mobile -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 lg:hidden opacity-0 invisible transition-all duration-300"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-64 bg-gray-900 text-white border-r border-gray-800 flex flex-col h-full z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+      <div class="h-16 flex items-center justify-between px-6 border-b border-gray-800 shrink-0">
         <h1 class="text-xl font-bold text-white">Admin Panel</h1>
+        <button id="close-sidebar" class="lg:hidden p-2 text-gray-400 hover:bg-gray-800 rounded-md">
+          <X className="w-5 h-5" />
+        </button>
       </div>
       
       <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -87,7 +94,7 @@ const pathname = new URL(Astro.request.url).pathname;
         </a>
       </nav>
 
-      <div class="p-4 border-t border-gray-800">
+      <div class="p-4 border-t border-gray-800 shrink-0">
         <a href="/sites" class="flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-400 hover:bg-gray-800 hover:text-white transition-colors text-left mb-2">
           Voltar ao App
         </a>
@@ -98,12 +105,15 @@ const pathname = new URL(Astro.request.url).pathname;
       </div>
     </aside>
 
-    <main class="flex-1 flex flex-col h-full overflow-hidden bg-gray-100">
-      <header class="h-16 bg-white shadow-sm flex items-center px-8">
-        <h2 class="text-xl font-semibold text-gray-800">{title}</h2>
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-gray-100 min-w-0">
+      <header class="h-16 bg-white shadow-sm flex items-center px-4 lg:px-8 shrink-0 gap-4">
+        <button id="open-sidebar" class="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-md">
+          <Menu className="w-6 h-6" />
+        </button>
+        <h2 class="text-xl font-semibold text-gray-800 truncate">{title}</h2>
       </header>
       
-      <div class="flex-1 overflow-y-auto p-8">
+      <div class="flex-1 overflow-y-auto p-4 lg:p-8">
         <slot />
       </div>
     </main>
@@ -111,6 +121,22 @@ const pathname = new URL(Astro.request.url).pathname;
     <script>
       import { supabase } from '../lib/supabase';
       
+      // Menu Mobile Toggle
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      const openBtn = document.getElementById('open-sidebar');
+      const closeBtn = document.getElementById('close-sidebar');
+
+      function toggleSidebar() {
+        sidebar?.classList.toggle('-translate-x-full');
+        overlay?.classList.toggle('opacity-0');
+        overlay?.classList.toggle('invisible');
+      }
+
+      openBtn?.addEventListener('click', toggleSidebar);
+      closeBtn?.addEventListener('click', toggleSidebar);
+      overlay?.addEventListener('click', toggleSidebar);
+
       async function checkAdminAuth() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
