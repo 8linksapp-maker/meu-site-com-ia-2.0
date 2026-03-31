@@ -18,10 +18,46 @@ export default function UserSitesManager() {
     const [hasUpsell, setHasUpsell] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedSite, setSelectedSite] = useState<UserSite | null>(null);
+    const [loginLoading, setLoginLoading] = useState<string | null>(null);
 
     useEffect(() => {
         fetchUserData();
     }, []);
+
+    const handleCmsLogin = async (site: UserSite) => {
+        if (loginLoading) return;
+        setLoginLoading(site.id);
+
+        try {
+            const domain = site.domain || `${site.github_repo}.vercel.app`;
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
+
+            // 1. Buscar o ADMIN_SECRET via Proxy (Vercel)
+            const res = await fetch(`/api/admin/vercel-proxy?projectId=${site.vercel_project_id}&action=getEnv`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.error || 'Erro ao obter credenciais');
+
+            if (!data.secret) {
+                alert('A variável ADMIN_SECRET não foi encontrada para este site na Vercel.');
+                return;
+            }
+
+            // 2. Redirecionar para o CMS com o segredo (URL Padrão de Auto-login do Maker)
+            // Usamos o parâmetro 'token' que é o padrão reconhecido pelos nossos templates
+            const loginUrl = `https://${domain}/admin/login?token=${data.secret}`;
+            window.open(loginUrl, '_blank');
+
+        } catch (err: any) {
+            console.error('Erro no Auto-Login:', err);
+            alert(`Falha ao entrar no CMS: ${err.message}`);
+        } finally {
+            setLoginLoading(null);
+        }
+    };
 
     const fetchUserData = async () => {
         setLoading(true);
@@ -175,19 +211,29 @@ export default function UserSitesManager() {
 
                                 <div className="grid grid-cols-2 gap-2 mt-auto">
                                     {/* Botão Admin (CMS) */}
-                                    <a
-                                        href={site.domain ? `https://${site.domain}/admin` : `https://${site.github_repo.split('/').pop()}.vercel.app/admin`}
-                                        target="_blank"
-                                        className="flex items-center justify-center gap-1.5 py-2 bg-blue-50/50 text-blue-600 rounded-xl text-[12px] font-bold hover:bg-blue-100 transition"
+                                    <button
+                                        onClick={() => handleCmsLogin(site)}
+                                        disabled={!!loginLoading}
+                                        className="flex items-center justify-center gap-1.5 py-2 bg-blue-50/50 text-blue-600 rounded-xl text-[12px] font-bold hover:bg-blue-100 transition disabled:opacity-50"
                                     >
-                                        <LayoutDashboard className="w-3.5 h-3.5" />
-                                        Painel CMS
-                                    </a>
+                                        {loginLoading === site.id ? (
+                                            <>
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                Entrando...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <LayoutDashboard className="w-3.5 h-3.5" />
+                                                Painel CMS
+                                            </>
+                                        )}
+                                    </button>
 
                                     {/* Botão Gerenciar Pro (Vercel) */}
                                     <button
                                         onClick={() => setSelectedSite(site)}
-                                        className="flex items-center justify-center gap-1.5 py-2 bg-purple-50/30 text-[#7c3aed] rounded-xl text-[12px] font-bold hover:bg-purple-100 transition border border-purple-100/50"
+                                        disabled={!!loginLoading}
+                                        className="flex items-center justify-center gap-1.5 py-2 bg-purple-50/30 text-[#7c3aed] rounded-xl text-[12px] font-bold hover:bg-purple-100 transition border border-purple-100/50 disabled:opacity-50"
                                     >
                                         <Settings className="w-3.5 h-3.5" />
                                         Gerenciar
