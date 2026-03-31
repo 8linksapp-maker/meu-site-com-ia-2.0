@@ -163,14 +163,14 @@ export default function UserSitesManager() {
                                     {site.domain || `${site.github_repo.split('/').pop()}.vercel.app`}
                                 </p>
 
-                                <div className="grid grid-cols-1 gap-2 mt-auto">
+                                <div className="grid grid-cols-2 gap-2 mt-auto">
                                     {/* Botão de Ver Site */}
                                     <a
                                         href={site.domain ? `https://${site.domain}` : `https://${site.github_repo.split('/').pop()}.vercel.app`}
                                         target="_blank"
-                                        className="flex items-center justify-center gap-2 py-2.5 bg-gray-50 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-100 transition"
+                                        className="flex items-center justify-center gap-1.5 py-2 bg-gray-50 text-gray-600 rounded-xl text-[12px] font-bold hover:bg-gray-100 transition"
                                     >
-                                        <ExternalLink className="w-4 h-4" />
+                                        <ExternalLink className="w-3.5 h-3.5" />
                                         Ver Site
                                     </a>
 
@@ -178,19 +178,19 @@ export default function UserSitesManager() {
                                     <a
                                         href={site.domain ? `https://${site.domain}/admin` : `https://${site.github_repo.split('/').pop()}.vercel.app/admin`}
                                         target="_blank"
-                                        className="flex items-center justify-center gap-2 py-2.5 bg-blue-50 text-blue-700 rounded-xl text-sm font-bold hover:bg-blue-100 transition"
+                                        className="flex items-center justify-center gap-1.5 py-2 bg-blue-50/50 text-blue-600 rounded-xl text-[12px] font-bold hover:bg-blue-100 transition"
                                     >
-                                        <LayoutDashboard className="w-4 h-4" />
-                                        Painel Admin (CMS)
+                                        <LayoutDashboard className="w-3.5 h-3.5" />
+                                        CMS
                                     </a>
 
                                     {/* Botão Gerenciar Pro (Vercel) */}
                                     <button
                                         onClick={() => setSelectedSite(site)}
-                                        className="flex items-center justify-center gap-2 py-2.5 bg-purple-50 text-[#7c3aed] rounded-xl text-sm font-bold hover:bg-purple-100 transition border border-purple-100"
+                                        className="col-span-2 flex items-center justify-center gap-2 py-2 bg-purple-50/30 text-[#7c3aed] rounded-xl text-[12px] font-bold hover:bg-purple-100 transition border border-purple-100/50"
                                     >
-                                        <Settings className="w-4 h-4" />
-                                        Gerenciar (Vercel)
+                                        <Settings className="w-3.5 h-3.5" />
+                                        Gerenciar Configurações
                                     </button>
                                 </div>
                             </div>
