@@ -261,20 +261,25 @@ export default function Overview() {
                                 { href: '/sites', icon: Plus, label: 'Criar Novo Site', bg: 'bg-[#7c3aed]', color: 'text-white' },
                                 { href: '/favoritos', icon: Heart, label: 'Templates Favoritos', bg: 'bg-rose-50', color: 'text-rose-500' },
                                 { href: '/como-usar', icon: BookOpen, label: 'Ajuda & Docs', bg: 'bg-blue-50', color: 'text-blue-500' },
-                                { href: 'https://chat.whatsapp.com/DoQVgMn4URaAvMqzfal8VU?mode=gi_t', icon: MessageSquare, label: 'Grupo de Alunos', bg: 'bg-emerald-50', color: 'text-emerald-500', external: true }
+                                {
+                                    onClick: () => window.dispatchEvent(new CustomEvent('open-group-wizard')),
+                                    icon: MessageSquare,
+                                    label: 'Grupo de Alunos',
+                                    bg: 'bg-emerald-50',
+                                    color: 'text-emerald-500'
+                                }
                             ].map((item, i) => (
-                                <a
+                                <button
                                     key={i}
-                                    href={item.href}
-                                    target={item.external ? '_blank' : undefined}
-                                    className="flex items-center gap-3 p-2.5 rounded-xl border border-transparent transition-all hover:bg-gray-50 hover:border-gray-100 group"
+                                    onClick={item.onClick || (() => window.location.href = item.href || '#')}
+                                    className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-transparent transition-all hover:bg-gray-50 hover:border-gray-100 group text-left"
                                 >
                                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${item.bg} ${item.color} group-hover:scale-105 transition-transform shadow-sm`}>
                                         <item.icon className="w-4.5 h-4.5" />
                                     </div>
                                     <span className="font-bold text-[12px] text-gray-700 tracking-tight">{item.label}</span>
                                     <ArrowRight className="ml-auto w-3.5 h-3.5 text-gray-300 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
-                                </a>
+                                </button>
                             ))}
                         </div>
                     </div>
