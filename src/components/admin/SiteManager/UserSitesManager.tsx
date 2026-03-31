@@ -88,48 +88,69 @@ export default function UserSitesManager() {
             </div>
 
             {sites.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {sites.map((site) => (
                         <div key={site.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-[#7c3aed]/20 transition-all group overflow-hidden flex flex-col h-full">
                             {/* Preview/Header do Card */}
                             <div className="h-40 bg-slate-50 relative border-b border-gray-50 overflow-hidden group/img">
                                 {(() => {
                                     const siteDomain = site.domain || `${site.github_repo.split('/').pop()}.vercel.app`;
-                                    const screenshotUrl = `https://screenshot.vercel.app/https://${siteDomain}?width=800&height=600`;
+                                    // Usando s-shot.com que é extremamente estável para sites públicos
+                                    const screenshotUrl = `https://mini.s-shot.com/1280x800/400/png/?https://${siteDomain}`;
 
                                     return (
                                         <>
-                                            {/* Imagem Real do Site via Vercel Screenshot API */}
+                                            {/* Imagem Real do Site via Screenshot Service */}
                                             <img
                                                 src={screenshotUrl}
                                                 alt={site.github_repo}
                                                 className="w-full h-full object-cover object-top transition-transform duration-700 group-hover/img:scale-110"
                                                 loading="lazy"
-                                                onError={(e) => {
-                                                    // Esconde a imagem se falhar e mostra o placeholder
-                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                    const parent = (e.target as HTMLImageElement).parentElement;
+                                                onLoad={(e) => {
+                                                    const parent = (e.currentTarget as HTMLImageElement).parentElement;
                                                     if (parent) {
                                                         const placeholder = parent.querySelector('.screenshot-placeholder');
-                                                        if (placeholder) placeholder.classList.remove('hidden');
+                                                        if (placeholder) placeholder.classList.add('hidden');
                                                     }
+                                                }}
+                                                onError={(e) => {
+                                                    console.warn(`[PREVIEW] Falha no primeiro serviço para: ${siteDomain}. Tentando fallback...`);
+                                                    const img = e.currentTarget as HTMLImageElement;
+
+                                                    // Fallback para Microlink (Backup)
+                                                    img.src = `https://api.microlink.io/?url=https://${siteDomain}&screenshot=true&embed=screenshot.url`;
+
+                                                    img.onerror = () => {
+                                                        img.style.display = 'none';
+                                                        const parent = img.parentElement;
+                                                        if (parent) {
+                                                            const placeholder = parent.querySelector('.screenshot-placeholder');
+                                                            if (placeholder) {
+                                                                placeholder.classList.remove('hidden');
+                                                                // Remove animação de pulse pois falhou mesmo
+                                                                const pulseIcon = placeholder.querySelector('.animate-pulse');
+                                                                if (pulseIcon) pulseIcon.classList.remove('animate-pulse');
+                                                            }
+                                                        }
+                                                    };
                                                 }}
                                             />
 
-                                            {/* Placeholder Fallback (Invisível por padrão, aparece se a imagem falhar) */}
-                                            <div className="screenshot-placeholder hidden absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-                                                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-[#7c3aed] transition-colors">
+                                            {/* Loader/Placeholder visível durante o carregamento */}
+                                            <div className="screenshot-placeholder absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 z-[1]">
+                                                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-300 animate-pulse">
                                                     <Globe className="w-6 h-6" />
                                                 </div>
+                                                <span className="text-[10px] text-gray-400 font-bold mt-2 tracking-widest uppercase">Capturando...</span>
                                             </div>
 
-                                            {/* Overlay Gradiente para Melhor Leitura do Badge */}
-                                            <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-black/20 to-transparent pointer-events-none"></div>
+                                            {/* Overlay Gradiente */}
+                                            <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-black/20 to-transparent pointer-events-none z-[2]"></div>
                                         </>
                                     );
                                 })()}
 
-                                <div className="absolute top-4 right-4">
+                                <div className="absolute top-4 right-4 z-[3]">
                                     <span className="px-2.5 py-1 bg-emerald-500/90 text-white backdrop-blur-sm text-[10px] font-black rounded-full border border-emerald-400 shadow-lg">NO AR</span>
                                 </div>
                             </div>
