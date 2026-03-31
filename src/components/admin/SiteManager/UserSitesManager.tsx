@@ -47,8 +47,8 @@ export default function UserSitesManager() {
             }
 
             // 2. Redirecionar para o CMS com o segredo (URL Padrão de Auto-login do Maker)
-            // Usamos o parâmetro 'token' que é o padrão reconhecido pelos nossos templates
-            const loginUrl = `https://${domain}/admin/login?token=${data.secret}`;
+            // Em sites em produção, o parâmetro 'token' é processado na rota base /admin
+            const loginUrl = `https://${domain}/admin?token=${data.secret}`;
             window.open(loginUrl, '_blank');
 
         } catch (err: any) {
