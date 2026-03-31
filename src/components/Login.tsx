@@ -14,14 +14,14 @@ export default function Login() {
         // Verifica se já existe uma sessão ao carregar
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
-                window.location.href = '/sites';
+                window.location.href = '/dashboard';
             }
         });
 
         // Escuta mudanças (ex: quando o link mágico é validado)
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (session && event === 'SIGNED_IN') {
-                window.location.href = '/sites';
+                window.location.href = '/dashboard';
             }
         });
 

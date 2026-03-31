@@ -18,46 +18,10 @@ export default function UserSitesManager() {
     const [hasUpsell, setHasUpsell] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedSite, setSelectedSite] = useState<UserSite | null>(null);
-    const [loginLoading, setLoginLoading] = useState<string | null>(null);
 
     useEffect(() => {
         fetchUserData();
     }, []);
-
-    const handleCmsLogin = async (site: UserSite) => {
-        if (loginLoading) return;
-        setLoginLoading(site.id);
-
-        try {
-            const domain = site.domain || `${site.github_repo}.vercel.app`;
-            const token = (await supabase.auth.getSession()).data.session?.access_token;
-
-            // 1. Buscar o ADMIN_SECRET via Proxy (Vercel)
-            const res = await fetch(`/api/admin/vercel-proxy?projectId=${site.vercel_project_id}&action=getEnv`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) throw new Error(data.error || 'Erro ao obter credenciais');
-
-            if (!data.secret) {
-                alert('A variável ADMIN_SECRET não foi encontrada para este site na Vercel.');
-                return;
-            }
-
-            // 2. Redirecionar para o CMS com o segredo (URL Padrão de Auto-login do Maker)
-            // Em sites em produção, o parâmetro 'token' é processado na rota base /admin
-            const loginUrl = `https://${domain}/admin?token=${data.secret}`;
-            window.open(loginUrl, '_blank');
-
-        } catch (err: any) {
-            console.error('Erro no Auto-Login:', err);
-            alert(`Falha ao entrar no CMS: ${err.message}`);
-        } finally {
-            setLoginLoading(null);
-        }
-    };
 
     const fetchUserData = async () => {
         setLoading(true);
@@ -65,14 +29,24 @@ export default function UserSitesManager() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // 1. Verificar acesso ao Upsell no perfil
-            const { data: profile } = await supabase.from('profiles')
-                .select('has_upsell_sites, role')
-                .eq('id', user.id)
-                .single();
+            // 1. Verificar todos os acessos/produtos do usuário no perfil (Modelo Multi-Acesso)
+            const { data: profileRecords } = await supabase.from('profiles')
+                .select('*')
+                .eq('id', user.id);
 
-            // Administradores sempre têm acesso por padrão para teste
-            setHasUpsell(profile?.has_upsell_sites || profile?.role === 'admin' || false);
+            // Verifica se existe algum registro que dê acesso ao Upsell de Sites
+            const hasActiveSitesUpsell = profileRecords?.some(p => {
+                const isPaid = p.subscription_status === 'active';
+                const notExpired = !p.subscription_period_end || new Date(p.subscription_period_end) > new Date();
+                const isSitesProduct = p.product_name?.toLowerCase().includes('sites') || p.product_name?.toLowerCase().includes('upsell') || p.product_id?.includes('sites');
+
+                return isPaid && notExpired && isSitesProduct;
+            });
+
+            // Se for admin, tem acesso por padrão
+            const isAdmin = profileRecords?.some(p => p.role === 'admin');
+
+            setHasUpsell(hasActiveSitesUpsell || isAdmin || false);
 
             // 2. Buscar sites do usuário via API segura (Para contornar RLS em sites antigos)
             const token = (await supabase.auth.getSession()).data.session?.access_token;
@@ -131,8 +105,8 @@ export default function UserSitesManager() {
                             <div className="h-40 bg-slate-50 relative border-b border-gray-50 overflow-hidden group/img">
                                 {(() => {
                                     const siteDomain = site.domain || `${site.github_repo.split('/').pop()}.vercel.app`;
-                                    // Usando s-shot.com que é extremamente estável para sites públicos
-                                    const screenshotUrl = `https://mini.s-shot.com/1280x800/400/png/?https://${siteDomain}`;
+                                    // Usando Microlink que é muito estável e suporta HTTPS sem problemas
+                                    const screenshotUrl = `https://api.microlink.io/?url=https://${siteDomain}&screenshot=true&meta=false&embed=screenshot.url`;
 
                                     return (
                                         <>
@@ -153,8 +127,8 @@ export default function UserSitesManager() {
                                                     console.warn(`[PREVIEW] Falha no primeiro serviço para: ${siteDomain}. Tentando fallback...`);
                                                     const img = e.currentTarget as HTMLImageElement;
 
-                                                    // Fallback para Microlink (Backup)
-                                                    img.src = `https://api.microlink.io/?url=https://${siteDomain}&screenshot=true&embed=screenshot.url`;
+                                                    // Fallback para thum.io (Backup)
+                                                    img.src = `https://image.thum.io/get/width/400/crop/800/https://${siteDomain}`;
 
                                                     img.onerror = () => {
                                                         img.style.display = 'none';
@@ -211,29 +185,19 @@ export default function UserSitesManager() {
 
                                 <div className="grid grid-cols-2 gap-2 mt-auto">
                                     {/* Botão Admin (CMS) */}
-                                    <button
-                                        onClick={() => handleCmsLogin(site)}
-                                        disabled={!!loginLoading}
-                                        className="flex items-center justify-center gap-1.5 py-2 bg-blue-50/50 text-blue-600 rounded-xl text-[12px] font-bold hover:bg-blue-100 transition disabled:opacity-50"
+                                    <a
+                                        href={site.domain ? `https://${site.domain}/admin` : `https://${site.github_repo.split('/').pop()}.vercel.app/admin`}
+                                        target="_blank"
+                                        className="flex items-center justify-center gap-1.5 py-2 bg-blue-50/50 text-blue-600 rounded-xl text-[12px] font-bold hover:bg-blue-100 transition"
                                     >
-                                        {loginLoading === site.id ? (
-                                            <>
-                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                Entrando...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <LayoutDashboard className="w-3.5 h-3.5" />
-                                                Painel CMS
-                                            </>
-                                        )}
-                                    </button>
+                                        <LayoutDashboard className="w-3.5 h-3.5" />
+                                        Painel CMS
+                                    </a>
 
                                     {/* Botão Gerenciar Pro (Vercel) */}
                                     <button
                                         onClick={() => setSelectedSite(site)}
-                                        disabled={!!loginLoading}
-                                        className="flex items-center justify-center gap-1.5 py-2 bg-purple-50/30 text-[#7c3aed] rounded-xl text-[12px] font-bold hover:bg-purple-100 transition border border-purple-100/50 disabled:opacity-50"
+                                        className="flex items-center justify-center gap-1.5 py-2 bg-purple-50/30 text-[#7c3aed] rounded-xl text-[12px] font-bold hover:bg-purple-100 transition border border-purple-100/50"
                                     >
                                         <Settings className="w-3.5 h-3.5" />
                                         Gerenciar

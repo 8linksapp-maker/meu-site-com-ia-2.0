@@ -14,7 +14,6 @@ export default function UsersManager() {
     const [role, setRole] = useState('user');
     const [githubToken, setGithubToken] = useState('');
     const [vercelToken, setVercelToken] = useState('');
-    const [hasUpsellSites, setHasUpsellSites] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     const [actionStatus, setActionStatus] = useState('');
@@ -60,8 +59,7 @@ export default function UsersManager() {
                 password: password || undefined,
                 role,
                 github_token: githubToken,
-                vercel_token: vercelToken,
-                has_upsell_sites: hasUpsellSites
+                vercel_token: vercelToken
             };
 
             const method = editId ? 'PUT' : 'POST';
@@ -118,11 +116,10 @@ export default function UsersManager() {
         if (u) {
             setEditId(u.id);
             setEmail(u.email);
-            setPassword(''); // Mantém em branco, só envia se quiser alterar
+            setPassword('');
             setRole(u.role);
             setGithubToken(u.github_token);
             setVercelToken(u.vercel_token);
-            setHasUpsellSites(u.has_upsell_sites || false);
         } else {
             setEditId(null);
             setEmail('');
@@ -130,7 +127,6 @@ export default function UsersManager() {
             setRole('user');
             setGithubToken('');
             setVercelToken('');
-            setHasUpsellSites(false);
         }
         setIsModalOpen(true);
     };
@@ -142,7 +138,7 @@ export default function UsersManager() {
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900">Gerenciar Usuários Completo (Auth + Profiles)</h3>
+                <h3 className="text-lg font-medium text-gray-900">Gerenciar Usuários Completo</h3>
                 <div className="flex items-center gap-4">
                     <div className="relative">
                         <input
@@ -171,13 +167,13 @@ export default function UsersManager() {
                         <tr>
                             <th className="px-6 py-4 font-medium">Email</th>
                             <th className="px-6 py-4 font-medium">Cargo (Role)</th>
-                            <th className="px-6 py-4 font-medium">Integrações Salvas</th>
+                            <th className="px-6 py-4 font-medium">Integrações & Produtos</th>
                             <th className="px-6 py-4 font-medium text-right">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                         {loading ? (
-                            <tr><td colSpan={4} className="px-6 py-4 text-center">Carregando usuários do Auth...</td></tr>
+                            <tr><td colSpan={4} className="px-6 py-4 text-center">Carregando usuários...</td></tr>
                         ) : users.length === 0 ? (
                             <tr><td colSpan={4} className="px-6 py-4 text-center">Nenhum usuário encontrado.</td></tr>
                         ) : (
@@ -194,24 +190,33 @@ export default function UsersManager() {
                                                 {user.role || 'user'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-gray-500">
-                                            {user.github_token ? 'Github ✅' : 'Github ❌'} <br />
-                                            {user.vercel_token ? 'Vercel ✅' : 'Vercel ❌'} <br />
-                                            {user.has_upsell_sites ? 'Upsell Sites ✅' : 'Upsell Sites ❌'}
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    {user.github_token ? <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 text-[10px]">Github ✅</span> : <span className="text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 text-[10px]">Github ❌</span>}
+                                                    {user.vercel_token ? <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 text-[10px]">Vercel ✅</span> : <span className="text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 text-[10px]">Vercel ❌</span>}
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    {user.accesses && user.accesses.length > 0 ? (
+                                                        user.accesses.map((acc: any, i: number) => (
+                                                            <div key={i} className="flex flex-col bg-slate-50 p-1 rounded-lg border border-slate-100">
+                                                                <span className="text-[10px] font-black text-slate-700 truncate max-w-[150px]">
+                                                                    {acc.product_name || 'Produto'}
+                                                                </span>
+                                                                <span className="text-[9px] text-slate-500">
+                                                                    {acc.status === 'active' ? 'Ativo' : 'Inativo'} | Exp: {acc.period_end ? new Date(acc.period_end).toLocaleDateString() : 'Sem data'}
+                                                                </span>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <span className="text-[10px] text-gray-400 italic">Sem acessos registrados</span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-right space-x-3">
-                                            <button
-                                                onClick={() => openModal(user)}
-                                                className="text-blue-600 hover:underline"
-                                            >
-                                                Editar Completo
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(user.id, user.email)}
-                                                className="text-red-500 hover:underline"
-                                            >
-                                                Excluir (Auth)
-                                            </button>
+                                            <button onClick={() => openModal(user)} className="text-blue-600 hover:underline">Editar</button>
+                                            <button onClick={() => handleDelete(user.id, user.email)} className="text-red-500 hover:underline">Excluir</button>
                                         </td>
                                     </tr>
                                 ))
@@ -222,77 +227,37 @@ export default function UsersManager() {
 
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 relative max-h-[90vh] overflow-y-auto">
+                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 relative">
                         <h3 className="text-lg font-bold text-gray-900 mb-4">
-                            {editId ? 'Editar Conta (Auth + Profile)' : 'Criar Nova Conta'}
+                            {editId ? 'Editar Usuário' : 'Criar Usuário'}
                         </h3>
                         <form onSubmit={handleSave} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Email</label>
-                                <input
-                                    type="email"
-                                    required
-                                    value={email}
-                                    disabled={!!editId} // Não trocar email após criado pra evitar erro complexo
-                                    onChange={e => setEmail(e.target.value)}
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-[#7c3aed] focus:border-[#7c3aed] sm:text-sm disabled:bg-gray-100"
-                                />
+                                <input type="email" required value={email} disabled={!!editId} onChange={e => setEmail(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm disabled:bg-gray-100" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    Senha {editId && <span className="text-xs text-blue-600 font-normal">(Deixe vazio para não trocar)</span>}
-                                </label>
-                                <input
-                                    type="text"
-                                    required={!editId}
-                                    value={password}
-                                    onChange={e => setPassword(e.target.value)}
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-[#7c3aed] focus:border-[#7c3aed] sm:text-sm"
-                                />
+                                <label className="block text-sm font-medium text-gray-700">Senha</label>
+                                <input type="text" required={!editId} value={password} onChange={e => setPassword(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Cargo (Role)</label>
-                                <select
-                                    value={role}
-                                    onChange={e => setRole(e.target.value)}
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-[#7c3aed] focus:border-[#7c3aed] sm:text-sm"
-                                >
+                                <label className="block text-sm font-medium text-gray-700">Cargo</label>
+                                <select value={role} onChange={e => setRole(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
                                     <option value="user">User</option>
                                     <option value="admin">Admin</option>
                                 </select>
                             </div>
-
-                            <div className="pt-4 border-t border-gray-200">
-                                <h4 className="text-sm font-medium text-gray-900 mb-2">Tokens (Opcional)</h4>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-600">Github</label>
-                                    <input type="password" value={githubToken} onChange={e => setGithubToken(e.target.value)} className="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-md text-sm mb-2" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-600">Vercel</label>
-                                    <input type="password" value={vercelToken} onChange={e => setVercelToken(e.target.value)} className="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-md text-sm" />
-                                </div>
-                                <div className="mt-4 flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        id="has_upsell"
-                                        checked={hasUpsellSites}
-                                        onChange={e => setHasUpsellSites(e.target.checked)}
-                                        className="rounded border-gray-300 text-[#7c3aed] focus:ring-[#7c3aed]"
-                                    />
-                                    <label htmlFor="has_upsell" className="text-sm font-bold text-gray-700">Liberar Gerenciador Pro (Sites)</label>
+                            <div className="pt-4 border-t">
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Integrações</label>
+                                <div className="space-y-2">
+                                    <input type="password" placeholder="GitHub Token" value={githubToken} onChange={e => setGithubToken(e.target.value)} className="block w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm" />
+                                    <input type="password" placeholder="Vercel Token" value={vercelToken} onChange={e => setVercelToken(e.target.value)} className="block w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm" />
                                 </div>
                             </div>
-
-                            {actionStatus && (
-                                <div className={`p-2 text-sm rounded ${actionStatus.includes('Erro') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-                                    {actionStatus}
-                                </div>
-                            )}
-
-                            <div className="flex gap-3 justify-end mt-6">
-                                <button type="button" onClick={closeModal} className="px-4 py-2 text-sm text-gray-600">Cancelar</button>
-                                <button type="submit" className="px-4 py-2 text-sm bg-[#7c3aed] text-white rounded-md">Salvar</button>
+                            {actionStatus && <div className="text-xs p-2 bg-gray-50 rounded text-center font-bold text-[#7c3aed]">{actionStatus}</div>}
+                            <div className="flex gap-3 justify-end pt-4">
+                                <button type="button" onClick={closeModal} className="px-4 py-2 text-sm text-gray-500">Cancelar</button>
+                                <button type="submit" className="px-4 py-2 text-sm bg-[#7c3aed] text-white rounded-md font-bold">Salvar</button>
                             </div>
                         </form>
                     </div>

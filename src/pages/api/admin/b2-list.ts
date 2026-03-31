@@ -18,8 +18,9 @@ const verifyAdmin = async (request: Request) => {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) throw new Error('Token inválido');
 
-    const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'admin') throw new Error('Não autorizado');
+    const { data: profiles } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id);
+    const isAdmin = profiles?.some(p => p.role === 'admin');
+    if (!isAdmin) throw new Error('Não autorizado');
 
     return user;
 };

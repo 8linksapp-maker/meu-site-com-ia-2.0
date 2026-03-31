@@ -20,8 +20,9 @@ const verifyAdmin = async (request: Request) => {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) throw new Error('Token inválido');
 
-    const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'admin') throw new Error('Não autorizado');
+    const { data: profiles } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id);
+    const isAdmin = profiles?.some(p => p.role === 'admin');
+    if (!isAdmin) throw new Error('Não autorizado');
 
     return user;
 };
@@ -43,15 +44,26 @@ export const GET: APIRoute = async ({ request }) => {
         if (profError) throw profError;
 
         const mergedUsers = users.map(authUser => {
-            const profile = profiles.find(p => p.id === authUser.id) || {};
+            const userProfiles = profiles.filter(p => p.id === authUser.id);
+
+            // Consolidamos as permissões: se qualquer registro for admin, o usuário tem.
+            const isAdmin = userProfiles.some(p => p.role === 'admin');
+
             return {
                 id: authUser.id,
                 email: authUser.email,
                 created_at: authUser.created_at,
-                role: profile.role || 'user',
-                github_token: profile.github_token || '',
-                vercel_token: profile.vercel_token || '',
-                has_upsell_sites: profile.has_upsell_sites || false
+                role: isAdmin ? 'admin' : 'user',
+                // Pegamos o primeiro token encontrado ou vazio
+                github_token: userProfiles.find(p => p.github_token)?.github_token || '',
+                vercel_token: userProfiles.find(p => p.vercel_token)?.vercel_token || '',
+                // Adicionamos a lista completa de acessos para o CRM mostrar
+                accesses: userProfiles.map(p => ({
+                    product_id: p.product_id,
+                    product_name: p.product_name,
+                    status: p.subscription_status,
+                    period_end: p.subscription_period_end
+                }))
             };
         });
 
@@ -64,7 +76,7 @@ export const GET: APIRoute = async ({ request }) => {
 export const POST: APIRoute = async ({ request }) => {
     try {
         await verifyAdmin(request);
-        const { email, password, role, github_token, vercel_token, has_upsell_sites } = await request.json();
+        const { email, password, role, github_token, vercel_token } = await request.json();
 
         const { data: currUser, error: currErr } = await supabaseAdmin.auth.admin.createUser({
             email,
@@ -75,10 +87,11 @@ export const POST: APIRoute = async ({ request }) => {
 
         const { error: profError } = await supabaseAdmin.from('profiles').insert({
             id: currUser.user.id,
+            product_id: 'main_product', // Valor padrão para criação manual
+            product_name: 'Acesso Manual',
             role: role || 'user',
             github_token,
-            vercel_token,
-            has_upsell_sites: has_upsell_sites || false
+            vercel_token
         });
 
         if (profError) {
@@ -96,7 +109,7 @@ export const POST: APIRoute = async ({ request }) => {
 export const PUT: APIRoute = async ({ request }) => {
     try {
         await verifyAdmin(request);
-        const { id, email, password, role, github_token, vercel_token, has_upsell_sites } = await request.json();
+        const { id, email, password, role, github_token, vercel_token } = await request.json();
 
         // Atualiza email/senha no painel Auth principal se tiverem sido mudados/preenchidos
         let updatePayload: any = {};
@@ -110,8 +123,9 @@ export const PUT: APIRoute = async ({ request }) => {
 
         // Atualiza tabela de perfis
         const { error: profErr } = await supabaseAdmin.from('profiles')
-            .update({ role, github_token, vercel_token, has_upsell_sites })
-            .eq('id', id);
+            .update({ role, github_token, vercel_token })
+            .eq('id', id)
+            .eq('product_id', 'main_product'); // Atualiza apenas o registro principal para evitar duplicidade de tokens
 
         if (profErr) throw profErr;
 

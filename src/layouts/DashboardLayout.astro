@@ -47,9 +47,9 @@ const pathname = new URL(Astro.request.url).pathname;
       
       <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
         <a 
-          href="/" 
+          href="/dashboard" 
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname === '/' 
+            pathname === '/dashboard' 
               ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-medium' 
               : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
           }`}
@@ -213,9 +213,9 @@ const pathname = new URL(Astro.request.url).pathname;
         if (!session) {
           window.location.href = '/';
         } else {
-          supabase.from('profiles').select('role').eq('id', session.user.id).single()
+          supabase.from('profiles').select('role').eq('id', session.user.id)
             .then(({ data }) => {
-              if (data?.role === 'admin') {
+              if (data && data.some(p => p.role === 'admin')) {
                 const adminLink = document.getElementById('admin-link-header');
                 if (adminLink) adminLink.style.display = 'flex';
               }

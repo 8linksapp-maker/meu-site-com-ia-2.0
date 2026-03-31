@@ -75,18 +75,23 @@ serve(async (req) => {
                 }
             }
 
-            // 3. Garantir Perfil e Data de Expiração
+            const productId = order.Product?.product_id || 'manual';
+            const productName = order.Product?.product_name || 'Produto';
+
+            // 3. Garantir Perfil e Acesso Independente por Produto
             const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
                 id: userId,
+                product_id: productId,
+                product_name: productName,
                 subscription_status: 'active',
                 payment_provider: 'kiwify',
                 kiwify_subscription_id: subscriptionId,
                 subscription_period_end: expiryDate ? new Date(expiryDate).toISOString() : null,
                 updated_at: new Date().toISOString()
-            }, { onConflict: 'id' });
+            }, { onConflict: 'id,product_id' });
 
             if (profileError) throw profileError;
-            console.log(`Acesso garantido para ${userId} na Kiwify.`);
+            console.log(`Acesso ao produto "${productName}" (${productId}) garantido para ${userId}.`);
 
         } else if (eventType === 'order_refunded' || eventType === 'chargeback' || eventType === 'subscription_canceled') {
             console.log(`Revogando acesso: ${subscriptionId}`);

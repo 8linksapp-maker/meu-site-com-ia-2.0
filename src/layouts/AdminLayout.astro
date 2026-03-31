@@ -155,13 +155,14 @@ const pathname = new URL(Astro.request.url).pathname;
           return;
         }
 
-        const { data: profile } = await supabase
+        const { data: profiles } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', session.user.id)
-          .single();
+          .eq('id', session.user.id);
 
-        if (profile?.role !== 'admin') {
+        const isAdmin = profiles?.some(p => p.role === 'admin');
+
+        if (!isAdmin) {
           window.location.href = '/sites';
           return;
         }

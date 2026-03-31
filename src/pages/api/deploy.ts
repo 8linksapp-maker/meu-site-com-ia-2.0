@@ -17,8 +17,9 @@ export const POST: APIRoute = async ({ request }) => {
         const serviceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || '';
         if (userId && supabaseUrl && serviceKey) {
             const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-            const { data: profile } = await supabaseAdmin.from('profiles').select('subscription_status').eq('id', userId).single();
-            if (!profile || profile.subscription_status !== 'active') {
+            const { data: profiles } = await supabaseAdmin.from('profiles').select('subscription_status').eq('id', userId);
+            const isSubscriber = profiles?.some(p => p.subscription_status === 'active');
+            if (!isSubscriber) {
                 return new Response(JSON.stringify({ error: 'Sua assinatura na plataforma encontra-se inativa no momento. Para criar deploys e repositórios, é necessário ter um plano ativo.' }), { status: 403 });
             }
         }

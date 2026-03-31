@@ -25,6 +25,8 @@ export default function CourseViewer() {
     const [loading, setLoading] = useState(true);
     const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
     const [openModules, setOpenModules] = useState<string[]>([]);
+    const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
+    const lastSavedTimeRef = useRef<number>(0);
 
     useEffect(() => {
         fetchData();
@@ -32,25 +34,61 @@ export default function CourseViewer() {
 
     useEffect(() => {
         if (currentLesson?.video_url && videoRef.current) {
-            const initPlyr = () => {
-                if ((window as any).Plyr && videoRef.current) {
-                    // Evitar múltiplas instâncias no mesmo elemento
-                    if (plyrRef.current) {
-                        plyrRef.current.source = {
-                            type: 'video',
-                            sources: [{ src: currentLesson.video_url }]
-                        };
-                        plyrRef.current.play(); // Tentar iniciar automaticamente se quiser
-                        return;
-                    }
+            const setupListeners = (player: any) => {
+                player.off('timeupdate');
+                player.off('pause');
+                player.off('ended');
+                player.off('ready');
 
-                    plyrRef.current = new (window as any).Plyr(videoRef.current, {
-                        controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
-                        settings: ['speed'],
-                        speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
-                        download: { enabled: false }
-                    });
+                player.on('timeupdate', () => {
+                    const currentTime = player.currentTime;
+                    if (Math.abs(currentTime - lastSavedTimeRef.current) > 10) {
+                        saveProgress(currentLesson.id, currentTime, player.duration);
+                        lastSavedTimeRef.current = currentTime;
+                    }
+                });
+
+                player.on('pause', () => {
+                    saveProgress(currentLesson.id, player.currentTime, player.duration);
+                    lastSavedTimeRef.current = player.currentTime;
+                });
+
+                player.on('ended', () => {
+                    saveProgress(currentLesson.id, player.duration, player.duration);
+                });
+
+                player.on('ready', () => {
+                    loadLessonProgress(currentLesson.id);
+                });
+
+                // Garantir que o seek aconteça quando o vídeo puder tocar
+                player.on('canplay', () => {
+                    if (lastSavedTimeRef.current === 0) {
+                        loadLessonProgress(currentLesson.id);
+                    }
+                });
+            };
+
+            const initPlyr = () => {
+                if (!(window as any).Plyr || !videoRef.current) return;
+
+                if (plyrRef.current) {
+                    plyrRef.current.source = {
+                        type: 'video',
+                        sources: [{ src: currentLesson.video_url }]
+                    };
+                    setupListeners(plyrRef.current);
+                    return;
                 }
+
+                plyrRef.current = new (window as any).Plyr(videoRef.current, {
+                    controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
+                    settings: ['speed'],
+                    speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+                    download: { enabled: false }
+                });
+
+                setupListeners(plyrRef.current);
             };
 
             if ((window as any).Plyr) {
@@ -63,12 +101,6 @@ export default function CourseViewer() {
                 document.head.appendChild(script);
             }
         }
-
-        return () => {
-            // Não destruir a cada troca, apenas no unmount total ou se necessário
-            // Mas se o link mudar e quisermos recriar, poderíamos.
-            // Aqui vamos manter para teste.
-        };
     }, [currentLesson]);
 
     // Cleanup final ao desmontar o componente
@@ -83,6 +115,8 @@ export default function CourseViewer() {
 
     const fetchData = async () => {
         setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+
         const { data: modulesData } = await supabase
             .from('modules')
             .select('*')
@@ -100,14 +134,89 @@ export default function CourseViewer() {
             }));
             setModules(structuredData);
 
-            // Set first lesson as default if available
-            if (structuredData.length > 0 && structuredData[0].lessons.length > 0) {
-                setCurrentLesson(structuredData[0].lessons[0]);
-                setOpenModules([structuredData[0].id]);
+            // Carregar última aula assistida ou a primeira
+            let lessonToSet = null;
+            if (user) {
+                const { data: allProgress } = await supabase
+                    .from('user_lessons_progress')
+                    .select('lesson_id, is_completed')
+                    .eq('user_id', user.id);
+
+                if (allProgress) {
+                    const completedIds = new Set(allProgress.filter(p => p.is_completed).map(p => p.lesson_id));
+                    setCompletedLessons(completedIds);
+                }
+
+                const { data: progress } = await supabase
+                    .from('user_lessons_progress')
+                    .select('lesson_id')
+                    .eq('user_id', user.id)
+                    .order('updated_at', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                if (progress) {
+                    lessonToSet = lessonsData?.find(l => l.id === progress.lesson_id) || null;
+                }
+            }
+
+            if (!lessonToSet && structuredData.length > 0 && structuredData[0].lessons.length > 0) {
+                lessonToSet = structuredData[0].lessons[0];
+            }
+
+            if (lessonToSet) {
+                setCurrentLesson(lessonToSet);
+                setOpenModules([lessonToSet.module_id]);
+                // loadLessonProgress será chamado pelo evento 'ready' do player
             }
         }
         setLoading(false);
     };
+
+    const loadLessonProgress = async (lessonId: string) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data } = await supabase
+            .from('user_lessons_progress')
+            .select('last_time_seconds')
+            .eq('user_id', user.id)
+            .eq('lesson_id', lessonId)
+            .single();
+
+        if (data && plyrRef.current) {
+            console.log('[LMS] Retomando de:', data.last_time_seconds, 's');
+            plyrRef.current.currentTime = data.last_time_seconds;
+            lastSavedTimeRef.current = data.last_time_seconds;
+        }
+    };
+
+    const saveProgress = async (lessonId: string, currentTime: number, duration: number) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || duration === 0) return;
+
+        const percent = Math.round((currentTime / duration) * 100);
+        const isCompleted = percent > 90;
+
+        const { error } = await supabase.from('user_lessons_progress').upsert({
+            user_id: user.id,
+            lesson_id: lessonId,
+            last_time_seconds: currentTime,
+            percent_completed: percent,
+            is_completed: isCompleted,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,lesson_id' });
+
+        if (error) {
+            console.error('[LMS] Erro ao salvar progresso:', error.message);
+        } else {
+            console.log('[LMS] Progresso salvo:', percent, '%');
+            if (isCompleted) {
+                setCompletedLessons(prev => new Set(prev).add(lessonId));
+            }
+        }
+    };
+
 
     const toggleModule = (moduleId: string) => {
         setOpenModules(prev =>
@@ -194,9 +303,15 @@ export default function CourseViewer() {
                                             >
                                                 <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${currentLesson?.id === lesson.id
                                                     ? 'bg-[#7c3aed] text-white'
-                                                    : 'bg-gray-200 text-gray-500'
+                                                    : completedLessons.has(lesson.id)
+                                                        ? 'bg-emerald-500 text-white'
+                                                        : 'bg-gray-200 text-gray-500'
                                                     }`}>
-                                                    <Play className="w-3 h-3 fill-current" />
+                                                    {completedLessons.has(lesson.id) ? (
+                                                        <CheckCircle className="w-3.5 h-3.5" />
+                                                    ) : (
+                                                        <Play className="w-3 h-3 fill-current" />
+                                                    )}
                                                 </div>
                                                 <span className={`text-xs font-medium truncate ${currentLesson?.id === lesson.id ? 'text-[#7c3aed]' : ''}`}>
                                                     {lesson.title}

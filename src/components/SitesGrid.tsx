@@ -42,18 +42,20 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
-                const { data: profile } = await supabase
+                const { data: profiles } = await supabase
                     .from('profiles')
                     .select('github_token, vercel_token, subscription_status')
-                    .eq('id', session.user.id)
-                    .single();
+                    .eq('id', session.user.id);
+
+                const profile = profiles && profiles.length > 0 ? profiles[0] : null;
+                const anyActive = profiles?.some(p => p.subscription_status === 'active');
 
                 if (profile?.github_token && profile?.vercel_token) {
                     setHasTokens(true);
                 } else {
                     setHasTokens(false);
                 }
-                setSubscriptionStatus(profile?.subscription_status || 'inactive');
+                setSubscriptionStatus(anyActive ? 'active' : (profile?.subscription_status || 'inactive'));
 
                 // Carregar favoritos iniciais
                 const { data: favs } = await supabase.from('user_favorites').select('template_id').eq('user_id', session.user.id);
@@ -105,11 +107,12 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Usuário não autenticado');
 
-            const { data: profile } = await supabase
+            const { data: profiles } = await supabase
                 .from('profiles')
                 .select('github_token, vercel_token')
-                .eq('id', user.id)
-                .single();
+                .eq('id', user.id);
+
+            const profile = profiles && profiles.length > 0 ? profiles[0] : null;
 
             if (!profile?.github_token || !profile?.vercel_token) {
                 throw new Error('Tokens não configurados! Vá preenchê-los na Aba de Integração em Configurações.');
