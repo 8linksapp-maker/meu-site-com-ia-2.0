@@ -32,7 +32,11 @@ export const GET: APIRoute = async ({ request }) => {
         await verifyAdmin(request);
 
         // Lista usuários do Auth e junta com as informações do profiles
-        const { data: { users }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+        // Aumentando o limite para 1000 para garantir que a busca encontre todos na maioria dos cenários
+        const { data: { users }, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+            page: 1,
+            perPage: 1000
+        });
         if (authError) throw authError;
 
         const { data: profiles, error: profError } = await supabaseAdmin.from('profiles').select('*');
@@ -46,7 +50,8 @@ export const GET: APIRoute = async ({ request }) => {
                 created_at: authUser.created_at,
                 role: profile.role || 'user',
                 github_token: profile.github_token || '',
-                vercel_token: profile.vercel_token || ''
+                vercel_token: profile.vercel_token || '',
+                has_upsell_sites: profile.has_upsell_sites || false
             };
         });
 
@@ -59,7 +64,7 @@ export const GET: APIRoute = async ({ request }) => {
 export const POST: APIRoute = async ({ request }) => {
     try {
         await verifyAdmin(request);
-        const { email, password, role, github_token, vercel_token } = await request.json();
+        const { email, password, role, github_token, vercel_token, has_upsell_sites } = await request.json();
 
         const { data: currUser, error: currErr } = await supabaseAdmin.auth.admin.createUser({
             email,
@@ -72,7 +77,8 @@ export const POST: APIRoute = async ({ request }) => {
             id: currUser.user.id,
             role: role || 'user',
             github_token,
-            vercel_token
+            vercel_token,
+            has_upsell_sites: has_upsell_sites || false
         });
 
         if (profError) {
@@ -90,7 +96,7 @@ export const POST: APIRoute = async ({ request }) => {
 export const PUT: APIRoute = async ({ request }) => {
     try {
         await verifyAdmin(request);
-        const { id, email, password, role, github_token, vercel_token } = await request.json();
+        const { id, email, password, role, github_token, vercel_token, has_upsell_sites } = await request.json();
 
         // Atualiza email/senha no painel Auth principal se tiverem sido mudados/preenchidos
         let updatePayload: any = {};
@@ -104,7 +110,7 @@ export const PUT: APIRoute = async ({ request }) => {
 
         // Atualiza tabela de perfis
         const { error: profErr } = await supabaseAdmin.from('profiles')
-            .update({ role, github_token, vercel_token })
+            .update({ role, github_token, vercel_token, has_upsell_sites })
             .eq('id', id);
 
         if (profErr) throw profErr;

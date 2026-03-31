@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { LogOut, LayoutDashboard, Settings, Shield, Heart, BookOpen, Menu, X, Video } from 'lucide-react';
+import { LogOut, LayoutDashboard, Settings, Shield, Heart, BookOpen, Menu, X, Video, Plus, Globe } from 'lucide-react';
 
 interface Props {
 	title: string;
@@ -47,6 +47,17 @@ const pathname = new URL(Astro.request.url).pathname;
       
       <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
         <a 
+          href="/" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname === '/' 
+              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-medium' 
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+          }`}
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          Visão Geral
+        </a>
+        <a 
           href="/sites" 
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
             pathname.includes('/sites') 
@@ -54,8 +65,19 @@ const pathname = new URL(Astro.request.url).pathname;
               : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
           }`}
         >
-          <LayoutDashboard className="w-5 h-5" />
-          Sites
+          <Plus className="w-5 h-5" />
+          Criar Site
+        </a>
+        <a 
+          href="/meus-sites" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/meus-sites') 
+              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-medium' 
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+          }`}
+        >
+          <Globe className="w-5 h-5" />
+          Meus Sites
         </a>
         <a 
           href="/favoritos" 

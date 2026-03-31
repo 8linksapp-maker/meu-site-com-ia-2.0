@@ -1,0 +1,8 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import UserSitesManager from '../components/admin/SiteManager/UserSitesManager';
+---
+
+<DashboardLayout title="Meus Sites">
+  <UserSitesManager client:load />
+</DashboardLayout>
