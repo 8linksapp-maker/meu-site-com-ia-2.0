@@ -156,24 +156,24 @@ export default function UserSitesManager() {
                             </div>
 
                             <div className="p-6 flex-1 flex flex-col">
-                                <h3 className="text-lg font-bold text-gray-900 truncate mb-1" title={site.github_repo}>
-                                    {site.github_repo.split('/').pop()}
-                                </h3>
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                    <h3 className="text-lg font-bold text-gray-900 truncate" title={site.github_repo}>
+                                        {site.github_repo.split('/').pop()}
+                                    </h3>
+                                    <a
+                                        href={site.domain ? `https://${site.domain}` : `https://${site.github_repo}.vercel.app`}
+                                        target="_blank"
+                                        className="p-1.5 text-gray-400 hover:text-[#7c3aed] hover:bg-purple-50 rounded-lg transition-colors shrink-0"
+                                        title="Ver Site"
+                                    >
+                                        <ExternalLink className="w-4 h-4" />
+                                    </a>
+                                </div>
                                 <p className="text-xs text-gray-400 font-mono mb-6 truncate">
                                     {site.domain || `${site.github_repo.split('/').pop()}.vercel.app`}
                                 </p>
 
                                 <div className="grid grid-cols-2 gap-2 mt-auto">
-                                    {/* Botão de Ver Site */}
-                                    <a
-                                        href={site.domain ? `https://${site.domain}` : `https://${site.github_repo.split('/').pop()}.vercel.app`}
-                                        target="_blank"
-                                        className="flex items-center justify-center gap-1.5 py-2 bg-gray-50 text-gray-600 rounded-xl text-[12px] font-bold hover:bg-gray-100 transition"
-                                    >
-                                        <ExternalLink className="w-3.5 h-3.5" />
-                                        Ver Site
-                                    </a>
-
                                     {/* Botão Admin (CMS) */}
                                     <a
                                         href={site.domain ? `https://${site.domain}/admin` : `https://${site.github_repo.split('/').pop()}.vercel.app/admin`}
@@ -181,16 +181,16 @@ export default function UserSitesManager() {
                                         className="flex items-center justify-center gap-1.5 py-2 bg-blue-50/50 text-blue-600 rounded-xl text-[12px] font-bold hover:bg-blue-100 transition"
                                     >
                                         <LayoutDashboard className="w-3.5 h-3.5" />
-                                        CMS
+                                        Painel CMS
                                     </a>
 
                                     {/* Botão Gerenciar Pro (Vercel) */}
                                     <button
                                         onClick={() => setSelectedSite(site)}
-                                        className="col-span-2 flex items-center justify-center gap-2 py-2 bg-purple-50/30 text-[#7c3aed] rounded-xl text-[12px] font-bold hover:bg-purple-100 transition border border-purple-100/50"
+                                        className="flex items-center justify-center gap-1.5 py-2 bg-purple-50/30 text-[#7c3aed] rounded-xl text-[12px] font-bold hover:bg-purple-100 transition border border-purple-100/50"
                                     >
                                         <Settings className="w-3.5 h-3.5" />
-                                        Gerenciar Configurações
+                                        Gerenciar
                                     </button>
                                 </div>
                             </div>
