@@ -1,0 +1,106 @@
+import type { APIRoute } from 'astro';
+import { createClient } from '@supabase/supabase-js';
+
+export const prerender = false;
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
+const serviceRoleKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+});
+
+const verifyAdmin = async (request: Request) => {
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.split('Bearer ')[1];
+    if (!token) throw new Error('Token ausente');
+
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) throw new Error('Token inválido');
+
+    const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'admin') throw new Error('Não autorizado');
+
+    return user;
+};
+
+export const GET: APIRoute = async ({ request }) => {
+    try {
+        await verifyAdmin(request);
+
+        // Buscar configurações do B2 no banco
+        const { data: settings, error: settingsError } = await supabaseAdmin
+            .from('platform_settings')
+            .select('b2_key_id, b2_app_key, b2_bucket_id, b2_bucket_name, b2_public_url_base')
+            .limit(1)
+            .single();
+
+        if (settingsError || !settings?.b2_key_id || !settings?.b2_app_key || !settings?.b2_bucket_name) {
+            throw new Error('Configurações do Backblaze B2 incompletas.');
+        }
+
+        // 1. Autorizar Conta no B2
+        const authHash = Buffer.from(`${settings.b2_key_id}:${settings.b2_app_key}`).toString('base64');
+        const authResponse = await fetch('https://api.backblazeb2.com/b2api/v2/b2_authorize_account', {
+            headers: { 'Authorization': `Basic ${authHash}` }
+        });
+
+        if (!authResponse.ok) {
+            const errData = await authResponse.json();
+            console.error('B2 Auth Error:', errData);
+            throw new Error(`Erro B2 Auth: ${errData.message || authResponse.statusText}`);
+        }
+
+        const authData = await authResponse.json();
+        const { apiUrl, authorizationToken, accountId } = authData;
+
+        // 2. Descobrir Bucket ID pelo Nome (se não estiver preenchido)
+        let bucketId = settings.b2_bucket_id;
+        if (!bucketId) {
+            const listBucketsResp = await fetch(`${apiUrl}/b2api/v2/b2_list_buckets`, {
+                method: 'POST',
+                headers: { 'Authorization': authorizationToken, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accountId, bucketName: settings.b2_bucket_name })
+            });
+            const lbData = await listBucketsResp.json();
+            const bucket = lbData.buckets?.find((b: any) => b.bucketName === settings.b2_bucket_name);
+            if (!bucket) throw new Error(`Bucket "${settings.b2_bucket_name}" não encontrado.`);
+            bucketId = bucket.bucketId;
+        }
+
+        // 3. Listar Arquivos
+        const listFilesResponse = await fetch(`${apiUrl}/b2api/v2/b2_list_file_names`, {
+            method: 'POST',
+            headers: {
+                'Authorization': authorizationToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                bucketId,
+                maxFileCount: 1000
+            })
+        });
+
+        if (!listFilesResponse.ok) {
+            const errData = await listFilesResponse.json();
+            throw new Error(`Erro B2 List Files: ${errData.message || listFilesResponse.statusText}`);
+        }
+
+        const listData = await listFilesResponse.json();
+
+        // 3. Formatar resposta com URL pública
+        const files = listData.files.map((file: any) => ({
+            name: file.fileName,
+            url: `${settings.b2_public_url_base}/${file.fileName}`,
+            size: file.contentLength,
+            type: file.contentType,
+            uploaded_at: file.uploadTimestamp
+        }));
+
+        return new Response(JSON.stringify(files), { status: 200 });
+
+    } catch (err: any) {
+        console.error('Error in b2-list:', err.message);
+        return new Response(JSON.stringify({ error: err.message }), { status: 400 });
+    }
+};

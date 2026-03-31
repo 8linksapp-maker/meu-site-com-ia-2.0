@@ -1,0 +1,12 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import CourseManager from '../../components/admin/CourseManager';
+---
+
+<AdminLayout title="Gerenciar Aulas">
+  <div class="mb-6">
+    <p class="text-gray-600">Organize os módulos e as aulas do seu curso. Os vídeos são reproduzidos diretamente do Backblaze B2.</p>
+  </div>
+  
+  <CourseManager client:load />
+</AdminLayout>

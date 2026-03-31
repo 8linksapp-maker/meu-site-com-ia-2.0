@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings, Menu, X } from 'lucide-react';
+import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings, Menu, X, Video } from 'lucide-react';
 
 interface Props {
 	title: string;
@@ -80,6 +80,17 @@ const pathname = new URL(Astro.request.url).pathname;
         >
           <Tags className="w-5 h-5" />
           Categorias
+        </a>
+        <a 
+          href="/admin/aulas" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/aulas') 
+              ? 'bg-[#7c3aed] text-white font-medium' 
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <Video className="w-5 h-5" />
+          Gerenciar Aulas
         </a>
         <a 
           href="/admin/configuracoes" 
