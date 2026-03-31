@@ -15,7 +15,7 @@ interface UserSite {
 
 export default function UserSitesManager() {
     const [sites, setSites] = useState<UserSite[]>([]);
-    const [hasUpsell, setHasUpsell] = useState<boolean | null>(null);
+    const [hasAccess, setHasAccess] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedSite, setSelectedSite] = useState<UserSite | null>(null);
 
@@ -35,18 +35,18 @@ export default function UserSitesManager() {
                 .eq('id', user.id);
 
             // Verifica se existe algum registro que dê acesso ao Upsell de Sites
-            const hasActiveSitesUpsell = profileRecords?.some(p => {
+            // Verifica se existe algum registro que dê acesso (qualquer assinatura ativa)
+            const hasActiveSubscription = profileRecords?.some(p => {
                 const isPaid = p.subscription_status === 'active';
                 const notExpired = !p.subscription_period_end || new Date(p.subscription_period_end) > new Date();
-                const isSitesProduct = p.product_name?.toLowerCase().includes('sites') || p.product_name?.toLowerCase().includes('upsell') || p.product_id?.includes('sites');
 
-                return isPaid && notExpired && isSitesProduct;
+                return isPaid && notExpired;
             });
 
             // Se for admin, tem acesso por padrão
             const isAdmin = profileRecords?.some(p => p.role === 'admin');
 
-            setHasUpsell(hasActiveSitesUpsell || isAdmin || false);
+            setHasAccess(hasActiveSubscription || isAdmin || false);
 
             // 2. Buscar sites do usuário via API segura (Para contornar RLS em sites antigos)
             const token = (await supabase.auth.getSession()).data.session?.access_token;
@@ -80,7 +80,7 @@ export default function UserSitesManager() {
     }
 
     // Se o usuário NÃO tem o Upsell (Mostra Página de Vendas)
-    if (hasUpsell === false) {
+    if (hasAccess === false) {
         return <SalesPage />;
     }
 

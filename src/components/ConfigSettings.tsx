@@ -34,11 +34,12 @@ export default function ConfigSettings() {
                 .from('profiles')
                 .select('github_token, vercel_token')
                 .eq('id', user.id)
-                .single();
+                .order('updated_at', { ascending: false })
+                .limit(1);
 
-            if (data) {
-                setGithubToken(data.github_token || '');
-                setVercelToken(data.vercel_token || '');
+            if (data && data.length > 0) {
+                setGithubToken(data[0].github_token || '');
+                setVercelToken(data[0].vercel_token || '');
             }
         } catch (err) {
             console.error(err);
@@ -76,13 +77,16 @@ export default function ConfigSettings() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Usuário não logado');
 
+            // Usar .update() em vez de .upsert() para evitar erro de product_id null
+            // Isso atualizará os tokens em todos os perfis/produtos do usuário simultaneamente
             const { error } = await supabase
                 .from('profiles')
-                .upsert({
-                    id: user.id,
+                .update({
                     github_token: githubToken,
-                    vercel_token: vercelToken
-                });
+                    vercel_token: vercelToken,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', user.id);
 
             if (error) throw error;
             setStatus('Tokens salvos com sucesso!');
