@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Trash2, Edit2, Video, ChevronDown, ChevronUp, GripVertical, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, Video, ChevronDown, ChevronUp, GripVertical, CheckCircle, Link, X } from 'lucide-react';
 
 interface Lesson {
     id: string;
@@ -14,6 +14,8 @@ interface Lesson {
 interface Module {
     id: string;
     title: string;
+    description: string;
+    thumbnail_url: string;
     display_order: number;
     lessons?: Lesson[];
 }
@@ -28,12 +30,22 @@ export default function CourseManager() {
 
     // New Module/Lesson state
     const [moduleTitle, setModuleTitle] = useState('');
+    const [moduleDescription, setModuleDescription] = useState('');
+    const [moduleThumbnail, setModuleThumbnail] = useState('');
     const [lessonTitle, setLessonTitle] = useState('');
     const [lessonDescription, setLessonDescription] = useState('');
     const [lessonVideoUrl, setLessonVideoUrl] = useState('');
     const [selectedModuleId, setSelectedModuleId] = useState('');
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadingModuleThumb, setUploadingModuleThumb] = useState(false);
+    const [generatingThumb, setGeneratingThumb] = useState(false);
+
+    // Resources state
+    const [lessonResources, setLessonResources] = useState<{ id?: string; title: string; url: string }[]>([]);
+    const [newResourceTitle, setNewResourceTitle] = useState('');
+    const [newResourceUrl, setNewResourceUrl] = useState('');
+
 
     const handleFileUpload = async (file: File) => {
         setUploading(true);
@@ -154,6 +166,51 @@ export default function CourseManager() {
         }
     };
 
+    const generateThumb = async (title: string, type: 'module' | 'lesson', setter: (url: string) => void) => {
+        if (!title.trim()) { alert('Preencha o título primeiro.'); return; }
+        setGeneratingThumb(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch('/api/admin/generate-thumb', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, type }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setter(data.url);
+        } catch (err: any) {
+            alert(`Erro ao gerar thumbnail: ${err.message}`);
+        } finally {
+            setGeneratingThumb(false);
+        }
+    };
+
+    const handleModuleThumbUpload = async (file: File) => {
+        setUploadingModuleThumb(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Não autenticado');
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('prefix', 'module-thumb');
+
+            const res = await fetch('/api/admin/upload-image', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${session.access_token}` },
+                body: formData,
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Falha no upload');
+            setModuleThumbnail(data.url);
+        } catch (err: any) {
+            alert(`Erro no upload: ${err.message}`);
+        } finally {
+            setUploadingModuleThumb(false);
+        }
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -187,12 +244,16 @@ export default function CourseManager() {
             .upsert({
                 id: currentModule?.id || undefined,
                 title: moduleTitle,
+                description: moduleDescription,
+                thumbnail_url: moduleThumbnail,
                 display_order: nextOrder
             });
 
         if (!error) {
             setIsModuleModalOpen(false);
             setModuleTitle('');
+            setModuleDescription('');
+            setModuleThumbnail('');
             setCurrentModule(null);
             fetchData();
         }
@@ -202,7 +263,7 @@ export default function CourseManager() {
         const module = modules.find(m => m.id === selectedModuleId);
         const nextOrder = currentLesson?.id ? currentLesson.display_order : (module?.lessons?.length || 0);
 
-        const { error } = await supabase
+        const { data: lessonData, error } = await supabase
             .from('lessons')
             .upsert({
                 id: currentLesson?.id || undefined,
@@ -210,14 +271,30 @@ export default function CourseManager() {
                 title: lessonTitle,
                 description: lessonDescription,
                 video_url: lessonVideoUrl,
-                display_order: nextOrder
-            });
+                display_order: nextOrder,
+            })
+            .select('id')
+            .single();
 
-        if (!error) {
+        if (!error && lessonData) {
+            const lessonId = lessonData.id;
+            // Delete existing resources and re-insert
+            await supabase.from('lesson_resources').delete().eq('lesson_id', lessonId);
+            if (lessonResources.length > 0) {
+                await supabase.from('lesson_resources').insert(
+                    lessonResources.map((r, i) => ({ lesson_id: lessonId, title: r.title, url: r.url, display_order: i }))
+                );
+            }
             setIsLessonModalOpen(false);
             setLessonTitle('');
             setLessonDescription('');
             setLessonVideoUrl('');
+            setLessonResources([]);
+            setNewResourceTitle('');
+            setNewResourceUrl('');
+            setLessonHighlights([]);
+            setAiStatus('idle');
+            setAiError('');
             setCurrentLesson(null);
             fetchData();
         }
@@ -327,6 +404,12 @@ export default function CourseManager() {
                                         setLessonTitle('');
                                         setLessonDescription('');
                                         setLessonVideoUrl('');
+                                        setLessonResources([]);
+                                        setNewResourceTitle('');
+                                        setNewResourceUrl('');
+                                        setLessonHighlights([]);
+                                        setAiStatus('idle');
+                                        setAiError('');
                                         setIsLessonModalOpen(true);
                                     }}
                                     className="p-2 text-[#7c3aed] hover:bg-[#7c3aed]/10 rounded-lg transition"
@@ -336,8 +419,10 @@ export default function CourseManager() {
                                 </button>
                                 <button
                                     onClick={() => {
-                                        setCurrentModule(module);
+                                                        setCurrentModule(module);
                                         setModuleTitle(module.title);
+                                        setModuleDescription(module.description || '');
+                                        setModuleThumbnail(module.thumbnail_url || '');
                                         setIsModuleModalOpen(true);
                                     }}
                                     className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition"
@@ -383,12 +468,21 @@ export default function CourseManager() {
                                     </div>
                                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition">
                                         <button
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 setSelectedModuleId(module.id);
                                                 setCurrentLesson(lesson);
                                                 setLessonTitle(lesson.title);
                                                 setLessonDescription(lesson.description);
                                                 setLessonVideoUrl(lesson.video_url);
+                                                setLessonResources([]);
+                                                setNewResourceTitle('');
+                                                setNewResourceUrl('');
+                                                setLessonHighlights((lesson as any).highlights || []);
+                                                setAiStatus('idle');
+                                                setAiError('');
+                                                // Load existing resources
+                                                const { data } = await supabase.from('lesson_resources').select('id, title, url').eq('lesson_id', lesson.id).order('display_order');
+                                                if (data) setLessonResources(data);
                                                 setIsLessonModalOpen(true);
                                             }}
                                             className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition"
@@ -423,13 +517,76 @@ export default function CourseManager() {
                 <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
                         <h3 className="text-xl font-bold mb-4">{currentModule ? 'Editar Módulo' : 'Novo Módulo'}</h3>
-                        <input
-                            type="text"
-                            value={moduleTitle}
-                            onChange={(e) => setModuleTitle(e.target.value)}
-                            placeholder="Título do módulo"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-6 focus:ring-[#7c3aed] outline-none"
-                        />
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Título *</label>
+                                <input
+                                    type="text"
+                                    value={moduleTitle}
+                                    onChange={(e) => setModuleTitle(e.target.value)}
+                                    placeholder="Ex: Módulo 1 — Fundamentos"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-[#7c3aed] outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Descrição curta</label>
+                                <textarea
+                                    value={moduleDescription}
+                                    onChange={(e) => setModuleDescription(e.target.value)}
+                                    placeholder="O que o aluno vai aprender neste módulo..."
+                                    rows={2}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-[#7c3aed] outline-none resize-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Thumbnail do Módulo</label>
+
+                                {moduleThumbnail ? (
+                                    <div className="relative">
+                                        <img
+                                            src={moduleThumbnail}
+                                            className="w-full h-36 object-cover rounded-xl border border-gray-200"
+                                            onError={e => (e.currentTarget.style.display = 'none')}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setModuleThumbnail('')}
+                                            className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg hover:bg-red-600 transition"
+                                        >
+                                            Remover
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {uploadingModuleThumb ? (
+                                            <div className="w-full h-16 flex items-center justify-center border-2 border-dashed border-[#7c3aed]/30 rounded-xl bg-[#7c3aed]/5">
+                                                <span className="text-sm text-[#7c3aed] font-semibold animate-pulse">Enviando...</span>
+                                            </div>
+                                        ) : (
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                disabled={uploadingModuleThumb}
+                                                onChange={e => { const f = e.target.files?.[0]; if (f) handleModuleThumbUpload(f); }}
+                                                className="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#7c3aed]/10 file:text-[#7c3aed] hover:file:bg-[#7c3aed]/20 cursor-pointer"
+                                            />
+                                        )}
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 h-px bg-gray-100" />
+                                            <span className="text-xs text-gray-400">ou cole a URL</span>
+                                            <div className="flex-1 h-px bg-gray-100" />
+                                        </div>
+                                        <input
+                                            type="url"
+                                            value={moduleThumbnail}
+                                            onChange={e => setModuleThumbnail(e.target.value)}
+                                            placeholder="https://..."
+                                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg font-mono focus:ring-[#7c3aed] outline-none"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                         <div className="flex justify-end gap-3">
                             <button onClick={() => setIsModuleModalOpen(false)} className="px-4 py-2 text-gray-600 font-medium">Cancelar</button>
                             <button onClick={handleSaveModule} className="bg-[#7c3aed] text-white px-6 py-2 rounded-lg font-bold">Salvar</button>
@@ -440,8 +597,11 @@ export default function CourseManager() {
 
             {isLessonModalOpen && (
                 <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-xl shadow-2xl">
-                        <h3 className="text-xl font-bold mb-4">{currentLesson ? 'Editar Aula' : 'Nova Aula'}</h3>
+                    <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+                            <h3 className="text-xl font-bold">{currentLesson ? 'Editar Aula' : 'Nova Aula'}</h3>
+                        </div>
+                        <div className="overflow-y-auto flex-1 px-6 py-4">
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">Título</label>
@@ -510,8 +670,61 @@ export default function CourseManager() {
                                     )}
                                 </div>
                             </div>
+
                         </div>
-                        <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
+                            {/* Resources */}
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Materiais de Apoio</label>
+                                <div className="space-y-2 mb-3">
+                                    {lessonResources.map((r, i) => (
+                                        <div key={i} className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                                            <Link className="w-4 h-4 text-gray-400 shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-bold text-gray-800 truncate">{r.title}</p>
+                                                <p className="text-[10px] text-gray-400 truncate">{r.url}</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setLessonResources(prev => prev.filter((_, idx) => idx !== i))}
+                                                className="shrink-0 p-1 hover:bg-red-50 hover:text-red-500 rounded text-gray-400 transition"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={newResourceTitle}
+                                        onChange={(e) => setNewResourceTitle(e.target.value)}
+                                        placeholder="Nome do material"
+                                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-[#7c3aed] outline-none"
+                                    />
+                                    <input
+                                        type="url"
+                                        value={newResourceUrl}
+                                        onChange={(e) => setNewResourceUrl(e.target.value)}
+                                        placeholder="URL"
+                                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg font-mono focus:ring-[#7c3aed] outline-none"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (!newResourceTitle.trim() || !newResourceUrl.trim()) return;
+                                            setLessonResources(prev => [...prev, { title: newResourceTitle.trim(), url: newResourceUrl.trim() }]);
+                                            setNewResourceTitle('');
+                                            setNewResourceUrl('');
+                                        }}
+                                        className="shrink-0 px-3 py-2 bg-[#7c3aed]/10 text-[#7c3aed] rounded-lg text-sm font-bold hover:bg-[#7c3aed]/20 transition"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
                             <button onClick={() => setIsLessonModalOpen(false)} className="px-4 py-2 text-gray-600 font-medium">Cancelar</button>
                             <button onClick={handleSaveLesson} className="bg-[#7c3aed] text-white px-6 py-2 rounded-lg font-bold">Salvar Aula</button>
                         </div>

@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings, Menu, X, Video, MessageSquare } from 'lucide-react';
+import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings, Menu, X, Video, MessageSquare, BookMarked, ClipboardCheck, HelpCircle, Radio } from 'lucide-react';
 
 interface Props {
 	title: string;
@@ -81,22 +81,66 @@ const pathname = new URL(Astro.request.url).pathname;
           <Tags className="w-5 h-5" />
           Categorias
         </a>
-        <a 
-          href="/admin/aulas" 
+        <a
+          href="/admin/aulas"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/aulas') 
-              ? 'bg-[#7c3aed] text-white font-medium' 
+            pathname.includes('/admin/aulas')
+              ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
           <Video className="w-5 h-5" />
           Gerenciar Aulas
         </a>
-        <a 
-          href="/admin/configuracoes" 
+        <a
+          href="/admin/lives"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/configuracoes') 
-              ? 'bg-[#7c3aed] text-white font-medium' 
+            pathname.includes('/admin/lives')
+              ? 'bg-[#7c3aed] text-white font-medium'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <Radio className="w-5 h-5" />
+          Academy Ao Vivo
+        </a>
+        <a
+          href="/admin/perguntas"
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/perguntas')
+              ? 'bg-[#7c3aed] text-white font-medium'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <HelpCircle className="w-5 h-5" />
+          Perguntas
+        </a>
+        <a
+          href="/admin/producao"
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/producao')
+              ? 'bg-[#7c3aed] text-white font-medium'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <ClipboardCheck className="w-5 h-5" />
+          Produção
+        </a>
+        <a
+          href="/admin/tutoriais"
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/tutoriais')
+              ? 'bg-[#7c3aed] text-white font-medium'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <BookMarked className="w-5 h-5" />
+          Tutoriais
+        </a>
+        <a
+          href="/admin/configuracoes"
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/configuracoes')
+              ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >

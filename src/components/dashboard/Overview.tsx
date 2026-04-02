@@ -1,35 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import {
-    PlayCircle,
-    Layout,
-    Heart,
-    MessageSquare,
-    BookOpen,
-    ArrowRight,
-    Plus,
-    Zap,
-    ExternalLink,
-    Sparkles,
-    ShieldCheck,
-    TrendingUp,
-    Star,
-    Clock
+    Plus, Globe, Heart, ExternalLink, Sparkles, LayoutDashboard,
+    ArrowRight, BookOpen, GraduationCap, Rocket, Zap, ChevronRight,
+    Settings, Play, TrendingUp
 } from 'lucide-react';
+
+interface Site {
+    id: string;
+    github_repo: string;
+    domain?: string;
+    created_at: string;
+    vercel_project_id?: string;
+}
 
 export default function Overview() {
     const [userName, setUserName] = useState('');
-    const [latestTemplates, setLatestTemplates] = useState<any[]>([]);
-    const [nextLesson, setNextLesson] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+
+    const [hasTokens, setHasTokens] = useState(false);
+    const [sites, setSites] = useState<Site[]>([]);
     const [sitesCount, setSitesCount] = useState(0);
+    const [templatesCount, setTemplatesCount] = useState(0);
+    const [favoritesCount, setFavoritesCount] = useState(0);
+    const [latestTemplates, setLatestTemplates] = useState<any[]>([]);
     const [totalProgress, setTotalProgress] = useState(0);
-    const [currentLessonProgress, setCurrentLessonProgress] = useState(0);
     const [totalLessonsCount, setTotalLessonsCount] = useState(0);
 
-    useEffect(() => {
-        fetchDashboardData();
-    }, []);
+    useEffect(() => { fetchDashboardData(); }, []);
 
     const fetchDashboardData = async () => {
         setLoading(true);
@@ -39,69 +37,39 @@ export default function Overview() {
 
             setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário');
 
-            const { data: templatesData } = await supabase
-                .from('templates')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(3);
-            if (templatesData) setLatestTemplates(templatesData);
+            const [profileResult, templatesResult, favoritesResult, lessonsResult, progressResult] =
+                await Promise.all([
+                    supabase.from('profiles').select('github_token, vercel_token').eq('id', user.id).limit(1),
+                    supabase.from('templates').select('*').order('created_at', { ascending: false }),
+                    supabase.from('user_favorites').select('template_id', { count: 'exact', head: true }).eq('user_id', user.id),
+                    supabase.from('lessons').select('*', { count: 'exact', head: true }),
+                    supabase.from('user_lessons_progress').select('lesson_id, is_completed').eq('user_id', user.id),
+                ]);
 
-            // 1. Buscar progresso real
-            const { data: progressData } = await supabase
-                .from('user_lessons_progress')
-                .select('lesson_id, percent_completed, is_completed, updated_at')
-                .eq('user_id', user.id)
-                .order('updated_at', { ascending: false });
-
-            // 2. Buscar o total real de aulas
-            const { count: totalLessons } = await supabase
-                .from('lessons')
-                .select('*', { count: 'exact', head: true });
-
-            setTotalLessonsCount(totalLessons || 0);
-
-            if (progressData && progressData.length > 0) {
-                // Última aula assistida
-                const lastProgress = progressData[0];
-                setCurrentLessonProgress(lastProgress.percent_completed);
-
-                const { data: lastLessonData } = await supabase
-                    .from('lessons')
-                    .select('*, modules(title)')
-                    .eq('id', lastProgress.lesson_id)
-                    .single();
-
-                if (lastLessonData) setNextLesson(lastLessonData);
-
-                // Calcular progresso total (aulas completadas / total de aulas)
-                const completedLessons = progressData.filter(p => p.is_completed).length;
-                const progressPercent = totalLessons && totalLessons > 0
-                    ? Math.min(100, Math.round((completedLessons / totalLessons) * 100))
-                    : 0;
-                setTotalProgress(progressPercent);
-            } else {
-                // ... rest of fallback remains same but we reuse it for simplicity
-                const { data: firstLesson } = await supabase
-                    .from('lessons')
-                    .select('*, modules(title)')
-                    .order('display_order', { ascending: true })
-                    .limit(1)
-                    .single();
-                if (firstLesson) setNextLesson(firstLesson);
-                setTotalProgress(0);
-                setCurrentLessonProgress(0);
+            if (profileResult.data?.[0]) {
+                const p = profileResult.data[0];
+                setHasTokens(!!(p.github_token && p.vercel_token));
             }
-            // ... templates and sites count stay same
+            if (templatesResult.data) {
+                setTemplatesCount(templatesResult.data.length);
+                setLatestTemplates(templatesResult.data.slice(0, 3));
+            }
+            setFavoritesCount(favoritesResult.count || 0);
+
+            const totalLessons = lessonsResult.count || 0;
+            setTotalLessonsCount(totalLessons);
+            if (progressResult.data?.length && totalLessons > 0) {
+                const completed = progressResult.data.filter(p => p.is_completed).length;
+                setTotalProgress(Math.round((completed / totalLessons) * 100));
+            }
 
             const token = (await supabase.auth.getSession()).data.session?.access_token;
-            const res = await fetch('/api/admin/my-sites', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await fetch('/api/admin/my-sites', { headers: { 'Authorization': `Bearer ${token}` } });
             if (res.ok) {
                 const data = await res.json();
+                setSites(data || []);
                 setSitesCount(data?.length || 0);
             }
-
         } catch (err) {
             console.error('Erro ao carregar dashboard:', err);
         } finally {
@@ -109,115 +77,339 @@ export default function Overview() {
         }
     };
 
+    // ── SKELETON LOADER ──────────────────────────────────────────
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7c3aed]"></div>
+            <div className="space-y-6 pb-8">
+                {/* Hero skeleton */}
+                <div className="h-44 bg-gray-900 rounded-[24px] animate-pulse opacity-60" />
+                {/* Stats skeleton */}
+                <div className="grid grid-cols-3 gap-4">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+                    ))}
+                </div>
+                {/* Content skeleton */}
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    <div className="xl:col-span-2 space-y-4">
+                        <div className="h-6 w-32 bg-gray-200 rounded-lg animate-pulse" />
+                        <div className="grid grid-cols-3 gap-3">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="h-44 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+                            ))}
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="h-48 bg-white rounded-[20px] border border-gray-100 animate-pulse" />
+                        <div className="h-36 bg-gray-900 rounded-[20px] animate-pulse opacity-40" />
+                    </div>
+                </div>
             </div>
         );
     }
 
+    const isNew = !hasTokens;
+    const hasNoSites = hasTokens && sitesCount === 0;
+    const isActive = sitesCount > 0;
+
+    const heroConfig = isNew ? {
+        badge: '⚡ Configuração Rápida',
+        eyebrow: 'BEM-VINDO À PLATAFORMA',
+        title: `Falta pouco, ${userName}!`,
+        subtitle: 'Configure sua conta em 2 minutos e publique seu primeiro site com IA — sem código.',
+        cta: 'Configurar Minha Conta',
+        ctaHref: '/configuracoes?tab=integracao',
+        ctaSecondary: 'Como funciona?',
+        ctaSecondaryHref: '/como-usar',
+    } : hasNoSites ? {
+        badge: '🚀 Tudo Certo',
+        eyebrow: 'CONTA CONFIGURADA',
+        title: `Pronto para decolar, ${userName}!`,
+        subtitle: 'Escolha um template e publique seu primeiro site agora — leva menos de 2 minutos.',
+        cta: 'Criar Meu Primeiro Site',
+        ctaHref: '/sites',
+        ctaSecondary: null,
+        ctaSecondaryHref: null,
+    } : {
+        badge: `🌐 ${sitesCount} ${sitesCount === 1 ? 'site no ar' : 'sites no ar'}`,
+        eyebrow: 'SEU PAINEL',
+        title: `Bem-vindo de volta, ${userName}!`,
+        subtitle: 'Gerencie seus sites, explore novos templates e acompanhe seu crescimento.',
+        cta: 'Criar Novo Site',
+        ctaHref: '/sites',
+        ctaSecondary: 'Ver Meus Sites',
+        ctaSecondaryHref: '/meus-sites',
+    };
+
+    const recentSites = sites.slice(0, 3);
+
     return (
-        <div className="relative space-y-6 pb-8 overflow-hidden animate-in fade-in duration-700">
-            {/* Decorativos sutis */}
-            <div className="absolute top-[-50px] right-[-50px] w-96 h-96 bg-purple-100/20 rounded-full blur-[100px] -z-10"></div>
+        <div className="space-y-6 pb-8">
 
-            {/* Header Compacto */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-                        Olá, <span className="text-[#7c3aed]">{userName}</span>! 👋
-                    </h1>
-                    <p className="text-gray-500 font-medium text-sm">Bem-vindo de volta ao seu centro estratégico.</p>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-emerald-100 text-emerald-600 rounded-full font-bold text-xs shadow-sm">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Plataforma Ativa
-                </div>
-            </div>
+            {/* ── HERO ─────────────────────────────────────────── */}
+            <div
+                className="dashboard-section relative bg-gray-950 rounded-[24px] overflow-hidden"
+                style={{ animationDelay: '0ms', minHeight: '176px' }}
+            >
+                {/* Aurora orbs */}
+                <div
+                    className="absolute top-[-40px] right-[-40px] w-72 h-72 rounded-full pointer-events-none"
+                    style={{
+                        background: 'radial-gradient(circle, rgba(124,58,237,0.35) 0%, transparent 70%)',
+                        animation: 'auroraFloat 9s ease-in-out infinite',
+                    }}
+                />
+                <div
+                    className="absolute bottom-[-60px] left-[10%] w-60 h-60 rounded-full pointer-events-none"
+                    style={{
+                        background: 'radial-gradient(circle, rgba(59,130,246,0.2) 0%, transparent 70%)',
+                        animation: 'auroraFloat 13s ease-in-out infinite reverse',
+                    }}
+                />
+                <div
+                    className="absolute top-[20%] left-[40%] w-40 h-40 rounded-full pointer-events-none"
+                    style={{
+                        background: 'radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 70%)',
+                        animation: 'auroraFloat 7s ease-in-out infinite 2s',
+                    }}
+                />
+                {/* Dot grid */}
+                <div
+                    className="absolute inset-0 opacity-[0.035] pointer-events-none"
+                    style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.8) 1px, transparent 0)', backgroundSize: '22px 22px' }}
+                />
 
-            {/* Grid Principal Compacto */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-                {/* 1. LMS Card Compacto (Span 8) */}
-                <div className="lg:col-span-12 xl:col-span-8 flex flex-col gap-6">
-                    <div className="bg-gradient-to-br from-gray-900 via-[#1a1a1a] to-black rounded-[24px] overflow-hidden shadow-xl border border-white/5 flex flex-col md:flex-row transition-all hover:shadow-purple-500/5">
-                        <div className="md:w-[220px] bg-white/5 backdrop-blur-md p-6 flex flex-col justify-center items-center text-center border-b md:border-b-0 md:border-r border-white/10">
-                            <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-[#7c3aed] to-blue-500 text-white flex items-center justify-center shadow-lg mb-4 cursor-pointer hover:scale-105 transition-transform group">
-                                <PlayCircle className="w-7 h-7 fill-white/20" />
-                                <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            </div>
-                            <h3 className="font-bold text-gray-400 uppercase text-[9px] tracking-widest">Curso Completo</h3>
-                            <div className="w-full h-1 bg-white/10 rounded-full mt-3 overflow-hidden max-w-[100px]">
-                                <div className="h-full bg-[#7c3aed] shadow-[0_0_8px_rgba(124,58,237,0.6)]" style={{ width: `${totalProgress}%` }}></div>
-                            </div>
-                            <p className="text-white font-black text-xs mt-2 uppercase tracking-tighter">{totalProgress}% Curso</p>
-
-                            {/* Novo: Progresso da Aula Atual */}
-                            {currentLessonProgress > 0 && (
-                                <div className="mt-4 pt-4 border-t border-white/5 w-full">
-                                    <h4 className="text-[8px] font-bold text-gray-500 uppercase tracking-widest mb-2 text-center">Nesta Aula</h4>
-                                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                                        <div className="h-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]" style={{ width: `${currentLessonProgress}%` }}></div>
-                                    </div>
-                                    <p className="text-emerald-400 font-extrabold text-[10px] mt-1.5 uppercase tracking-tighter text-center">{currentLessonProgress}%</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex-1 p-6 md:p-8 flex flex-col justify-center">
-                            {nextLesson ? (
-                                <>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${totalProgress > 0 ? 'bg-[#7c3aed]/20 text-[#a78bfa]' : 'bg-amber-500/20 text-amber-500'}`}>
-                                            {totalProgress > 0 ? 'CONTINUAR ASSISTINDO' : 'AULA EM DESTAQUE'}
-                                        </span>
-                                        <span className="text-white/20 text-xs">•</span>
-                                        <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest truncate">{nextLesson.modules?.title}</span>
-                                    </div>
-                                    <h3 className="text-xl font-black text-white tracking-tight mb-3 line-clamp-1">{nextLesson.title}</h3>
-                                    <p className="text-gray-400 text-sm leading-relaxed mb-6 line-clamp-2 max-w-xl">{nextLesson.description}</p>
-                                    <div className="flex items-center gap-4">
-                                        <a href="/aulas" className="bg-white text-black px-6 py-2.5 rounded-xl font-black text-xs hover:bg-[#7c3aed] hover:text-white transition-all shadow-md active:scale-95">
-                                            COMEÇAR AGORA
-                                        </a>
-                                        <div className="flex items-center gap-1.5 text-gray-500 font-bold text-[10px] uppercase tracking-tighter">
-                                            <Clock className="w-3.5 h-3.5" />
-                                            Curso de IA
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <p className="text-gray-500 text-sm">Inicie seu treinamento agora.</p>
-                            )}
+                <div className="relative z-10 p-7 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex-1">
+                        <p className="text-[9px] font-black text-[#7c3aed] uppercase tracking-[0.2em] mb-2 opacity-80">
+                            {heroConfig.eyebrow}
+                        </p>
+                        <h1 className="text-2xl md:text-[1.85rem] font-black text-white tracking-tight leading-tight mb-2">
+                            {heroConfig.title}
+                        </h1>
+                        <p className="text-gray-400 text-sm leading-relaxed max-w-md">
+                            {heroConfig.subtitle}
+                        </p>
+                        <div className="mt-4 inline-flex items-center gap-2 text-emerald-400 text-[11px] font-bold">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                            </span>
+                            Plataforma Ativa
                         </div>
                     </div>
 
-                    {/* 2. Novos Templates Compacto */}
-                    <div className="space-y-4 pt-2">
+                    <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
+                        {/* Primary CTA — shimmer */}
+                        <a
+                            href={heroConfig.ctaHref}
+                            className="relative overflow-hidden flex items-center justify-center gap-2 bg-white text-gray-900 px-7 py-3 rounded-2xl font-black text-sm transition-all active:scale-95 whitespace-nowrap shadow-lg shadow-white/10 hover:shadow-white/20"
+                            style={{ animation: 'pulseGlow 3s ease-in-out infinite' } as React.CSSProperties}
+                        >
+                            <span
+                                className="absolute inset-0 pointer-events-none"
+                                style={{
+                                    background: 'linear-gradient(105deg, transparent 40%, rgba(124,58,237,0.15) 50%, transparent 60%)',
+                                    animation: 'shimmerSlide 3s ease-in-out infinite',
+                                }}
+                            />
+                            <Rocket className="w-4 h-4 relative z-10" />
+                            <span className="relative z-10">{heroConfig.cta}</span>
+                        </a>
+
+                        {heroConfig.ctaSecondary && heroConfig.ctaSecondaryHref && (
+                            <a
+                                href={heroConfig.ctaSecondaryHref}
+                                className="flex items-center justify-center gap-2 bg-white/8 hover:bg-white/14 text-white px-7 py-3 rounded-2xl font-bold text-sm transition-all border border-white/10 hover:border-white/20 active:scale-95 whitespace-nowrap backdrop-blur-sm"
+                            >
+                                {heroConfig.ctaSecondary}
+                                <ArrowRight className="w-4 h-4" />
+                            </a>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* ── STATS ────────────────────────────────────────── */}
+            <div className="grid grid-cols-3 gap-4">
+                {[
+                    { icon: Globe, label: 'Sites Publicados', value: sitesCount, accent: '#7c3aed', bg: '#f5f3ff', href: '/meus-sites', delay: '60ms' },
+                    { icon: Sparkles, label: 'Templates Disponíveis', value: templatesCount, accent: '#2563eb', bg: '#eff6ff', href: '/sites', delay: '120ms' },
+                    { icon: Heart, label: 'Favoritos', value: favoritesCount, accent: '#e11d48', bg: '#fff1f2', href: '/favoritos', delay: '180ms' },
+                ].map((stat, i) => (
+                    <a
+                        key={i}
+                        href={stat.href}
+                        className="stat-card bg-white rounded-2xl border border-gray-100 p-4 md:p-5 hover:shadow-lg transition-all group cursor-pointer"
+                        style={{ animationDelay: stat.delay, borderColor: 'rgb(243,244,246)' }}
+                        onMouseEnter={e => (e.currentTarget.style.borderColor = stat.accent + '33')}
+                        onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgb(243,244,246)')}
+                    >
+                        <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-sm"
+                            style={{ background: stat.bg, color: stat.accent }}
+                        >
+                            <stat.icon className="w-4 h-4" />
+                        </div>
+                        <p className="text-2xl font-black text-gray-950 tabular-nums">{stat.value}</p>
+                        <p className="text-[11px] text-gray-500 font-medium mt-0.5 leading-snug">{stat.label}</p>
+                    </a>
+                ))}
+            </div>
+
+            {/* ── GRID PRINCIPAL ───────────────────────────────── */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+                {/* ── Coluna esquerda (2/3) ── */}
+                <div className="xl:col-span-2 space-y-6">
+
+                    {/* MEUS SITES */}
+                    <div className="dashboard-section space-y-3" style={{ animationDelay: '140ms' }}>
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                                <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
-                                Novos Templates
+                            <h3 className="text-[15px] font-black text-gray-900 flex items-center gap-2">
+                                <TrendingUp className="w-4 h-4 text-[#7c3aed]" />
+                                Meus Sites
                             </h3>
-                            <a href="/sites" className="text-[11px] font-black text-[#7c3aed] hover:underline uppercase tracking-widest">Ver Tudo</a>
+                            {isActive && (
+                                <a href="/meus-sites" className="text-[10px] font-black text-[#7c3aed] hover:underline uppercase tracking-widest flex items-center gap-0.5">
+                                    Ver todos <ChevronRight className="w-3 h-3" />
+                                </a>
+                            )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {isActive ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                {recentSites.map((site) => {
+                                    const name = site.github_repo?.split('/').pop() || site.github_repo;
+                                    const domain = site.domain || `${name}.vercel.app`;
+                                    return (
+                                        <div
+                                            key={site.id}
+                                            className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:border-[#7c3aed]/20 transition-all duration-300 group"
+                                        >
+                                            <div className="h-28 bg-slate-50 relative overflow-hidden">
+                                                <img
+                                                    src={`https://api.microlink.io/?url=https://${domain}&screenshot=true&meta=false&embed=screenshot.url`}
+                                                    className="w-full h-full object-cover object-top group-hover:scale-110 transition-transform duration-700"
+                                                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/20" />
+                                                <span className="absolute top-2.5 right-2.5 px-2 py-0.5 bg-emerald-500 text-white text-[9px] font-black rounded-full shadow-sm">
+                                                    NO AR
+                                                </span>
+                                            </div>
+                                            <div className="p-3.5">
+                                                <p className="font-bold text-gray-900 text-xs truncate">{name}</p>
+                                                <p className="text-[10px] text-gray-400 font-mono truncate mt-0.5">{domain}</p>
+                                                <div className="flex gap-1.5 mt-3">
+                                                    <a
+                                                        href={`https://${domain}`}
+                                                        target="_blank"
+                                                        className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-[10px] font-bold hover:bg-gray-100 transition"
+                                                        onClick={e => e.stopPropagation()}
+                                                    >
+                                                        <ExternalLink className="w-3 h-3" /> Ver Site
+                                                    </a>
+                                                    <a
+                                                        href={`https://${domain}/admin`}
+                                                        target="_blank"
+                                                        className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-[#7c3aed]/8 text-[#7c3aed] rounded-lg text-[10px] font-bold hover:bg-[#7c3aed]/15 transition"
+                                                        onClick={e => e.stopPropagation()}
+                                                    >
+                                                        <LayoutDashboard className="w-3 h-3" /> CMS
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {/* + Criar Novo */}
+                                <a
+                                    href="/sites"
+                                    className="bg-white rounded-2xl border-2 border-dashed border-gray-200 hover:border-[#7c3aed]/50 hover:bg-[#7c3aed]/[0.02] transition-all flex flex-col items-center justify-center gap-2.5 p-6 group min-h-[185px]"
+                                >
+                                    <div className="w-11 h-11 rounded-2xl bg-gray-100 group-hover:bg-[#7c3aed] flex items-center justify-center transition-all duration-300 group-hover:shadow-lg group-hover:shadow-purple-500/25">
+                                        <Plus className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-xs font-bold text-gray-500 group-hover:text-[#7c3aed] transition-colors">Criar Novo Site</p>
+                                        <p className="text-[10px] text-gray-400 mt-0.5">Pronto em 2 min</p>
+                                    </div>
+                                </a>
+                            </div>
+                        ) : (
+                            /* Empty state — nenhum site */
+                            <div className="relative bg-white rounded-[20px] border border-gray-100 overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#7c3aed]/[0.03] to-blue-500/[0.03]" />
+                                <div className="relative p-8 flex flex-col md:flex-row items-center gap-6">
+                                    <div
+                                        className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl shrink-0"
+                                        style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', animation: 'pulseGlow 3s ease-in-out infinite' } as React.CSSProperties}
+                                    >
+                                        <Rocket className="w-8 h-8 text-white" />
+                                    </div>
+                                    <div className="flex-1 text-center md:text-left">
+                                        <h3 className="text-lg font-black text-gray-900 mb-1">Crie seu primeiro site agora</h3>
+                                        <p className="text-sm text-gray-500 leading-relaxed max-w-sm">
+                                            Escolha um template, dê um nome e publique em menos de 2 minutos. Sem código, sem servidor.
+                                        </p>
+                                    </div>
+                                    <a
+                                        href="/sites"
+                                        className="shrink-0 flex items-center gap-2 bg-[#7c3aed] text-white px-7 py-3 rounded-2xl font-black text-sm hover:bg-[#6d28d9] transition-all shadow-lg shadow-purple-500/25 active:scale-95"
+                                    >
+                                        Escolher Template
+                                        <ArrowRight className="w-4 h-4" />
+                                    </a>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* TEMPLATES PARA DEPLOY */}
+                    <div className="dashboard-section space-y-3" style={{ animationDelay: '220ms' }}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-[15px] font-black text-gray-900 flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-amber-500 fill-amber-500" />
+                                    Prontos para Deploy
+                                </h3>
+                                <p className="text-[11px] text-gray-400 mt-0.5">Escolha, nomeie e publique — sem escrever uma linha de código.</p>
+                            </div>
+                            <a href="/sites" className="text-[10px] font-black text-[#7c3aed] hover:underline uppercase tracking-widest flex items-center gap-0.5 shrink-0">
+                                Ver tudo <ChevronRight className="w-3 h-3" />
+                            </a>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             {latestTemplates.map((template, i) => (
                                 <a
                                     key={i}
                                     href="/sites"
-                                    className="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all"
+                                    className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-2xl hover:border-[#7c3aed]/25 transition-all duration-300"
                                 >
                                     <div className="aspect-video bg-gray-50 relative overflow-hidden">
-                                        <img src={template.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                        <div className="absolute top-2 left-2">
-                                            <span className="px-1.5 py-0.5 bg-gray-900/80 text-white text-[8px] font-black rounded border border-white/10 uppercase">AI Ready</span>
+                                        <img
+                                            src={template.image_url}
+                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                        />
+                                        {/* Slide-up overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-400 ease-out flex flex-col justify-end p-3">
+                                            <span className="inline-flex items-center gap-1.5 bg-white text-gray-900 px-3 py-1.5 rounded-xl font-black text-[11px] w-fit shadow-lg">
+                                                <Zap className="w-3 h-3 text-[#7c3aed]" />
+                                                Fazer Deploy
+                                            </span>
+                                        </div>
+                                        <div className="absolute top-2 left-2 z-10">
+                                            <span className="px-1.5 py-0.5 bg-gray-950/75 text-white text-[8px] font-black rounded-md border border-white/10 uppercase tracking-wider backdrop-blur-sm">
+                                                AI Ready
+                                            </span>
                                         </div>
                                     </div>
-                                    <div className="p-3">
+                                    <div className="p-3.5 flex items-center justify-between">
                                         <h4 className="font-bold text-gray-900 text-[11px] truncate uppercase tracking-tight">{template.name}</h4>
+                                        <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#7c3aed] transition-colors shrink-0 group-hover:translate-x-0.5 duration-200" />
                                     </div>
                                 </a>
                             ))}
@@ -225,62 +417,113 @@ export default function Overview() {
                     </div>
                 </div>
 
-                {/* 3. Sidebar Compacta (Span 4) */}
-                <div className="lg:col-span-12 xl:col-span-4 flex flex-col gap-6">
+                {/* ── Coluna direita (1/3) ── */}
+                <div className="space-y-4">
 
-                    {/* Stats Card Compacto - NO TOPO */}
-                    <div className="bg-gradient-to-br from-[#7c3aed] to-blue-600 rounded-[20px] p-5 text-white relative overflow-hidden group shadow-lg shadow-purple-500/10 transition-all hover:scale-[1.02]">
-                        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '12px 12px' }}></div>
-
-                        <div className="relative z-10 flex items-center justify-between">
-                            <div>
-                                <div className="flex items-center gap-1.5 mb-1">
-                                    <TrendingUp className="w-3.5 h-3.5 text-purple-200" />
-                                    <h4 className="text-[8px] font-black text-purple-100 uppercase tracking-widest">IMPACTO</h4>
-                                </div>
-                                <div className="flex items-baseline gap-1">
-                                    <p className="text-3xl font-black">{sitesCount}</p>
-                                    <span className="text-sm font-bold text-purple-200">sites ativos</span>
-                                </div>
-                            </div>
-                            <div className="bg-white/10 p-2.5 rounded-xl backdrop-blur-sm">
-                                <Zap className="w-5 h-5 text-amber-300 fill-amber-300" />
-                            </div>
+                    {/* Ações Rápidas */}
+                    <div className="dashboard-section bg-white rounded-[20px] border border-gray-100 p-5" style={{ animationDelay: '160ms' }}>
+                        <h3 className="text-[13px] font-black text-gray-900 mb-3 uppercase tracking-wide">Ações Rápidas</h3>
+                        <div className="space-y-1">
+                            {[
+                                {
+                                    href: '/sites', icon: Plus,
+                                    label: 'Criar Novo Site',
+                                    sublabel: hasTokens ? 'Pronto para deploy' : 'Configure tokens antes ⚠️',
+                                    accent: '#7c3aed', bg: '#7c3aed', iconColor: 'white',
+                                },
+                                {
+                                    href: '/meus-sites', icon: Globe,
+                                    label: 'Meus Sites',
+                                    sublabel: `${sitesCount} ${sitesCount !== 1 ? 'sites' : 'site'} publicado${sitesCount !== 1 ? 's' : ''}`,
+                                    accent: '#2563eb', bg: '#eff6ff', iconColor: '#2563eb',
+                                },
+                                {
+                                    href: '/configuracoes?tab=integracao', icon: Settings,
+                                    label: 'Configurações',
+                                    sublabel: hasTokens ? 'Tokens configurados ✓' : 'Tokens pendentes',
+                                    accent: '#374151', bg: '#f3f4f6', iconColor: '#374151',
+                                },
+                                {
+                                    href: '/como-usar', icon: BookOpen,
+                                    label: 'Como Usar',
+                                    sublabel: 'GitHub, Vercel, tokens',
+                                    accent: '#059669', bg: '#ecfdf5', iconColor: '#059669',
+                                },
+                            ].map((item, i) => (
+                                <a
+                                    key={i}
+                                    href={item.href}
+                                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-all group"
+                                >
+                                    <div
+                                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm"
+                                        style={{ background: item.bg, color: item.iconColor }}
+                                    >
+                                        <item.icon className="w-4 h-4" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-gray-800 text-[12px]">{item.label}</p>
+                                        <p className="text-[10px] text-gray-400 truncate">{item.sublabel}</p>
+                                    </div>
+                                    <ArrowRight className="w-3.5 h-3.5 text-gray-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+                                </a>
+                            ))}
                         </div>
                     </div>
 
-                    {/* Cockpit Compacto */}
-                    <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm p-6 space-y-4">
-                        <h3 className="text-lg font-black text-gray-900 flex items-center gap-2 mb-2">
-                            <Layout className="w-4 h-4 text-[#7c3aed]" />
-                            Cockpit
-                        </h3>
+                    {/* Academy — Bônus */}
+                    <div
+                        className="dashboard-section relative bg-gray-950 rounded-[20px] p-5 overflow-hidden"
+                        style={{ animationDelay: '260ms' }}
+                    >
+                        <div
+                            className="absolute top-0 right-0 w-32 h-32 rounded-full pointer-events-none"
+                            style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%)', animation: 'auroraFloat 8s ease-in-out infinite' }}
+                        />
+                        <div
+                            className="absolute inset-0 opacity-[0.04] pointer-events-none"
+                            style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '14px 14px' }}
+                        />
 
-                        <div className="grid grid-cols-1 gap-2">
-                            {[
-                                { href: '/sites', icon: Plus, label: 'Criar Novo Site', bg: 'bg-[#7c3aed]', color: 'text-white' },
-                                { href: '/favoritos', icon: Heart, label: 'Templates Favoritos', bg: 'bg-rose-50', color: 'text-rose-500' },
-                                { href: '/como-usar', icon: BookOpen, label: 'Ajuda & Docs', bg: 'bg-blue-50', color: 'text-blue-500' },
-                                {
-                                    onClick: () => window.dispatchEvent(new CustomEvent('open-group-wizard')),
-                                    icon: MessageSquare,
-                                    label: 'Grupo de Alunos',
-                                    bg: 'bg-emerald-50',
-                                    color: 'text-emerald-500'
-                                }
-                            ].map((item, i) => (
-                                <button
-                                    key={i}
-                                    onClick={item.onClick || (() => window.location.href = item.href || '#')}
-                                    className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-transparent transition-all hover:bg-gray-50 hover:border-gray-100 group text-left"
-                                >
-                                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${item.bg} ${item.color} group-hover:scale-105 transition-transform shadow-sm`}>
-                                        <item.icon className="w-4.5 h-4.5" />
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2.5 mb-3.5">
+                                <div className="w-8 h-8 rounded-xl bg-[#7c3aed]/25 flex items-center justify-center">
+                                    <GraduationCap className="w-4 h-4 text-[#a78bfa]" />
+                                </div>
+                                <div>
+                                    <p className="text-[8px] font-black text-[#7c3aed] uppercase tracking-[0.15em]">Bônus Incluído</p>
+                                    <p className="text-white font-black text-sm leading-none">Academy</p>
+                                </div>
+                            </div>
+
+                            {totalLessonsCount > 0 && (
+                                <div className="mb-3.5">
+                                    <div className="flex justify-between text-[10px] font-bold mb-1.5">
+                                        <span className="text-gray-500">Progresso</span>
+                                        <span className="text-[#a78bfa]">{totalProgress}%</span>
                                     </div>
-                                    <span className="font-bold text-[12px] text-gray-700 tracking-tight">{item.label}</span>
-                                    <ArrowRight className="ml-auto w-3.5 h-3.5 text-gray-300 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
-                                </button>
-                            ))}
+                                    <div className="w-full h-1.5 bg-white/8 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full transition-all duration-1000"
+                                            style={{ width: `${totalProgress}%`, background: 'linear-gradient(90deg, #7c3aed, #60a5fa)' }}
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-gray-600 mt-1.5">
+                                        {Math.round((totalProgress / 100) * totalLessonsCount)}/{totalLessonsCount} aulas concluídas
+                                    </p>
+                                </div>
+                            )}
+
+                            <a
+                                href="/aulas"
+                                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-bold text-xs text-white transition-all border border-white/10 hover:border-white/20"
+                                style={{ background: 'rgba(255,255,255,0.07)' }}
+                                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
+                                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                            >
+                                <Play className="w-3.5 h-3.5 fill-white" />
+                                Acessar Academy
+                            </a>
                         </div>
                     </div>
 

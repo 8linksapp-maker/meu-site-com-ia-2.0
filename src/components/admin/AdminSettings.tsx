@@ -50,7 +50,7 @@ export default function AdminSettings() {
                     b2_bucket_name: b2BucketName.trim(),
                     b2_endpoint: b2Endpoint.trim(),
                     b2_public_url_base: b2PublicUrlBase.trim(),
-                    b2_region: b2Region.trim()
+                    b2_region: b2Region.trim(),
                 });
 
             if (error) throw error;
