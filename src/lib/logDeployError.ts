@@ -1,8 +1,10 @@
 /**
- * logDeployError.ts — Helper para registrar erros de deploy no Supabase
+ * logDeployError.ts — Helper para registrar erros de deploy
  *
- * Retorna um código curto de referência (ERR-XXXXXX) para mostrar ao aluno.
- * Todos os erros ficam no admin em /admin/errors para suporte.
+ * Estratégia dupla:
+ * 1. Tenta salvar no Supabase (deploy_errors) — se a tabela existir
+ * 2. SEMPRE loga no console (aparece nos Vercel Function Logs)
+ * 3. SEMPRE retorna um refCode pro aluno mostrar ao suporte
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -32,43 +34,57 @@ function generateRefCode(): string {
 }
 
 export async function logDeployError(input: LogErrorInput): Promise<string> {
-    const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
-    const serviceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || '';
-    if (!supabaseUrl || !serviceKey) {
-        console.error('[logDeployError] Supabase not configured');
-        return 'ERR-XXXXXX';
-    }
-
-    const supabase = createClient(supabaseUrl, serviceKey, {
-        auth: { autoRefreshToken: false, persistSession: false }
-    });
-
     const refCode = generateRefCode();
 
-    try {
-        const { error } = await supabase.from('deploy_errors').insert({
-            ref_code: refCode,
-            user_id: input.userId || null,
-            user_email: input.userEmail || null,
-            stage: input.stage,
-            template_id: input.templateId || null,
-            template_name: input.templateName || null,
-            repo_name: input.repoName || null,
-            error_message: input.errorMessage,
-            error_code: input.errorCode || null,
-            http_status: input.httpStatus || null,
-            build_log: input.buildLog || null,
-            inspector_url: input.inspectorUrl || null,
-            vercel_deployment_id: input.vercelDeploymentId || null,
-            github_repo_url: input.githubRepoUrl || null,
-            raw_response: input.rawResponse || null,
-        });
+    // 1. SEMPRE logar no console (aparece nos Vercel Function Logs da plataforma)
+    //    Formato estruturado para facilitar busca por refCode
+    console.error('[DEPLOY_ERROR]', JSON.stringify({
+        refCode,
+        timestamp: new Date().toISOString(),
+        stage: input.stage,
+        userEmail: input.userEmail,
+        templateName: input.templateName,
+        repoName: input.repoName,
+        errorMessage: input.errorMessage,
+        errorCode: input.errorCode,
+        httpStatus: input.httpStatus,
+        inspectorUrl: input.inspectorUrl,
+        githubRepoUrl: input.githubRepoUrl,
+        buildLog: input.buildLog?.substring(0, 2000),
+        rawResponse: input.rawResponse,
+    }, null, 2));
 
-        if (error) {
-            console.error('[logDeployError] Failed to save:', error);
+    // 2. Tenta salvar no Supabase (só funciona se a migration foi aplicada)
+    const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
+    const serviceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    if (supabaseUrl && serviceKey) {
+        try {
+            const supabase = createClient(supabaseUrl, serviceKey, {
+                auth: { autoRefreshToken: false, persistSession: false }
+            });
+            const { error } = await supabase.from('deploy_errors').insert({
+                ref_code: refCode,
+                user_id: input.userId || null,
+                user_email: input.userEmail || null,
+                stage: input.stage,
+                template_id: input.templateId || null,
+                template_name: input.templateName || null,
+                repo_name: input.repoName || null,
+                error_message: input.errorMessage,
+                error_code: input.errorCode || null,
+                http_status: input.httpStatus || null,
+                build_log: input.buildLog || null,
+                inspector_url: input.inspectorUrl || null,
+                vercel_deployment_id: input.vercelDeploymentId || null,
+                github_repo_url: input.githubRepoUrl || null,
+                raw_response: input.rawResponse || null,
+            });
+            if (error && error.code !== 'PGRST205') {
+                console.error('[logDeployError] Supabase insert failed:', error.code, error.message);
+            }
+        } catch (e: any) {
+            console.error('[logDeployError] Exception:', e.message);
         }
-    } catch (e) {
-        console.error('[logDeployError] Exception:', e);
     }
 
     return refCode;
