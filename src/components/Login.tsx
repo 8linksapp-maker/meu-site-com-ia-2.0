@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { Zap, LayoutGrid, Code2, ArrowRight, Loader2, Mail, Lock, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
@@ -97,8 +97,8 @@ export default function Login() {
     const [success, setSuccess] = useState('');
     const [mode, setMode] = useState<Mode>('login');
     const [cooldown, setCooldown] = useState(0); // segundos restantes de cooldown
-    const isRequesting = React.useRef(false);
-    const cooldownTimer = React.useRef<ReturnType<typeof setInterval> | null>(null);
+    const isRequesting = useRef(false);
+    const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
