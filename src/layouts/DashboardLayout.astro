@@ -183,14 +183,14 @@ const pathname = new URL(Astro.request.url).pathname;
         </div>
         
         {/* DROPDOWN MENU */}
-        <div class="relative group h-full flex items-center">
-          <button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition text-gray-600 outline-none">
+        <div id="header-menu-wrapper" class="relative h-full flex items-center">
+          <button id="header-menu-btn" type="button" aria-label="Menu da conta" aria-expanded="false" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition text-gray-600 outline-none">
             <Settings className="w-5 h-5" />
           </button>
-          
+
           {/* MENU FLUTUANTE */}
-          <div class="absolute right-0 top-full pt-1 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-            <div class="bg-white border border-gray-100 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-2 flex flex-col gap-1 transform origin-top-right group-hover:scale-100 scale-95 transition-transform duration-200">
+          <div id="header-menu-panel" class="absolute right-0 top-full pt-1 w-56 opacity-0 invisible transition-all duration-200 z-50">
+            <div class="bg-white border border-gray-100 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-2 flex flex-col gap-1 transform origin-top-right scale-95 transition-transform duration-200">
               <div class="px-3 py-2 border-b border-gray-50 mb-1">
                 <p class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Sua Conta</p>
               </div>
@@ -200,9 +200,9 @@ const pathname = new URL(Astro.request.url).pathname;
               <a href="/configuracoes?tab=integracao" class="px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#7c3aed] rounded-xl transition-colors text-left flex items-center gap-2">
                 Integrações
               </a>
-              <a 
+              <a
                 id="admin-link-header"
-                href="/admin" 
+                href="/admin"
                 style="display: none;"
                 class="px-3 py-2.5 text-sm font-extrabold text-[#7c3aed] hover:bg-[#7c3aed]/10 rounded-xl transition-colors text-left items-center gap-2"
               >
@@ -218,6 +218,39 @@ const pathname = new URL(Astro.request.url).pathname;
           </div>
         </div>
       </header>
+
+      <script is:inline>
+        (() => {
+            const btn = document.getElementById('header-menu-btn');
+            const panel = document.getElementById('header-menu-panel');
+            if (!btn || !panel) return;
+            const inner = panel.firstElementChild;
+
+            const open = () => {
+                panel.classList.remove('opacity-0', 'invisible');
+                panel.classList.add('opacity-100', 'visible');
+                if (inner) inner.classList.replace('scale-95', 'scale-100');
+                btn.setAttribute('aria-expanded', 'true');
+            };
+            const close = () => {
+                panel.classList.add('opacity-0', 'invisible');
+                panel.classList.remove('opacity-100', 'visible');
+                if (inner) inner.classList.replace('scale-100', 'scale-95');
+                btn.setAttribute('aria-expanded', 'false');
+            };
+            const toggle = (e) => {
+                e.stopPropagation();
+                const isOpen = btn.getAttribute('aria-expanded') === 'true';
+                isOpen ? close() : open();
+            };
+
+            btn.addEventListener('click', toggle);
+            document.addEventListener('click', (e) => {
+                if (!panel.contains(e.target) && !btn.contains(e.target)) close();
+            });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+        })();
+      </script>
       
       <div class="flex-1 overflow-y-auto p-4 lg:p-8">
         <slot />
