@@ -101,12 +101,33 @@ export default function Login() {
     const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
+        // Trata erros vindos da URL (ex: problemas no link de recuperação)
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('error')) {
+            setError(params.get('error_description') || 'Houve um problema na autenticação.');
+        }
+
+        // Verifica sessão existente APENAS uma vez no carregamento
         supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) window.location.href = '/dashboard';
+            if (session) {
+                // Só redireciona se não estivermos tentando deslogar explicitamente
+                if (params.get('logout')) {
+                    supabase.auth.signOut().then(() => {
+                        window.location.href = '/login';
+                    });
+                } else {
+                    window.location.href = '/dashboard';
+                }
+            }
         });
+
+        // Ouve mudanças de estado, mas redireciona apenas no SIGNED_IN real
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (session && event === 'SIGNED_IN') window.location.href = '/dashboard';
+            if (event === 'SIGNED_IN' && session) {
+                window.location.href = '/dashboard';
+            }
         });
+
         return () => subscription.unsubscribe();
     }, []);
 
@@ -169,6 +190,7 @@ export default function Login() {
             const msg = err.message || '';
             if (msg.includes('Invalid login credentials')) setError('E-mail ou senha incorretos. Se é seu primeiro acesso, clique em "Primeiro acesso" abaixo.');
             else if (msg.includes('Email not confirmed')) setError('Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada e pasta de spam.');
+            else if (msg.includes('rate limit exceeded')) setError('Muitos e-mails enviados recentemente pelo servidor. Por favor, aguarde alguns minutos e tente novamente.');
             else setError(msg || 'Ocorreu um erro. Tente novamente.');
         } finally {
             isRequesting.current = false;

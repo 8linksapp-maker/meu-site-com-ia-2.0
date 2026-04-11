@@ -48,40 +48,35 @@ serve(async (req) => {
 
             let userId: string;
 
-            // 1. Tentar criar usuário diretamente
-            const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-                email: customerEmail,
-                email_confirm: true,
-                user_metadata: { name: customerName, source: 'kiwify' }
-            });
+            // 1. Verificar se o usuário já existe (para evitar disparar emails de erro ou confirmação desnecessários)
+            console.log(`Buscando usuário: ${customerEmail}`);
+            const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+            const existingUser = listData?.users?.find(u => u.email === customerEmail);
 
-            if (createError) {
-                // ✅ FIX: usa listUsers em vez de generateLink para NÃO disparar email extra
-                // generateLink({ type: 'magiclink' }) envia email automático e consome o rate limit!
-                console.log(`Usuário já existe ou erro: ${createError.message}. Recuperando ID via listUsers...`);
-                const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-
-                const existingUser = listData?.users?.find(u => u.email === customerEmail);
-                if (!existingUser) throw new Error(`Falha ao recuperar usuário existente: ${createError.message}`);
-
+            if (existingUser) {
                 userId = existingUser.id;
-                console.log(`[OK] Usuário existente recuperado: ${userId} (sem enviar email)`);
+                console.log(`[OK] Usuário existente encontrado: ${userId}. Apenas garantindo acesso.`);
             } else {
+                // 2. Criar novo usuário apenas se não existir
+                const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+                    email: customerEmail,
+                    password: Math.random().toString(36).slice(-12),
+                    email_confirm: true,
+                    user_metadata: { name: customerName, source: 'kiwify' }
+                });
+
+                if (createError) throw createError;
+
                 userId = newUser.user.id;
-                console.log(`Novo usuário criado: ${userId}. Enviando email de redefinição de senha...`);
+                console.log(`Novo usuário criado: ${userId}. Enviando email de acesso...`);
 
-                const redirectURL = `${siteUrl.replace(/\/$/, '')}/update-password`;
-
-                // Envia o email de "resetar senha", que serve tanto para CRIAR a primeira senha
-                // quanto para redefinir. É o único email enviado pelo webhook.
+                // ÚNICO email enviado pelo webhook
                 const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(customerEmail, {
-                    redirectTo: redirectURL,
+                    redirectTo: `${siteUrl.replace(/\/$/, '')}/update-password`,
                 });
 
                 if (resetError) {
-                    console.error(`[ALERTA] Falha ao enviar email para ${customerEmail}: ${resetError.message}. O aluno pode usar "Primeiro acesso" na tela de login.`);
-                } else {
-                    console.log(`[OK] E-mail de redefinição enviado para: ${customerEmail}`);
+                    console.error(`[ALERTA] Falha ao enviar email: ${resetError.message}`);
                 }
             }
 
