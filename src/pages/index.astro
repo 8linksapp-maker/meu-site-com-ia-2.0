@@ -1,0 +1,18 @@
+---
+import '../styles/global.css';
+import Login from '../components/Login';
+---
+
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Login | Meu Site Com IA</title>
+	</head>
+	<body class="bg-gray-950 text-gray-900">
+		<Login client:load />
+	</body>
+</html>

@@ -1,0 +1,13 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import GroupWizardManager from '../../components/admin/GroupWizardManager';
+---
+
+<AdminLayout title="Configurar Grupo VIP">
+    <div class="mb-8">
+        <h1 class="text-3xl font-black text-gray-900 tracking-tight">Qualificação de Lead</h1>
+        <p className="text-gray-500 mt-2 font-medium">Gerencie o filtro de entrada para o seu grupo de WhatsApp.</p>
+    </div>
+
+    <GroupWizardManager client:load />
+</AdminLayout>

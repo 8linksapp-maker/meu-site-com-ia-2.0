@@ -1,0 +1,251 @@
+---
+import '../styles/global.css';
+import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings, Menu, X, Video, MessageSquare, BookMarked, ClipboardCheck, HelpCircle, Radio, AlertTriangle } from 'lucide-react';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+const pathname = new URL(Astro.request.url).pathname;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title} | Admin SaaS</title>
+	</head>
+	<body class="bg-gray-50 text-gray-900 flex h-screen overflow-hidden">
+    <div id="admin-loader" class="fixed inset-0 bg-white z-[60] flex items-center justify-center">
+      <div class="text-[#7c3aed] font-medium">Verificando permissões...</div>
+    </div>
+
+    <!-- Overlay Mobile -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 lg:hidden opacity-0 invisible transition-all duration-300"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-64 bg-gray-900 text-white border-r border-gray-800 flex flex-col h-full z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+      <div class="h-16 flex items-center justify-between px-6 border-b border-gray-800 shrink-0">
+        <h1 class="text-xl font-bold text-white">Admin Panel</h1>
+        <button id="close-sidebar" class="lg:hidden p-2 text-gray-400 hover:bg-gray-800 rounded-md">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      
+      <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+        <a 
+          href="/admin" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname === '/admin' || pathname === '/admin/'
+              ? 'bg-[#7c3aed] text-white font-medium' 
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          Dashboard
+        </a>
+        <a 
+          href="/admin/usuarios" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/usuarios') 
+              ? 'bg-[#7c3aed] text-white font-medium' 
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <Users className="w-5 h-5" />
+          Usuários
+        </a>
+        <a 
+          href="/admin/templates" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/templates') 
+              ? 'bg-[#7c3aed] text-white font-medium' 
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <FileStack className="w-5 h-5" />
+          Templates
+        </a>
+        <a 
+          href="/admin/categorias" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/categorias') 
+              ? 'bg-[#7c3aed] text-white font-medium' 
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <Tags className="w-5 h-5" />
+          Categorias
+        </a>
+        <a
+          href="/admin/aulas"
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/aulas')
+              ? 'bg-[#7c3aed] text-white font-medium'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <Video className="w-5 h-5" />
+          Gerenciar Aulas
+        </a>
+        <a
+          href="/admin/lives"
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/lives')
+              ? 'bg-[#7c3aed] text-white font-medium'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <Radio className="w-5 h-5" />
+          Academy Ao Vivo
+        </a>
+        <a
+          href="/admin/perguntas"
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/perguntas')
+              ? 'bg-[#7c3aed] text-white font-medium'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <HelpCircle className="w-5 h-5" />
+          Perguntas
+        </a>
+        <a
+          href="/admin/producao"
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/producao')
+              ? 'bg-[#7c3aed] text-white font-medium'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <ClipboardCheck className="w-5 h-5" />
+          Produção
+        </a>
+        <a
+          href="/admin/tutoriais"
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/tutoriais')
+              ? 'bg-[#7c3aed] text-white font-medium'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <BookMarked className="w-5 h-5" />
+          Tutoriais
+        </a>
+        <a
+          href="/admin/erros"
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/erros')
+              ? 'bg-[#7c3aed] text-white font-medium'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <AlertTriangle className="w-5 h-5" />
+          Logs de Erros
+        </a>
+        <a
+          href="/admin/configuracoes"
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/configuracoes')
+              ? 'bg-[#7c3aed] text-white font-medium'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <Settings className="w-5 h-5" />
+          Configurações
+        </a>
+        <a 
+          href="/admin/grupo" 
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/grupo') 
+              ? 'bg-[#7c3aed] text-white font-medium' 
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <MessageSquare className="w-5 h-5" />
+          Configurar Grupo
+        </a>
+      </nav>
+
+      <div class="p-4 border-t border-gray-800 shrink-0">
+        <a href="/sites" class="flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-400 hover:bg-gray-800 hover:text-white transition-colors text-left mb-2">
+          Voltar ao App
+        </a>
+        <button id="logout-btn" class="flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-400 hover:bg-red-500/10 hover:text-red-500 transition-colors text-left">
+          <LogOut className="w-5 h-5" />
+          Sair
+        </button>
+      </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-gray-100 min-w-0">
+      <header class="h-16 bg-white shadow-sm flex items-center px-4 lg:px-8 shrink-0 gap-4">
+        <button id="open-sidebar" class="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-md">
+          <Menu className="w-6 h-6" />
+        </button>
+        <h2 class="text-xl font-semibold text-gray-800 truncate">{title}</h2>
+      </header>
+      
+      <div class="flex-1 overflow-y-auto p-4 lg:p-8">
+        <slot />
+      </div>
+    </main>
+
+    <script>
+      import { supabase } from '../lib/supabase';
+      
+      // Menu Mobile Toggle
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      const openBtn = document.getElementById('open-sidebar');
+      const closeBtn = document.getElementById('close-sidebar');
+
+      function toggleSidebar() {
+        sidebar?.classList.toggle('-translate-x-full');
+        overlay?.classList.toggle('opacity-0');
+        overlay?.classList.toggle('invisible');
+      }
+
+      openBtn?.addEventListener('click', toggleSidebar);
+      closeBtn?.addEventListener('click', toggleSidebar);
+      overlay?.addEventListener('click', toggleSidebar);
+
+      async function checkAdminAuth() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          window.location.href = '/';
+          return;
+        }
+
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id);
+
+        const isAdmin = profiles?.some(p => p.role === 'admin');
+
+        if (!isAdmin) {
+          window.location.href = '/sites';
+          return;
+        }
+
+        // Removendo o loader se for admin
+        const loader = document.getElementById('admin-loader');
+        if (loader) loader.style.display = 'none';
+      }
+
+      checkAdminAuth();
+
+      async function handleLogout() {
+        await supabase.auth.signOut();
+        window.location.href = '/';
+      }
+
+      document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+    </script>
+	</body>
+</html>

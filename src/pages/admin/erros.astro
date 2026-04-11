@@ -1,0 +1,13 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import DeployErrorsManager from '../../components/admin/DeployErrorsManager';
+---
+
+<AdminLayout title="Logs de Erros">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Logs de Erros de Deploy</h1>
+    <p class="text-gray-600 mt-1">Todos os erros de criação de sites. Use o código de referência (ERR-XXXXXX) para encontrar o erro reportado pelo aluno.</p>
+  </div>
+
+  <DeployErrorsManager client:load />
+</AdminLayout>

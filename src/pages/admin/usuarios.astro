@@ -1,0 +1,12 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import UsersManager from '../../components/admin/UsersManager';
+---
+
+<AdminLayout title="Usuários">
+  <div class="mb-6">
+    <p class="text-gray-600">Gerencie todos os perfis dos usuários da plataforma. Para a visualização funcionar, certifique-se de que a tabela profiles não restringe leitura para os admins (políticas RLS do Supabase).</p>
+  </div>
+  
+  <UsersManager client:load />
+</AdminLayout>

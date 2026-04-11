@@ -1,0 +1,12 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import AdminSettings from '../../components/admin/AdminSettings.tsx';
+---
+
+<AdminLayout title="Configurações">
+  <div class="mb-6">
+    <p class="text-gray-600">Ajuste as variáveis globais que operam a inteligência da plataforma.</p>
+  </div>
+  
+  <AdminSettings client:load />
+</AdminLayout>

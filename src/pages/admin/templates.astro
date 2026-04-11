@@ -1,0 +1,12 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import TemplatesManager from '../../components/admin/TemplatesManager';
+---
+
+<AdminLayout title="Templates">
+  <div class="mb-6">
+    <p class="text-gray-600">Cadastre os seus repositórios do Astro (Templates) aqui para que os usuários possam visualizá-los e cloná-los.</p>
+  </div>
+  
+  <TemplatesManager client:load />
+</AdminLayout>
