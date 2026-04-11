@@ -95,7 +95,7 @@ export const POST: APIRoute = async ({ request }) => {
             .replace('http://github.com/', '')
             .replace('github.com/', '');
         if (cleanTemplate.endsWith('/')) cleanTemplate = cleanTemplate.slice(0, -1);
-        const [templateOwner, templateName] = cleanTemplate.split('/');
+        const [templateOwner, parsedTemplateName] = cleanTemplate.split('/');
 
         // 1. Criar repositório a partir do template
         let newRepoHtmlUrl = '';
@@ -103,7 +103,7 @@ export const POST: APIRoute = async ({ request }) => {
         try {
             const res = await octokit.repos.createUsingTemplate({
                 template_owner: templateOwner,
-                template_repo: templateName,
+                template_repo: parsedTemplateName,
                 name: safeRepoName,
                 private: true,
             });
