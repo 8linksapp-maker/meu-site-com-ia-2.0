@@ -54,7 +54,61 @@ export async function logDeployError(input: LogErrorInput): Promise<string> {
         rawResponse: input.rawResponse,
     }, null, 2));
 
-    // 2. Tenta salvar no Supabase (só funciona se a migration foi aplicada)
+    const payload = {
+        refCode,
+        timestamp: new Date().toISOString(),
+        stage: input.stage,
+        userId: input.userId || null,
+        userEmail: input.userEmail || null,
+        templateId: input.templateId || null,
+        templateName: input.templateName || null,
+        repoName: input.repoName || null,
+        errorMessage: input.errorMessage,
+        errorCode: input.errorCode || null,
+        httpStatus: input.httpStatus || null,
+        buildLog: input.buildLog || null,
+        inspectorUrl: input.inspectorUrl || null,
+        vercelDeploymentId: input.vercelDeploymentId || null,
+        githubRepoUrl: input.githubRepoUrl || null,
+        rawResponse: input.rawResponse || null,
+        resolved: false,
+    };
+
+    // 2. SEMPRE tenta salvar no repo privado platform-logs via GitHub API
+    const ghToken = import.meta.env.PLATFORM_GITHUB_TOKEN
+        || import.meta.env.GITHUB_TOKEN
+        || process.env.PLATFORM_GITHUB_TOKEN
+        || process.env.GITHUB_TOKEN
+        || '';
+    if (ghToken) {
+        try {
+            const content = Buffer.from(JSON.stringify(payload, null, 2)).toString('base64');
+            const path = `errors/${refCode}.json`;
+            const res = await fetch(
+                `https://api.github.com/repos/8linksapp-maker/platform-logs/contents/${path}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${ghToken}`,
+                        'Accept': 'application/vnd.github+json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: `log: ${refCode} ${input.stage}`,
+                        content,
+                    }),
+                }
+            );
+            if (!res.ok) {
+                const e = await res.json().catch(() => ({}));
+                console.error('[logDeployError] GitHub write failed:', res.status, e.message);
+            }
+        } catch (e: any) {
+            console.error('[logDeployError] GitHub exception:', e.message);
+        }
+    }
+
+    // 3. Tenta Supabase também (se estiver configurado — opcional)
     const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
     const serviceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || '';
     if (supabaseUrl && serviceKey) {
@@ -62,7 +116,7 @@ export async function logDeployError(input: LogErrorInput): Promise<string> {
             const supabase = createClient(supabaseUrl, serviceKey, {
                 auth: { autoRefreshToken: false, persistSession: false }
             });
-            const { error } = await supabase.from('deploy_errors').insert({
+            await supabase.from('deploy_errors').insert({
                 ref_code: refCode,
                 user_id: input.userId || null,
                 user_email: input.userEmail || null,
@@ -79,12 +133,7 @@ export async function logDeployError(input: LogErrorInput): Promise<string> {
                 github_repo_url: input.githubRepoUrl || null,
                 raw_response: input.rawResponse || null,
             });
-            if (error && error.code !== 'PGRST205') {
-                console.error('[logDeployError] Supabase insert failed:', error.code, error.message);
-            }
-        } catch (e: any) {
-            console.error('[logDeployError] Exception:', e.message);
-        }
+        } catch { /* silencioso — se tabela não existe, ignora */ }
     }
 
     return refCode;

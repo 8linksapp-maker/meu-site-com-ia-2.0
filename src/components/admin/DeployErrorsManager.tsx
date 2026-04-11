@@ -7,22 +7,22 @@ const supabase = createClient(
 );
 
 interface DeployError {
-    id: string;
-    ref_code: string;
-    user_email: string | null;
+    refCode: string;
+    timestamp: string;
     stage: string;
-    template_name: string | null;
-    repo_name: string | null;
-    error_message: string;
-    error_code: string | null;
-    http_status: number | null;
-    build_log: string | null;
-    inspector_url: string | null;
-    github_repo_url: string | null;
-    raw_response: any;
-    resolved: boolean;
-    notes: string | null;
-    created_at: string;
+    userId?: string | null;
+    userEmail?: string | null;
+    templateId?: string | null;
+    templateName?: string | null;
+    repoName?: string | null;
+    errorMessage: string;
+    errorCode?: string | null;
+    httpStatus?: number | null;
+    buildLog?: string | null;
+    inspectorUrl?: string | null;
+    vercelDeploymentId?: string | null;
+    githubRepoUrl?: string | null;
+    rawResponse?: any;
 }
 
 const STAGE_LABELS: Record<string, { label: string; color: string }> = {
@@ -36,43 +36,63 @@ const STAGE_LABELS: Record<string, { label: string; color: string }> = {
 export default function DeployErrorsManager() {
     const [errors, setErrors] = useState<DeployError[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'unresolved' | 'resolved'>('unresolved');
     const [search, setSearch] = useState('');
     const [expanded, setExpanded] = useState<string | null>(null);
+    const [total, setTotal] = useState(0);
+    const [error, setError] = useState('');
 
-    useEffect(() => {
-        load();
-    }, [filter]);
+    useEffect(() => { load(); }, []);
 
     const load = async () => {
         setLoading(true);
-        let query = supabase.from('deploy_errors').select('*').order('created_at', { ascending: false }).limit(200);
-        if (filter === 'unresolved') query = query.eq('resolved', false);
-        if (filter === 'resolved') query = query.eq('resolved', true);
-        const { data, error } = await query;
-        if (!error && data) setErrors(data as DeployError[]);
-        setLoading(false);
+        setError('');
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                setError('Você precisa estar logado.');
+                setLoading(false);
+                return;
+            }
+
+            const res = await fetch('/api/admin/deploy-errors', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` },
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setError(data.error || `Erro ${res.status}`);
+            } else {
+                setErrors(data.errors || []);
+                setTotal(data.total || 0);
+            }
+        } catch (e: any) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const toggleResolved = async (id: string, current: boolean) => {
-        await supabase.from('deploy_errors').update({ resolved: !current }).eq('id', id);
-        setErrors(prev => prev.map(e => e.id === id ? { ...e, resolved: !current } : e));
-    };
-
-    const updateNotes = async (id: string, notes: string) => {
-        await supabase.from('deploy_errors').update({ notes }).eq('id', id);
-        setErrors(prev => prev.map(e => e.id === id ? { ...e, notes } : e));
+    const markResolved = async (refCode: string) => {
+        if (!confirm(`Marcar ${refCode} como resolvido? (será removido do painel)`)) return;
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            await fetch(`/api/admin/deploy-errors?ref=${refCode}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${session?.access_token}` },
+            });
+            setErrors(prev => prev.filter(e => e.refCode !== refCode));
+            setTotal(t => Math.max(0, t - 1));
+        } catch {}
     };
 
     const filtered = errors.filter(e => {
         if (!search) return true;
         const q = search.toLowerCase();
         return (
-            e.ref_code.toLowerCase().includes(q) ||
-            (e.user_email || '').toLowerCase().includes(q) ||
-            (e.repo_name || '').toLowerCase().includes(q) ||
-            (e.template_name || '').toLowerCase().includes(q) ||
-            e.error_message.toLowerCase().includes(q)
+            e.refCode.toLowerCase().includes(q) ||
+            (e.userEmail || '').toLowerCase().includes(q) ||
+            (e.repoName || '').toLowerCase().includes(q) ||
+            (e.templateName || '').toLowerCase().includes(q) ||
+            e.errorMessage.toLowerCase().includes(q)
         );
     });
 
@@ -80,27 +100,14 @@ export default function DeployErrorsManager() {
 
     return (
         <div>
-            {/* Filtros */}
+            {/* Header */}
             <div className="mb-4 flex flex-wrap gap-3 items-center">
-                <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
-                    {(['unresolved', 'resolved', 'all'] as const).map(f => (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                                filter === f ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                        >
-                            {f === 'unresolved' ? 'Abertos' : f === 'resolved' ? 'Resolvidos' : 'Todos'}
-                        </button>
-                    ))}
-                </div>
                 <input
                     type="text"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Buscar por código, email, repo ou erro..."
-                    className="flex-1 min-w-[300px] px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-violet-500"
+                    className="flex-1 min-w-[250px] px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-violet-500"
                 />
                 <button
                     onClick={load}
@@ -108,115 +115,97 @@ export default function DeployErrorsManager() {
                 >
                     Recarregar
                 </button>
+                <span className="text-sm text-gray-500">
+                    {total} erro{total !== 1 ? 's' : ''} {total > 50 && '(mostrando 50 mais recentes)'}
+                </span>
             </div>
+
+            {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                    {error}
+                </div>
+            )}
 
             {/* Lista */}
             {filtered.length === 0 ? (
                 <div className="bg-white rounded-lg border border-gray-200 p-12 text-center text-gray-500">
-                    Nenhum erro encontrado.
+                    Nenhum erro encontrado. 🎉
                 </div>
             ) : (
                 <div className="space-y-3">
                     {filtered.map(err => {
                         const stage = STAGE_LABELS[err.stage] || { label: err.stage, color: 'bg-gray-100 text-gray-700' };
-                        const isExpanded = expanded === err.id;
+                        const isExpanded = expanded === err.refCode;
                         return (
-                            <div key={err.id} className={`bg-white rounded-lg border ${err.resolved ? 'border-gray-200 opacity-60' : 'border-red-200'} shadow-sm overflow-hidden`}>
-                                {/* Header */}
+                            <div key={err.refCode} className="bg-white rounded-lg border border-red-200 shadow-sm overflow-hidden">
                                 <div
                                     className="p-4 flex items-start gap-4 cursor-pointer hover:bg-gray-50"
-                                    onClick={() => setExpanded(isExpanded ? null : err.id)}
+                                    onClick={() => setExpanded(isExpanded ? null : err.refCode)}
                                 >
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <code className="text-xs font-mono bg-slate-900 text-emerald-300 px-2 py-0.5 rounded">{err.ref_code}</code>
+                                            <code className="text-xs font-mono bg-slate-900 text-emerald-300 px-2 py-0.5 rounded">{err.refCode}</code>
                                             <span className={`text-xs font-semibold px-2 py-0.5 rounded ${stage.color}`}>{stage.label}</span>
-                                            {err.resolved && <span className="text-xs font-semibold px-2 py-0.5 rounded bg-green-100 text-green-700">✓ Resolvido</span>}
-                                            <span className="text-xs text-gray-500">{new Date(err.created_at).toLocaleString('pt-BR')}</span>
+                                            <span className="text-xs text-gray-500">
+                                                {new Date(err.timestamp).toLocaleString('pt-BR')}
+                                            </span>
                                         </div>
-                                        <p className="text-sm font-medium text-gray-800 mt-1 truncate">{err.error_message}</p>
+                                        <p className="text-sm font-medium text-gray-800 mt-1 line-clamp-2">{err.errorMessage}</p>
                                         <p className="text-xs text-gray-500 mt-0.5">
-                                            {err.user_email || 'sem email'}
-                                            {err.repo_name && <> · <span className="font-mono">{err.repo_name}</span></>}
-                                            {err.template_name && <> · tema: {err.template_name}</>}
+                                            {err.userEmail || 'sem email'}
+                                            {err.repoName && <> · <span className="font-mono">{err.repoName}</span></>}
+                                            {err.templateName && <> · {err.templateName}</>}
                                         </p>
                                     </div>
-                                    <button className="text-gray-400 hover:text-gray-600 shrink-0">
+                                    <button className="text-gray-400 hover:text-gray-600 shrink-0 text-lg">
                                         {isExpanded ? '▼' : '▶'}
                                     </button>
                                 </div>
 
-                                {/* Expanded */}
                                 {isExpanded && (
                                     <div className="border-t border-gray-100 p-4 bg-gray-50 space-y-4">
-                                        {/* Details */}
                                         <div className="grid grid-cols-2 gap-4 text-xs">
-                                            {err.http_status && (
-                                                <div><span className="font-semibold text-gray-600">HTTP:</span> <span className="font-mono">{err.http_status}</span></div>
-                                            )}
-                                            {err.error_code && (
-                                                <div><span className="font-semibold text-gray-600">Code:</span> <span className="font-mono">{err.error_code}</span></div>
-                                            )}
+                                            {err.httpStatus && <div><span className="font-semibold text-gray-600">HTTP:</span> <span className="font-mono">{err.httpStatus}</span></div>}
+                                            {err.errorCode && <div><span className="font-semibold text-gray-600">Code:</span> <span className="font-mono">{err.errorCode}</span></div>}
                                         </div>
 
-                                        {/* Error message */}
                                         <div>
                                             <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Mensagem de Erro</p>
-                                            <pre className="text-xs bg-white border border-gray-200 rounded p-3 overflow-x-auto whitespace-pre-wrap text-red-700">{err.error_message}</pre>
+                                            <pre className="text-xs bg-white border border-gray-200 rounded p-3 overflow-x-auto whitespace-pre-wrap text-red-700">{err.errorMessage}</pre>
                                         </div>
 
-                                        {/* Build log */}
-                                        {err.build_log && (
+                                        {err.buildLog && (
                                             <div>
                                                 <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Build Log</p>
-                                                <pre className="text-xs bg-slate-900 text-slate-100 rounded p-3 overflow-x-auto whitespace-pre-wrap max-h-64">{err.build_log}</pre>
+                                                <pre className="text-xs bg-slate-900 text-slate-100 rounded p-3 overflow-x-auto whitespace-pre-wrap max-h-64">{err.buildLog}</pre>
                                             </div>
                                         )}
 
-                                        {/* Raw response */}
-                                        {err.raw_response && (
+                                        {err.rawResponse && (
                                             <details>
                                                 <summary className="text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer">Raw Response</summary>
-                                                <pre className="text-xs bg-white border border-gray-200 rounded p-3 overflow-x-auto whitespace-pre-wrap mt-2">{JSON.stringify(err.raw_response, null, 2)}</pre>
+                                                <pre className="text-xs bg-white border border-gray-200 rounded p-3 overflow-x-auto whitespace-pre-wrap mt-2">{JSON.stringify(err.rawResponse, null, 2)}</pre>
                                             </details>
                                         )}
 
-                                        {/* Links */}
                                         <div className="flex gap-3 flex-wrap">
-                                            {err.inspector_url && (
-                                                <a href={err.inspector_url} target="_blank" rel="noopener" className="text-xs font-semibold text-violet-600 hover:text-violet-800">
-                                                    → Ver log completo no Vercel
+                                            {err.inspectorUrl && (
+                                                <a href={err.inspectorUrl} target="_blank" rel="noopener" className="text-xs font-semibold text-violet-600 hover:text-violet-800">
+                                                    → Ver log no Vercel
                                                 </a>
                                             )}
-                                            {err.github_repo_url && (
-                                                <a href={err.github_repo_url} target="_blank" rel="noopener" className="text-xs font-semibold text-violet-600 hover:text-violet-800">
+                                            {err.githubRepoUrl && (
+                                                <a href={err.githubRepoUrl} target="_blank" rel="noopener" className="text-xs font-semibold text-violet-600 hover:text-violet-800">
                                                     → Repositório GitHub
                                                 </a>
                                             )}
                                         </div>
 
-                                        {/* Notas */}
-                                        <div>
-                                            <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Notas</p>
-                                            <textarea
-                                                defaultValue={err.notes || ''}
-                                                onBlur={e => updateNotes(err.id, e.target.value)}
-                                                placeholder="Adicione notas sobre este erro..."
-                                                rows={2}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-violet-500"
-                                            />
-                                        </div>
-
-                                        {/* Action */}
                                         <button
-                                            onClick={() => toggleResolved(err.id, err.resolved)}
-                                            className={`px-4 py-2 text-sm font-semibold rounded-lg ${
-                                                err.resolved
-                                                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                    : 'bg-green-600 text-white hover:bg-green-700'
-                                            }`}
+                                            onClick={() => markResolved(err.refCode)}
+                                            className="px-4 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700"
                                         >
-                                            {err.resolved ? 'Reabrir' : 'Marcar como Resolvido'}
+                                            Marcar como Resolvido
                                         </button>
                                     </div>
                                 )}
