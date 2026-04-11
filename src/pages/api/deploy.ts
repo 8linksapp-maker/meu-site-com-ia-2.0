@@ -154,12 +154,43 @@ export const POST: APIRoute = async ({ request }) => {
                 const errMsg = errData.error?.message || `HTTP ${vercelRes.status}`;
                 const errCode = errData.error?.code || '';
 
+                // Log visível nos Vercel Function Logs
+                console.error('[deploy] VERCEL_PROJECT_FAIL', {
+                    status: vercelRes.status,
+                    errCode,
+                    errMsg,
+                    rawResponse: errData,
+                    userEmail,
+                    repoName: safeRepoName,
+                    githubUsername,
+                });
+
                 // Erro de conflito: não é bug, não loga
                 if (errMsg.includes('already exist') || errCode === 'conflict') {
                     throw new Error(`Já existe um projeto "${safeRepoName}" na Vercel. Escolha outro nome.`);
                 }
 
-                // Logar erro real
+                // Erros específicos com mensagem acionável
+                if (vercelRes.status === 401 || errCode === 'forbidden' || errCode === 'not_authorized') {
+                    if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
+                    return new Response(JSON.stringify({
+                        error: 'Seu token da Vercel expirou ou está inválido. Gere um novo em vercel.com/account/tokens e atualize em Configurações > Integração.',
+                    }), { status: 401 });
+                }
+                if (errCode === 'not_found' || errMsg.toLowerCase().includes('not found') || errMsg.toLowerCase().includes('repo not found')) {
+                    if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
+                    return new Response(JSON.stringify({
+                        error: 'A Vercel não conseguiu acessar seu repositório GitHub. Conecte sua conta GitHub à Vercel em vercel.com/account/login-connections e tente novamente.',
+                    }), { status: 400 });
+                }
+                if (errCode === 'missing_scope' || errMsg.toLowerCase().includes('scope')) {
+                    if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
+                    return new Response(JSON.stringify({
+                        error: 'Seu token da Vercel não tem as permissões necessárias. Crie um novo em vercel.com/account/tokens com escopo "Full Account".',
+                    }), { status: 403 });
+                }
+
+                // Logar erro real (best-effort)
                 const refCode = await logDeployError({
                     userId, userEmail, stage: 'vercel_project',
                     templateId: templateId_, templateName: templateName_, repoName: safeRepoName,
@@ -168,8 +199,9 @@ export const POST: APIRoute = async ({ request }) => {
                 });
 
                 if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
+                // Inclui a mensagem real da Vercel no erro (curto) pra debug enquanto migration não está aplicada
                 return new Response(JSON.stringify({
-                    error: friendlyError(refCode, 'vercel_project'),
+                    error: `${friendlyError(refCode, 'vercel_project')}\n\nDetalhes técnicos: ${errMsg}${errCode ? ` (${errCode})` : ''}`,
                     refCode,
                 }), { status: 400 });
             }
