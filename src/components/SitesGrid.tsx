@@ -756,9 +756,9 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
                             </div>
 
                             {status && status !== '__SUCCESS__' && (
-                                <div className={`p-4 rounded-xl text-sm transition-all mt-6 ${status.includes('Erro') || status.includes('erro') ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20 relative overflow-hidden'}`}>
+                                <div className={`p-4 rounded-xl text-sm transition-all mt-6 ${status.includes('Erro') || status.includes('erro') || status.includes('⚠️') ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20 relative overflow-hidden'}`}>
                                     <div className="flex flex-col gap-2 relative z-10">
-                                        <span className="font-bold">{status}</span>
+                                        <span className="font-bold whitespace-pre-line leading-relaxed">{status}</span>
                                         {loading && (
                                             <div className="w-full bg-white/50 rounded-full h-1.5 overflow-hidden relative">
                                                 <div className="absolute top-0 bottom-0 left-0 bg-[#7c3aed] w-1/2 rounded-full animate-pulse-fast"></div>

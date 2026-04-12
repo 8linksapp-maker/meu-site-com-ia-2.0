@@ -171,22 +171,32 @@ export const POST: APIRoute = async ({ request }) => {
                 }
 
                 // Erros específicos com mensagem acionável
+                const lowerMsg = errMsg.toLowerCase();
+
+                // 🎯 Mais comum: GitHub integration não instalada na Vercel
+                if (lowerMsg.includes('install the github integration') || lowerMsg.includes('github integration first')) {
+                    if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
+                    return new Response(JSON.stringify({
+                        error: '⚠️ Você precisa instalar a integração do GitHub na sua Vercel antes de criar sites.\n\n📋 Passo a passo:\n1. Acesse: https://vercel.com/integrations/github\n2. Clique em "Add Integration"\n3. Escolha sua conta Vercel e autorize o acesso ao GitHub\n4. Volte aqui e tente criar o site novamente',
+                    }), { status: 400 });
+                }
+
                 if (vercelRes.status === 401 || errCode === 'forbidden' || errCode === 'not_authorized') {
                     if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
                     return new Response(JSON.stringify({
-                        error: 'Seu token da Vercel expirou ou está inválido. Gere um novo em vercel.com/account/tokens e atualize em Configurações > Integração.',
+                        error: 'Seu token da Vercel expirou ou está inválido. Gere um novo em https://vercel.com/account/tokens e atualize em Configurações > Integração.',
                     }), { status: 401 });
                 }
-                if (errCode === 'not_found' || errMsg.toLowerCase().includes('not found') || errMsg.toLowerCase().includes('repo not found')) {
+                if (errCode === 'not_found' || lowerMsg.includes('not found') || lowerMsg.includes('repo not found')) {
                     if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
                     return new Response(JSON.stringify({
-                        error: 'A Vercel não conseguiu acessar seu repositório GitHub. Conecte sua conta GitHub à Vercel em vercel.com/account/login-connections e tente novamente.',
+                        error: 'A Vercel não conseguiu acessar seu repositório GitHub.\n\n📋 Solução:\n1. Acesse: https://vercel.com/integrations/github\n2. Instale/reative a integração do GitHub\n3. Tente novamente',
                     }), { status: 400 });
                 }
-                if (errCode === 'missing_scope' || errMsg.toLowerCase().includes('scope')) {
+                if (errCode === 'missing_scope' || lowerMsg.includes('scope')) {
                     if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
                     return new Response(JSON.stringify({
-                        error: 'Seu token da Vercel não tem as permissões necessárias. Crie um novo em vercel.com/account/tokens com escopo "Full Account".',
+                        error: 'Seu token da Vercel não tem as permissões necessárias.\n\n📋 Solução:\n1. Acesse: https://vercel.com/account/tokens\n2. Crie um novo token com escopo "Full Account"\n3. Atualize em Configurações > Integração',
                     }), { status: 403 });
                 }
 
