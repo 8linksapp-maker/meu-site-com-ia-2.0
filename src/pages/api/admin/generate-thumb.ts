@@ -1,24 +1,8 @@
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
 import { createHash } from 'crypto';
+import { supabaseAdmin, verifyAdmin } from '../../../lib/verifyAdmin';
 
 export const prerender = false;
-
-const supabaseAdmin = createClient(
-    import.meta.env.PUBLIC_SUPABASE_URL || '',
-    import.meta.env.SUPABASE_SERVICE_ROLE_KEY || '',
-    { auth: { autoRefreshToken: false, persistSession: false } }
-);
-
-const verifyAdmin = async (request: Request) => {
-    const token = request.headers.get('Authorization')?.split('Bearer ')[1];
-    if (!token) throw new Error('Token ausente');
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !user) throw new Error('Token inválido');
-    const { data: profiles } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id);
-    if (!profiles?.some(p => p.role === 'admin')) throw new Error('Não autorizado');
-    return user;
-};
 
 export const POST: APIRoute = async ({ request }) => {
     try {

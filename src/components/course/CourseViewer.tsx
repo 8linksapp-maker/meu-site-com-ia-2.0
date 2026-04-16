@@ -114,6 +114,7 @@ function PlayerView({
     const videoRef = useRef<HTMLVideoElement>(null);
     const plyrRef = useRef<any>(null);
     const lastSavedTimeRef = useRef<number>(0);
+    const progressLoadedRef = useRef<string | null>(null); // ID da lesson cujo progresso já foi carregado
     const noteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [currentLesson, setCurrentLesson] = useState<Lesson | null>(initialLesson || module.lessons[0] || null);
     const [openModules, setOpenModules] = useState<string[]>([module.id]);
@@ -138,16 +139,24 @@ function PlayerView({
 
     useEffect(() => {
         if (!currentLesson?.video_url || !videoRef.current) return;
+        const lessonId = currentLesson.id;
+        progressLoadedRef.current = null; // reset para nova lesson
+
         const setupListeners = (player: any) => {
-            player.off('timeupdate'); player.off('pause'); player.off('ended'); player.off('ready'); player.off('canplay');
+            player.off('timeupdate'); player.off('pause'); player.off('ended'); player.off('canplay');
             player.on('timeupdate', () => {
                 const t = player.currentTime;
-                if (Math.abs(t - lastSavedTimeRef.current) > 10) { saveProgress(currentLesson.id, t, player.duration); lastSavedTimeRef.current = t; }
+                if (Math.abs(t - lastSavedTimeRef.current) > 10) { saveProgress(lessonId, t, player.duration); lastSavedTimeRef.current = t; }
             });
-            player.on('pause', () => { saveProgress(currentLesson.id, player.currentTime, player.duration); });
-            player.on('ended', () => { saveProgress(currentLesson.id, player.duration, player.duration); setShowNextBanner(true); });
-            player.on('ready', () => { loadProgress(currentLesson.id); });
-            player.on('canplay', () => { if (lastSavedTimeRef.current === 0) loadProgress(currentLesson.id); });
+            player.on('pause', () => { saveProgress(lessonId, player.currentTime, player.duration); });
+            player.on('ended', () => { saveProgress(lessonId, player.duration, player.duration); setShowNextBanner(true); });
+            // Carrega progresso apenas 1x por lesson, no primeiro canplay
+            player.on('canplay', () => {
+                if (progressLoadedRef.current !== lessonId) {
+                    progressLoadedRef.current = lessonId;
+                    loadProgress(lessonId);
+                }
+            });
         };
 
         const initPlyr = () => {
@@ -276,6 +285,15 @@ function PlayerView({
                         <div className="px-5 pt-5 pb-4 border-b border-gray-100">
                             <h2 className="text-xl font-black text-gray-900 mb-1">{currentLesson.title}</h2>
                             {currentLesson.description && <p className="text-gray-500 text-sm leading-relaxed">{currentLesson.description}</p>}
+                            {currentLesson.highlights && currentLesson.highlights.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {currentLesson.highlights.map((h, i) => (
+                                        <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-lg border border-purple-100">
+                                            <span className="text-purple-400">•</span> {h}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <div className="flex border-b border-gray-100">
                             {([{ key: 'resources', label: 'Materiais', icon: BookOpen }, { key: 'notes', label: 'Minhas Notas', icon: FileText }, { key: 'comments', label: 'Perguntas', icon: MessageSquare }] as const).map(tab => (

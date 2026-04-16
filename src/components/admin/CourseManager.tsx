@@ -273,6 +273,7 @@ export default function CourseManager() {
             description: lessonDescription,
             video_url: lessonVideoUrl,
             display_order: nextOrder,
+            highlights: lessonHighlights.length > 0 ? lessonHighlights : null,
         };
         if (currentLesson?.id) payload.id = currentLesson.id;
 
@@ -308,6 +309,36 @@ export default function CourseManager() {
             setAiError('');
             setCurrentLesson(null);
             fetchData();
+        }
+    };
+
+    const handleAnalyzeWithAI = async () => {
+        if (!lessonVideoUrl) return alert('Adicione um vídeo antes de gerar com IA.');
+        setAiStatus('loading');
+        setAiError('');
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('Não autenticado');
+
+            const res = await fetch('/api/admin/analyze-lesson', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ videoUrl: lessonVideoUrl }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Falha na análise');
+
+            if (data.title) setLessonTitle(data.title);
+            if (data.description) setLessonDescription(data.description);
+            if (data.highlights?.length) setLessonHighlights(data.highlights);
+            setAiStatus('success');
+        } catch (err: any) {
+            setAiError(err.message);
+            setAiStatus('error');
         }
     };
 
@@ -704,6 +735,70 @@ export default function CourseManager() {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Botão Gerar com IA */}
+                                {lessonVideoUrl && (
+                                    <div className="border border-purple-200 bg-purple-50/50 rounded-xl p-4 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4 text-purple-600" />
+                                                <span className="text-sm font-bold text-purple-800">Preenchimento com IA</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handleAnalyzeWithAI}
+                                                disabled={aiStatus === 'loading'}
+                                                className="flex items-center gap-2 px-4 py-2 bg-[#7c3aed] text-white rounded-lg text-sm font-bold hover:bg-[#6d28d9] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {aiStatus === 'loading' ? (
+                                                    <><RefreshCw className="w-4 h-4 animate-spin" /> Analisando...</>
+                                                ) : (
+                                                    <><Sparkles className="w-4 h-4" /> Gerar Título, Descrição e Destaques</>
+                                                )}
+                                            </button>
+                                        </div>
+                                        {aiStatus === 'loading' && (
+                                            <p className="text-xs text-purple-600">Transcrevendo o vídeo e gerando conteúdo... isso pode levar até 1 minuto.</p>
+                                        )}
+                                        {aiStatus === 'success' && (
+                                            <p className="text-xs text-emerald-600 font-medium flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> Campos preenchidos com sucesso! Revise e ajuste se necessário.</p>
+                                        )}
+                                        {aiStatus === 'error' && (
+                                            <p className="text-xs text-red-600">Erro: {aiError}</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Highlights / Pontos-chave */}
+                                {lessonHighlights.length > 0 && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Pontos-chave da Aula</label>
+                                        <div className="space-y-1.5">
+                                            {lessonHighlights.map((h, i) => (
+                                                <div key={i} className="flex items-start gap-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100">
+                                                    <span className="text-amber-500 font-bold text-xs mt-0.5">•</span>
+                                                    <input
+                                                        type="text"
+                                                        value={h}
+                                                        onChange={e => {
+                                                            const updated = [...lessonHighlights];
+                                                            updated[i] = e.target.value;
+                                                            setLessonHighlights(updated);
+                                                        }}
+                                                        className="flex-1 text-sm bg-transparent outline-none text-gray-800"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setLessonHighlights(prev => prev.filter((_, idx) => idx !== i))}
+                                                        className="shrink-0 p-0.5 hover:text-red-500 text-gray-400"
+                                                    >
+                                                        <X className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                             </div>
                             {/* Resources */}

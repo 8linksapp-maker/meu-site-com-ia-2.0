@@ -1,24 +1,11 @@
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
 import { createHash } from 'crypto';
+import { supabaseAdmin, verifyAdmin } from '../../../lib/verifyAdmin';
 
 export const prerender = false;
 
-const supabaseAdmin = createClient(
-    import.meta.env.PUBLIC_SUPABASE_URL || '',
-    import.meta.env.SUPABASE_SERVICE_ROLE_KEY || '',
-    { auth: { autoRefreshToken: false, persistSession: false } }
-);
-
-const verifyAdmin = async (request: Request) => {
-    const token = request.headers.get('Authorization')?.split('Bearer ')[1];
-    if (!token) throw new Error('Token ausente');
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !user) throw new Error('Token inválido');
-    const { data: profiles } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id);
-    if (!profiles?.some(p => p.role === 'admin')) throw new Error('Não autorizado');
-    return user;
-};
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export const POST: APIRoute = async ({ request }) => {
     try {
@@ -29,6 +16,13 @@ export const POST: APIRoute = async ({ request }) => {
         const prefix = (formData.get('prefix') as string) || 'upload';
 
         if (!file) throw new Error('Nenhum arquivo enviado');
+
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            throw new Error(`Tipo de arquivo não permitido: ${file.type}. Use JPEG, PNG, WebP, GIF ou SVG.`);
+        }
+        if (file.size > MAX_SIZE) {
+            throw new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Máximo: 10 MB.`);
+        }
 
         const { data: settings } = await supabaseAdmin
             .from('platform_settings')
@@ -71,7 +65,11 @@ export const POST: APIRoute = async ({ request }) => {
         // Upload
         const imgBuffer = Buffer.from(await file.arrayBuffer());
         const sha1 = createHash('sha1').update(imgBuffer).digest('hex');
-        const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const MIME_TO_EXT: Record<string, string> = {
+            'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
+            'image/gif': 'gif', 'image/svg+xml': 'svg',
+        };
+        const ext = MIME_TO_EXT[file.type] || file.name.split('.').pop()?.toLowerCase() || 'jpg';
         const fileName = `${prefix}-${Date.now()}.${ext}`;
 
         const uploadRes = await fetch(uploadUrl, {

@@ -1,35 +1,40 @@
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
+import { supabaseAdmin, verifyAdmin } from '../../../lib/verifyAdmin';
 
 export const prerender = false;
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
-const serviceRoleKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-// Cliente Supabase que contorna RLS e manipula a API do servidor (Admin API)
-const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false }
+const courseSchema = z.object({
+    course_id: z.string().min(1),
+    expires_at: z.string().nullable().optional(),
 });
 
-// Helper para validar quem está chamando a API
-const verifyAdmin = async (request: Request) => {
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.split('Bearer ')[1];
-    if (!token) throw new Error('Token ausente');
+const createUserSchema = z.object({
+    email: z.string().email('Email inválido'),
+    password: z.string().min(6, 'Senha deve ter ao menos 6 caracteres'),
+    role: z.enum(['admin', 'user']).optional(),
+    github_token: z.string().max(500).optional(),
+    vercel_token: z.string().max(500).optional(),
+    user_courses: z.array(courseSchema).optional(),
+});
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) throw new Error('Token inválido');
+const updateUserSchema = z.object({
+    id: z.string().uuid('ID de usuário inválido'),
+    email: z.string().email('Email inválido').optional(),
+    password: z.string().min(6).optional(),
+    role: z.enum(['admin', 'user']).optional(),
+    github_token: z.string().max(500).optional(),
+    vercel_token: z.string().max(500).optional(),
+    user_courses: z.array(courseSchema).optional(),
+});
 
-    const { data: profiles } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id);
-    const isAdmin = profiles?.some(p => p.role === 'admin');
-    if (!isAdmin) throw new Error('Não autorizado');
+const deleteUserSchema = z.object({
+    id: z.string().uuid('ID de usuário inválido'),
+});
 
-    return user;
-};
 
 export const GET: APIRoute = async ({ request }) => {
     try {
-        if (!serviceRoleKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY ausente no .env');
         await verifyAdmin(request);
 
         const { data: profiles, error: profError } = await supabaseAdmin.from('profiles').select('*');
@@ -65,9 +70,15 @@ export const GET: APIRoute = async ({ request }) => {
                 email: authUser.email,
                 created_at: authUser.created_at,
                 role: isAdmin ? 'admin' : 'user',
-                // Pegamos o primeiro token encontrado ou vazio
-                github_token: userProfiles.find(p => p.github_token)?.github_token || '',
-                vercel_token: userProfiles.find(p => p.vercel_token)?.vercel_token || '',
+                // Tokens mascarados — admin vê só se existe, não o valor real
+                github_token: (() => {
+                    const t = userProfiles.find(p => p.github_token)?.github_token;
+                    return t ? `***${t.slice(-4)}` : '';
+                })(),
+                vercel_token: (() => {
+                    const t = userProfiles.find(p => p.vercel_token)?.vercel_token;
+                    return t ? `***${t.slice(-4)}` : '';
+                })(),
                 // Lista de acessos
                 accesses: userAccesses.map(uc => ({
                     course_id: uc.course_id,
@@ -88,7 +99,12 @@ export const GET: APIRoute = async ({ request }) => {
 export const POST: APIRoute = async ({ request }) => {
     try {
         await verifyAdmin(request);
-        const { email, password, role, github_token, vercel_token, user_courses } = await request.json();
+        const rawBody = await request.json();
+        const parsed = createUserSchema.safeParse(rawBody);
+        if (!parsed.success) {
+            return new Response(JSON.stringify({ error: parsed.error.issues.map(i => i.message).join('; ') }), { status: 400 });
+        }
+        const { email, password, role, github_token, vercel_token, user_courses } = parsed.data;
 
         const { data: currUser, error: currErr } = await supabaseAdmin.auth.admin.createUser({
             email,
@@ -145,7 +161,12 @@ export const POST: APIRoute = async ({ request }) => {
 export const PUT: APIRoute = async ({ request }) => {
     try {
         await verifyAdmin(request);
-        const { id, email, password, role, github_token, vercel_token, user_courses } = await request.json();
+        const rawBody = await request.json();
+        const parsed = updateUserSchema.safeParse(rawBody);
+        if (!parsed.success) {
+            return new Response(JSON.stringify({ error: parsed.error.issues.map(i => i.message).join('; ') }), { status: 400 });
+        }
+        const { id, email, password, role, github_token, vercel_token, user_courses } = parsed.data;
 
         // Atualiza email/senha no painel Auth principal se tiverem sido mudados/preenchidos
         let updatePayload: any = {};
@@ -157,11 +178,15 @@ export const PUT: APIRoute = async ({ request }) => {
             if (authErr) throw authErr;
         }
 
-        // Atualiza tabela de perfis
+        // Atualiza tabela de perfis — ignora tokens mascarados (***) para não sobrescrever o real
+        const profileUpdate: Record<string, any> = { role };
+        if (github_token && !github_token.startsWith('***')) profileUpdate.github_token = github_token;
+        if (vercel_token && !vercel_token.startsWith('***')) profileUpdate.vercel_token = vercel_token;
+
         const { error: profErr } = await supabaseAdmin.from('profiles')
-            .update({ role, github_token, vercel_token })
+            .update(profileUpdate)
             .eq('id', id)
-            .eq('product_id', 'main_product'); // Atualiza apenas o registro principal para evitar duplicidade de tokens
+            .eq('product_id', 'main_product');
 
         if (profErr) throw profErr;
 
@@ -203,7 +228,12 @@ export const PUT: APIRoute = async ({ request }) => {
 export const DELETE: APIRoute = async ({ request }) => {
     try {
         await verifyAdmin(request);
-        const { id } = await request.json();
+        const rawBody = await request.json();
+        const parsed = deleteUserSchema.safeParse(rawBody);
+        if (!parsed.success) {
+            return new Response(JSON.stringify({ error: parsed.error.issues.map(i => i.message).join('; ') }), { status: 400 });
+        }
+        const { id } = parsed.data;
 
         // Deletar o perfil manualmente, algumas setups de DB têm trigger CASCADE, as vezes não.
         await supabaseAdmin.from('profiles').delete().eq('id', id);

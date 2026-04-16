@@ -1,7 +1,19 @@
 import type { APIRoute } from 'astro';
 import { Octokit } from '@octokit/rest';
 import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 import { logDeployError } from '../../lib/logDeployError';
+
+const deploySchema = z.object({
+    userId: z.string().optional(),
+    templateRepo: z.string().min(1, 'Template é obrigatório'),
+    templateId: z.string().optional(),
+    templateName: z.string().optional(),
+    newRepoName: z.string().min(1, 'Escolha um nome para o repositório do seu site.').max(100, 'Nome do repositório muito longo (máx. 100 caracteres)'),
+    adminPassword: z.string().max(200).optional(),
+    githubToken: z.string().min(1, 'Token do GitHub é obrigatório'),
+    vercelToken: z.string().min(1, 'Token da Vercel é obrigatório'),
+});
 
 export const prerender = false;
 
@@ -43,19 +55,19 @@ export const POST: APIRoute = async ({ request }) => {
     let userEmail = '';
     let templateId_ = '';
     let templateName_ = '';
+    let vercelToken_ = '';
 
     try {
-        const { userId, templateRepo, templateId, templateName, newRepoName, adminPassword, githubToken, vercelToken } = await request.json();
+        const rawBody = await request.json();
+        const parsed = deploySchema.safeParse(rawBody);
+        if (!parsed.success) {
+            const msg = parsed.error.issues.map(i => i.message).join('; ');
+            return new Response(JSON.stringify({ error: msg }), { status: 400 });
+        }
+        const { userId, templateRepo, templateId, templateName, newRepoName, adminPassword, githubToken, vercelToken } = parsed.data;
+        vercelToken_ = vercelToken;
         templateId_ = templateId || '';
         templateName_ = templateName || '';
-
-        if (!githubToken || !vercelToken) {
-            return new Response(JSON.stringify({ error: 'Tokens do Github e Vercel são obrigatórios. Configure-os em Configurações > Integração.' }), { status: 400 });
-        }
-
-        if (!newRepoName?.trim()) {
-            return new Response(JSON.stringify({ error: 'Escolha um nome para o repositório do seu site.' }), { status: 400 });
-        }
 
         // 0. Validação de Assinatura + capturar email
         const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
@@ -303,9 +315,8 @@ export const POST: APIRoute = async ({ request }) => {
         if (octokit && repoCreated && githubUsername && safeRepoName) {
             await deleteGithubRepo(octokit, githubUsername, safeRepoName);
         }
-        if (projectId && vercelProjectCreated) {
-            const { vercelToken } = await request.json().catch(() => ({ vercelToken: '' }));
-            if (vercelToken) await deleteVercelProject(vercelToken, projectId);
+        if (projectId && vercelProjectCreated && vercelToken_) {
+            await deleteVercelProject(vercelToken_, projectId);
         }
         return new Response(JSON.stringify({ error: 'Erro inesperado ao criar o site. Tente novamente.' }), { status: 500 });
     }
