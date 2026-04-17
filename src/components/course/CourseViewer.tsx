@@ -143,16 +143,24 @@ function PlayerView({
         progressLoadedRef.current = null; // reset para nova lesson
 
         const setupListeners = (player: any) => {
-            player.off('timeupdate'); player.off('pause'); player.off('ended'); player.off('canplay');
+            player.off('timeupdate'); player.off('pause'); player.off('ended'); player.off('canplay'); player.off('loadedmetadata');
             player.on('timeupdate', () => {
                 const t = player.currentTime;
-                if (Math.abs(t - lastSavedTimeRef.current) > 10) { saveProgress(lessonId, t, player.duration); lastSavedTimeRef.current = t; }
+                const d = player.duration;
+                if (d > 0 && Math.abs(t - lastSavedTimeRef.current) > 10) { saveProgress(lessonId, t, d); lastSavedTimeRef.current = t; }
             });
-            player.on('pause', () => { saveProgress(lessonId, player.currentTime, player.duration); });
+            player.on('pause', () => { if (player.duration > 0) saveProgress(lessonId, player.currentTime, player.duration); });
             player.on('ended', () => { saveProgress(lessonId, player.duration, player.duration); setShowNextBanner(true); });
-            // Carrega progresso apenas 1x por lesson, no primeiro canplay
+            // Carrega progresso apenas 1x por lesson, após metadata (duration disponível)
+            player.on('loadedmetadata', () => {
+                if (progressLoadedRef.current !== lessonId && player.duration > 0) {
+                    progressLoadedRef.current = lessonId;
+                    loadProgress(lessonId);
+                }
+            });
+            // Fallback: se loadedmetadata não disparar (streaming), tenta no canplay
             player.on('canplay', () => {
-                if (progressLoadedRef.current !== lessonId) {
+                if (progressLoadedRef.current !== lessonId && player.duration > 0) {
                     progressLoadedRef.current = lessonId;
                     loadProgress(lessonId);
                 }
@@ -189,7 +197,19 @@ function PlayerView({
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         const { data } = await supabase.from('user_lessons_progress').select('last_time_seconds').eq('user_id', user.id).eq('lesson_id', lessonId).maybeSingle();
-        if (data && plyrRef.current) { plyrRef.current.currentTime = data.last_time_seconds; lastSavedTimeRef.current = data.last_time_seconds; }
+        if (data && plyrRef.current) {
+            const saved = data.last_time_seconds;
+            const duration = plyrRef.current.duration;
+            // Só restaura se duration é válido e posição salva não está no final (>95%)
+            if (duration > 0 && saved < duration * 0.95) {
+                plyrRef.current.currentTime = saved;
+                lastSavedTimeRef.current = saved;
+            } else {
+                // Se já assistiu >95%, recomeça do início
+                plyrRef.current.currentTime = 0;
+                lastSavedTimeRef.current = 0;
+            }
+        }
     };
 
     const saveProgress = async (lessonId: string, currentTime: number, duration: number) => {
