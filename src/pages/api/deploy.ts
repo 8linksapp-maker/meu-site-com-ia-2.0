@@ -193,6 +193,14 @@ export const POST: APIRoute = async ({ request }) => {
                     }), { status: 400 });
                 }
 
+                // GitHub não conectado como Login Connection na Vercel
+                if (lowerMsg.includes('login connection') || lowerMsg.includes('failed to link')) {
+                    if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
+                    return new Response(JSON.stringify({
+                        error: '⚠️ Sua conta GitHub não está conectada à Vercel como método de login.\n\n📋 Passo a passo:\n1. Acesse: https://vercel.com/account/login-connections\n2. Clique em "Connect" ao lado de GitHub\n3. Autorize o acesso\n4. Volte aqui e tente criar o site novamente\n\n💡 Isso é diferente da integração do GitHub — é a conexão de login da sua conta Vercel.',
+                    }), { status: 400 });
+                }
+
                 if (vercelRes.status === 401 || errCode === 'forbidden' || errCode === 'not_authorized') {
                     if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
                     return new Response(JSON.stringify({
