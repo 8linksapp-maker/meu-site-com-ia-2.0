@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import JuvenalSupport from '../components/JuvenalSupport';
+---
+
+<DashboardLayout title="Juvenal - Suporte">
+    <JuvenalSupport client:load />
+</DashboardLayout>

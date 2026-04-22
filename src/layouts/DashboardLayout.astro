@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { LogOut, LayoutDashboard, Settings, Shield, Heart, Menu, X, GraduationCap, Plus, Globe, MessageSquare, Rocket, LayoutGrid, Radio } from 'lucide-react';
+import { LogOut, LayoutDashboard, Settings, Shield, Heart, Menu, X, GraduationCap, Plus, Globe, MessageSquare, Rocket, LayoutGrid, Radio, LifeBuoy } from 'lucide-react';
 import GroupWizard from '../components/GroupWizard';
 import TokenGate from '../components/TokenGate';
 import SpotlightTour from '../components/ui/SpotlightTour';
@@ -168,6 +168,19 @@ const pathname = new URL(Astro.request.url).pathname;
         >
           <Settings className="w-4 h-4 shrink-0" />
           <span class="text-sm">Configurações</span>
+        </a>
+
+        {/* Juvenal Suporte */}
+        <a
+          href="/suporte"
+          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+            pathname.includes('/suporte')
+              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
+              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+          }`}
+        >
+          <LifeBuoy className="w-4 h-4 shrink-0" />
+          <span class="text-sm">Juvenal</span>
         </a>
 
       </nav>
