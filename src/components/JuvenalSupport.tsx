@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Send, Ticket, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
+import { Send, Ticket, ChevronDown, ChevronUp, MessageCircle, Upload, X, Loader2, ImageIcon } from 'lucide-react';
 
 const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -86,6 +86,8 @@ export default function JuvenalSupport() {
     const [category, setCategory] = useState('bug');
     const [siteRepo, setSiteRepo] = useState('');
     const [screenshotUrl, setScreenshotUrl] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const [screenshotPreview, setScreenshotPreview] = useState('');
 
     const greeting = useMemo(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)], []);
 
@@ -177,6 +179,7 @@ export default function JuvenalSupport() {
             setCategory('bug');
             setSiteRepo('');
             setScreenshotUrl('');
+            setScreenshotPreview('');
             loadTickets();
         } catch (err: any) {
             setError(err.message);
@@ -364,18 +367,65 @@ export default function JuvenalSupport() {
                                 />
                             </div>
 
-                            {/* Screenshot URL */}
+                            {/* Screenshot Upload */}
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1.5">
-                                    Link do print/screenshot <span className="font-normal text-gray-400">(opcional)</span>
+                                    Print do erro <span className="font-normal text-gray-400">(opcional)</span>
                                 </label>
-                                <input
-                                    type="url"
-                                    value={screenshotUrl}
-                                    onChange={e => setScreenshotUrl(e.target.value)}
-                                    placeholder="https://i.imgur.com/exemplo.png"
-                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 focus:border-[#7c3aed]"
-                                />
+                                {screenshotPreview ? (
+                                    <div className="relative inline-block">
+                                        <img src={screenshotPreview} alt="Preview" className="max-h-40 rounded-xl border border-gray-200 shadow-sm" />
+                                        <button
+                                            type="button"
+                                            onClick={() => { setScreenshotPreview(''); setScreenshotUrl(''); }}
+                                            className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label className="group flex flex-col items-center justify-center py-6 border-2 border-dashed border-gray-300 hover:border-[#7c3aed] rounded-xl cursor-pointer transition-all hover:bg-purple-50/50">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            disabled={uploading}
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+                                                setUploading(true);
+                                                try {
+                                                    setScreenshotPreview(URL.createObjectURL(file));
+                                                    const token = await getToken();
+                                                    const formData = new FormData();
+                                                    formData.append('file', file);
+                                                    const res = await fetch('/api/support/upload', {
+                                                        method: 'POST',
+                                                        headers: { 'Authorization': `Bearer ${token}` },
+                                                        body: formData,
+                                                    });
+                                                    const data = await res.json();
+                                                    if (!res.ok) throw new Error(data.error);
+                                                    setScreenshotUrl(data.url);
+                                                } catch (err: any) {
+                                                    setError('Erro no upload: ' + err.message);
+                                                    setScreenshotPreview('');
+                                                } finally {
+                                                    setUploading(false);
+                                                }
+                                            }}
+                                        />
+                                        {uploading ? (
+                                            <Loader2 className="w-8 h-8 animate-spin text-[#7c3aed] mb-2" />
+                                        ) : (
+                                            <Upload className="w-8 h-8 text-gray-400 group-hover:text-[#7c3aed] mb-2 transition-colors" />
+                                        )}
+                                        <span className="text-sm text-gray-500 group-hover:text-[#7c3aed] font-medium transition-colors">
+                                            {uploading ? 'Enviando...' : 'Clique pra enviar o print'}
+                                        </span>
+                                        <span className="text-xs text-gray-400 mt-1">PNG, JPG, WebP — max 5MB</span>
+                                    </label>
+                                )}
                             </div>
 
                             {error && (
@@ -453,13 +503,8 @@ export default function JuvenalSupport() {
                                                     {ticket.description}
                                                 </p>
                                                 {ticket.screenshot_url && (
-                                                    <a
-                                                        href={ticket.screenshot_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-block mt-2 text-xs font-bold text-[#7c3aed] hover:underline"
-                                                    >
-                                                        Ver screenshot
+                                                    <a href={ticket.screenshot_url} target="_blank" rel="noopener noreferrer" className="block mt-3">
+                                                        <img src={ticket.screenshot_url} alt="Screenshot" className="max-h-48 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow" />
                                                     </a>
                                                 )}
                                             </div>
