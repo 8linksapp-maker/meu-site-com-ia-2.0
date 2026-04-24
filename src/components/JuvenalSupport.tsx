@@ -299,25 +299,33 @@ export default function JuvenalSupport() {
                     ) : (
                         <form onSubmit={handleSubmit} className="p-6 space-y-5">
                             {/* Site */}
-                            {sites.length > 0 && (
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1.5">
-                                        Qual site?
-                                    </label>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                                    Qual site?
+                                </label>
+                                {sites.length > 0 ? (
                                     <select
                                         value={siteRepo}
                                         onChange={e => setSiteRepo(e.target.value)}
                                         className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 focus:border-[#7c3aed] bg-white"
                                     >
-                                        <option value="">Selecione o site (opcional)</option>
+                                        <option value="">Selecione o site</option>
                                         {sites.map(s => (
                                             <option key={s.id} value={`${s.github_owner}/${s.github_repo}`}>
                                                 {s.github_repo}
                                             </option>
                                         ))}
                                     </select>
-                                </div>
-                            )}
+                                ) : (
+                                    <input
+                                        type="text"
+                                        value={siteRepo}
+                                        onChange={e => setSiteRepo(e.target.value)}
+                                        placeholder="Nome ou URL do site"
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 focus:border-[#7c3aed]"
+                                    />
+                                )}
+                            </div>
 
                             {/* Category */}
                             <div>
