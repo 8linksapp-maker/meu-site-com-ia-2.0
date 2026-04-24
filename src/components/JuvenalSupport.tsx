@@ -37,6 +37,8 @@ interface UserSite {
     github_owner: string;
 }
 
+const JUVENAL_AVATAR = 'https://bsebtmvautyhglmgmtaa.supabase.co/storage/v1/object/public/Public%20bucket/juvenal-avatar.png';
+
 const GREETINGS = [
     'Fala, parceiro! Me conta o problema que eu resolvo.',
     'Chegou no lugar certo. Manda o bug que eu caco.',
@@ -236,9 +238,7 @@ export default function JuvenalSupport() {
             {/* Juvenal Header */}
             <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 rounded-2xl p-6 mb-6 text-white shadow-lg shadow-purple-500/20">
                 <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl shrink-0 shadow-inner">
-                        J
-                    </div>
+                    <img src={JUVENAL_AVATAR} alt="Juvenal Amâncio" className="w-16 h-16 rounded-2xl shrink-0 shadow-lg object-cover" />
                     <div className="min-w-0">
                         <h1 className="text-xl font-black tracking-tight">Juvenal Amancio</h1>
                         <p className="text-violet-200 text-sm font-medium">Suporte Tecnico</p>
@@ -283,9 +283,7 @@ export default function JuvenalSupport() {
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                     {submitSuccess ? (
                         <div className="p-8 text-center">
-                            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-violet-100 flex items-center justify-center text-4xl">
-                                J
-                            </div>
+                            <img src={JUVENAL_AVATAR} alt="Juvenal" className="w-20 h-20 mx-auto mb-4 rounded-2xl shadow-lg object-cover" />
                             <p className="text-lg font-bold text-gray-800 mb-2">Chamado enviado!</p>
                             <p className="text-violet-600 font-medium italic">"{submitSuccess}"</p>
                             <p className="text-gray-500 text-sm mt-4">
@@ -543,9 +541,9 @@ export default function JuvenalSupport() {
                                                         >
                                                             <div className="flex items-center gap-2 mb-1">
                                                                 {msg.author_type === 'juvenal' ? (
-                                                                    <div className="w-5 h-5 rounded-md bg-violet-200 flex items-center justify-center text-[10px] font-black text-violet-700">J</div>
+                                                                    <img src={JUVENAL_AVATAR} alt="Juvenal" className="w-5 h-5 rounded-md object-cover" />
                                                                 ) : (
-                                                                    <div className="w-5 h-5 rounded-md bg-gray-200 flex items-center justify-center text-[10px] font-black text-gray-500">A</div>
+                                                                    <div className="w-5 h-5 rounded-md bg-gray-200 flex items-center justify-center text-[10px] font-black text-gray-500">V</div>
                                                                 )}
                                                                 <span className="text-xs font-bold text-gray-600">{msg.author_name}</span>
                                                                 <span className="text-xs text-gray-400">

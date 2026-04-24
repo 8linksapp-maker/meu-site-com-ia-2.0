@@ -321,7 +321,7 @@ export default function SupportAdmin() {
                                         >
                                             <div className="flex items-center gap-2 mb-1">
                                                 {msg.author_type === 'juvenal' ? (
-                                                    <div className="w-5 h-5 rounded-md bg-violet-200 flex items-center justify-center text-[10px] font-black text-violet-700">J</div>
+                                                    <img src="https://bsebtmvautyhglmgmtaa.supabase.co/storage/v1/object/public/Public%20bucket/juvenal-avatar.png" alt="J" className="w-5 h-5 rounded-md object-cover" />
                                                 ) : (
                                                     <div className="w-5 h-5 rounded-md bg-gray-200 flex items-center justify-center text-[10px] font-black text-gray-500">A</div>
                                                 )}
