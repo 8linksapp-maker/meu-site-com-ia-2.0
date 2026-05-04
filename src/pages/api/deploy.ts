@@ -297,26 +297,21 @@ export const POST: APIRoute = async ({ request }) => {
             return new Response(JSON.stringify({ error: 'Erro ao configurar o projeto. Tente novamente ou atualize seus tokens.' }), { status: 500 });
         }
 
-        // 4. Disparar Deploy inicial
-        // Como o template tem `git.deploymentEnabled.main=false`, prefere o hook (sem
-        // depender do auto-deploy do GitHub). Fallback pra gitSource se hook indisponível.
+        // 4. Disparar Deploy inicial via gitSource API (não usa hook —
+        // queremos garantir que o primeiro deploy roda automaticamente
+        // independente do hook ter sido criado com sucesso).
         await new Promise(r => setTimeout(r, 3000));
 
-        let deployRes: Response;
-        if (deployHookUrl) {
-            deployRes = await fetch(deployHookUrl, { method: 'POST' });
-        } else {
-            deployRes = await fetch(`https://api.vercel.com/v13/deployments`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: safeRepoName,
-                    project: projectId,
-                    target: 'production',
-                    gitSource: { type: 'github', repoId: githubRepoId, ref: 'main' }
-                })
-            });
-        }
+        const deployRes = await fetch(`https://api.vercel.com/v13/deployments`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: safeRepoName,
+                project: projectId,
+                target: 'production',
+                gitSource: { type: 'github', repoId: githubRepoId, ref: 'main' }
+            })
+        });
 
         if (!deployRes.ok) {
             // Não faz rollback aqui — repo e projeto já estão criados e podem ser reusados
