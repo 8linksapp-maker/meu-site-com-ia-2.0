@@ -255,14 +255,33 @@ export const POST: APIRoute = async ({ request }) => {
             }), { status: 400 });
         }
 
+        // 2.5. Criar Deploy Hook (best-effort: falha aqui não aborta criação do site)
+        let deployHookUrl = '';
+        try {
+            const hookRes = await fetch(`https://api.vercel.com/v1/projects/${projectId}/deploy-hooks`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: 'CMS Deploy', ref: 'main' }),
+            });
+            if (hookRes.ok) {
+                const hookData = await hookRes.json();
+                const hooks = hookData?.link?.deployHooks ?? [];
+                const fresh = hooks.filter((h: any) => h.name === 'CMS Deploy').sort((a: any, b: any) => b.createdAt - a.createdAt)[0];
+                deployHookUrl = fresh?.url ?? '';
+            }
+        } catch { /* swallow */ }
+
         // 3. Adicionar Variáveis de Ambiente
-        const envVars = [
+        const envVars: Array<{ key: string; value: string; type: string; target: string[] }> = [
             { key: 'GITHUB_TOKEN', value: githubToken, type: 'encrypted', target: ['production', 'preview', 'development'] },
             { key: 'GITHUB_OWNER', value: githubUsername, type: 'plain', target: ['production', 'preview', 'development'] },
             { key: 'GITHUB_REPO', value: safeRepoName, type: 'plain', target: ['production', 'preview', 'development'] }
         ];
         if (adminPassword) {
             envVars.push({ key: 'ADMIN_SECRET', value: adminPassword, type: 'encrypted', target: ['production', 'preview', 'development'] });
+        }
+        if (deployHookUrl) {
+            envVars.push({ key: 'DEPLOY_HOOK_URL', value: deployHookUrl, type: 'encrypted', target: ['production', 'preview', 'development'] });
         }
 
         const envRes = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env`, {
@@ -278,19 +297,26 @@ export const POST: APIRoute = async ({ request }) => {
             return new Response(JSON.stringify({ error: 'Erro ao configurar o projeto. Tente novamente ou atualize seus tokens.' }), { status: 500 });
         }
 
-        // 4. Disparar Deploy
+        // 4. Disparar Deploy inicial
+        // Como o template tem `git.deploymentEnabled.main=false`, prefere o hook (sem
+        // depender do auto-deploy do GitHub). Fallback pra gitSource se hook indisponível.
         await new Promise(r => setTimeout(r, 3000));
 
-        const deployRes = await fetch(`https://api.vercel.com/v13/deployments`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: safeRepoName,
-                project: projectId,
-                target: 'production',
-                gitSource: { type: 'github', repoId: githubRepoId, ref: 'main' }
-            })
-        });
+        let deployRes: Response;
+        if (deployHookUrl) {
+            deployRes = await fetch(deployHookUrl, { method: 'POST' });
+        } else {
+            deployRes = await fetch(`https://api.vercel.com/v13/deployments`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: safeRepoName,
+                    project: projectId,
+                    target: 'production',
+                    gitSource: { type: 'github', repoId: githubRepoId, ref: 'main' }
+                })
+            });
+        }
 
         if (!deployRes.ok) {
             // Não faz rollback aqui — repo e projeto já estão criados e podem ser reusados
