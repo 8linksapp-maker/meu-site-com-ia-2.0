@@ -42,6 +42,8 @@ function CountdownBlock({ value, label }: { value: number; label: string }) {
 function ReplayModal({ lesson, onClose }: { lesson: Lesson; onClose: () => void }) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const plyrRef = useRef<any>(null);
+    const [videoState, setVideoState] = useState<'loading' | 'buffering' | 'ready' | 'error'>('loading');
+    const [retryCount, setRetryCount] = useState(0);
 
     useEffect(() => {
         const initPlyr = () => {
@@ -51,6 +53,13 @@ function ReplayModal({ lesson, onClose }: { lesson: Lesson; onClose: () => void 
                 settings: ['speed'],
                 speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
             });
+            const p = plyrRef.current;
+            p.on('canplay', () => setVideoState('ready'));
+            p.on('loadedmetadata', () => setVideoState('ready'));
+            p.on('playing', () => setVideoState('ready'));
+            p.on('waiting', () => setVideoState('buffering'));
+            p.on('stalled', () => setVideoState('buffering'));
+            p.on('error', () => setVideoState('error'));
         };
         if ((window as any).Plyr) initPlyr();
         else {
@@ -61,7 +70,7 @@ function ReplayModal({ lesson, onClose }: { lesson: Lesson; onClose: () => void 
             document.head.appendChild(s);
         }
         return () => { if (plyrRef.current) { plyrRef.current.destroy(); plyrRef.current = null; } };
-    }, []);
+    }, [retryCount]);
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={onClose}>
@@ -72,12 +81,34 @@ function ReplayModal({ lesson, onClose }: { lesson: Lesson; onClose: () => void 
                         <X className="w-5 h-5" />
                     </button>
                 </div>
-                <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl" onContextMenu={e => e.preventDefault()}>
+                <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative" onContextMenu={e => e.preventDefault()}>
                     {lesson.video_url ? (
-                        <video ref={videoRef} src={lesson.video_url} className="w-full h-full" playsInline onContextMenu={e => e.preventDefault()} />
+                        <video
+                            ref={videoRef}
+                            key={lesson.id + ':' + retryCount}
+                            src={lesson.video_url}
+                            className="w-full h-full"
+                            playsInline
+                            preload="auto"
+                            crossOrigin="anonymous"
+                            onContextMenu={e => e.preventDefault()}
+                        />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center">
                             <Lock className="w-8 h-8 text-gray-600" />
+                        </div>
+                    )}
+                    {lesson.video_url && (videoState === 'loading' || videoState === 'buffering') && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 pointer-events-none z-10">
+                            <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mb-3"></div>
+                            <p className="text-white/80 text-sm font-medium">{videoState === 'buffering' ? 'Carregando vídeo…' : 'Preparando…'}</p>
+                        </div>
+                    )}
+                    {lesson.video_url && videoState === 'error' && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/95 z-10 px-6 text-center">
+                            <p className="text-white text-base font-bold mb-2">Não foi possível carregar o vídeo</p>
+                            <p className="text-gray-400 text-sm mb-4">Verifique sua conexão. Se o problema persistir, recarregue a página ou tente outro navegador.</p>
+                            <button type="button" onClick={() => { setVideoState('loading'); setRetryCount(c => c + 1); }} className="bg-[#7c3aed] text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-[#6d28d9] transition">Tentar novamente</button>
                         </div>
                     )}
                 </div>

@@ -120,6 +120,8 @@ function PlayerView({
     const [openModules, setOpenModules] = useState<string[]>([module.id]);
     const [showNextBanner, setShowNextBanner] = useState(false);
     const [nextLesson, setNextLesson] = useState<{ lesson: Lesson; module: Module } | null>(null);
+    const [videoState, setVideoState] = useState<'loading' | 'buffering' | 'ready' | 'error'>('loading');
+    const [retryCount, setRetryCount] = useState(0);
 
     const [activeTab, setActiveTab] = useState<'resources' | 'notes' | 'comments'>('resources');
     const [resources, setResources] = useState<LessonResource[]>([]);
@@ -141,9 +143,10 @@ function PlayerView({
         if (!currentLesson?.video_url || !videoRef.current) return;
         const lessonId = currentLesson.id;
         progressLoadedRef.current = null; // reset para nova lesson
+        setVideoState('loading');
 
         const setupListeners = (player: any) => {
-            player.off('timeupdate'); player.off('pause'); player.off('ended'); player.off('canplay'); player.off('loadedmetadata');
+            player.off('timeupdate'); player.off('pause'); player.off('ended'); player.off('canplay'); player.off('loadedmetadata'); player.off('waiting'); player.off('playing'); player.off('error'); player.off('stalled');
             player.on('timeupdate', () => {
                 const t = player.currentTime;
                 const d = player.duration;
@@ -153,6 +156,7 @@ function PlayerView({
             player.on('ended', () => { saveProgress(lessonId, player.duration, player.duration); setShowNextBanner(true); });
             // Carrega progresso apenas 1x por lesson, após metadata (duration disponível)
             player.on('loadedmetadata', () => {
+                setVideoState('ready');
                 if (progressLoadedRef.current !== lessonId && player.duration > 0) {
                     progressLoadedRef.current = lessonId;
                     loadProgress(lessonId);
@@ -160,11 +164,17 @@ function PlayerView({
             });
             // Fallback: se loadedmetadata não disparar (streaming), tenta no canplay
             player.on('canplay', () => {
+                setVideoState('ready');
                 if (progressLoadedRef.current !== lessonId && player.duration > 0) {
                     progressLoadedRef.current = lessonId;
                     loadProgress(lessonId);
                 }
             });
+            // Indicador de buffering — Backblaze B2 sem CDN tem latência alta no Brasil
+            player.on('waiting', () => setVideoState('buffering'));
+            player.on('stalled', () => setVideoState('buffering'));
+            player.on('playing', () => setVideoState('ready'));
+            player.on('error', () => setVideoState('error'));
         };
 
         const initPlyr = () => {
@@ -290,9 +300,31 @@ function PlayerView({
                 </button>
                 <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative" onContextMenu={e => e.preventDefault()}>
                     {currentLesson?.video_url ? (
-                        <video ref={videoRef} src={currentLesson.video_url} className="w-full h-full" playsInline onContextMenu={e => e.preventDefault()} />
+                        <video
+                            ref={videoRef}
+                            key={currentLesson.id + ':' + retryCount}
+                            src={currentLesson.video_url}
+                            className="w-full h-full"
+                            playsInline
+                            preload="auto"
+                            crossOrigin="anonymous"
+                            onContextMenu={e => e.preventDefault()}
+                        />
                     ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-gray-900"><Lock className="w-10 h-10 mb-3 text-gray-600" /><p className="font-medium text-gray-400">Vídeo não disponível</p></div>
+                    )}
+                    {currentLesson?.video_url && (videoState === 'loading' || videoState === 'buffering') && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 pointer-events-none z-10">
+                            <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mb-3"></div>
+                            <p className="text-white/80 text-sm font-medium">{videoState === 'buffering' ? 'Carregando vídeo…' : 'Preparando…'}</p>
+                        </div>
+                    )}
+                    {currentLesson?.video_url && videoState === 'error' && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/95 z-10 px-6 text-center">
+                            <p className="text-white text-base font-bold mb-2">Não foi possível carregar o vídeo</p>
+                            <p className="text-gray-400 text-sm mb-4">Verifique sua conexão. Se o problema persistir, recarregue a página ou tente outro navegador.</p>
+                            <button type="button" onClick={() => { setVideoState('loading'); setRetryCount(c => c + 1); }} className="bg-[#7c3aed] text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-[#6d28d9] transition">Tentar novamente</button>
+                        </div>
                     )}
                     {showNextBanner && nextLesson && (
                         <div className="absolute bottom-14 left-0 right-0 flex justify-center px-4">
