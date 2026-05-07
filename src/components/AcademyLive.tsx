@@ -41,36 +41,8 @@ function CountdownBlock({ value, label }: { value: number; label: string }) {
 
 function ReplayModal({ lesson, onClose }: { lesson: Lesson; onClose: () => void }) {
     const videoRef = useRef<HTMLVideoElement>(null);
-    const plyrRef = useRef<any>(null);
-    const [videoState, setVideoState] = useState<'loading' | 'buffering' | 'ready' | 'error'>('loading');
+    const [videoState, setVideoState] = useState<'loading' | 'ready' | 'error'>('loading');
     const [retryCount, setRetryCount] = useState(0);
-
-    useEffect(() => {
-        const initPlyr = () => {
-            if (!(window as any).Plyr || !videoRef.current) return;
-            plyrRef.current = new (window as any).Plyr(videoRef.current, {
-                controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen'],
-                settings: ['speed'],
-                speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
-            });
-            const p = plyrRef.current;
-            p.on('canplay', () => setVideoState('ready'));
-            p.on('loadedmetadata', () => setVideoState('ready'));
-            p.on('playing', () => setVideoState('ready'));
-            p.on('waiting', () => setVideoState('buffering'));
-            p.on('stalled', () => setVideoState('buffering'));
-            p.on('error', () => setVideoState('error'));
-        };
-        if ((window as any).Plyr) initPlyr();
-        else {
-            const s = document.createElement('script');
-            s.src = 'https://cdn.plyr.io/3.7.8/plyr.polyfilled.js';
-            s.async = true;
-            s.onload = initPlyr;
-            document.head.appendChild(s);
-        }
-        return () => { if (plyrRef.current) { plyrRef.current.destroy(); plyrRef.current = null; } };
-    }, [retryCount]);
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={onClose}>
@@ -88,20 +60,23 @@ function ReplayModal({ lesson, onClose }: { lesson: Lesson; onClose: () => void 
                             key={lesson.id + ':' + retryCount}
                             src={lesson.video_url}
                             className="w-full h-full"
+                            controls
+                            autoPlay
                             playsInline
-                            preload="auto"
-                            crossOrigin="anonymous"
+                            preload="metadata"
                             onContextMenu={e => e.preventDefault()}
+                            onLoadedMetadata={() => setVideoState('ready')}
+                            onError={() => setVideoState('error')}
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center">
                             <Lock className="w-8 h-8 text-gray-600" />
                         </div>
                     )}
-                    {lesson.video_url && (videoState === 'loading' || videoState === 'buffering') && (
+                    {lesson.video_url && videoState === 'loading' && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 pointer-events-none z-10">
                             <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mb-3"></div>
-                            <p className="text-white/80 text-sm font-medium">{videoState === 'buffering' ? 'Carregando vídeo…' : 'Preparando…'}</p>
+                            <p className="text-white/80 text-sm font-medium">Preparando…</p>
                         </div>
                     )}
                     {lesson.video_url && videoState === 'error' && (

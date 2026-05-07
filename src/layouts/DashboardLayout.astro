@@ -22,18 +22,6 @@ const pathname = new URL(Astro.request.url).pathname;
 		<meta name="generator" content={Astro.generator} />
 		<title>{title} | Meu Site Com IA</title>
         
-        <!-- Plyr Player -->
-        <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
-        <style>
-            :root {
-                --plyr-color-main: #7c3aed;
-            }
-            .plyr {
-                border-radius: 1rem;
-                overflow: hidden;
-                box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-            }
-        </style>
 	</head>
 	<body class="bg-gray-50 text-gray-900 flex h-screen overflow-hidden">
     <!-- Overlay Mobile -->
