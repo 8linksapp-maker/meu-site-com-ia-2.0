@@ -235,25 +235,43 @@ export default function CourseManager() {
                     .map(b => b.toString(16).padStart(2, '0'))
                     .join(''));
 
-            const response = await fetch(uploadUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': uploadAuthToken,
-                    'X-Bz-File-Name': encodeURIComponent(file.name),
-                    'Content-Type': file.type || 'b2/x-auto',
-                    'X-Bz-Content-Sha1': sha1
-                },
-                body: file
+            // Usar XMLHttpRequest para trackear progresso do upload
+            await new Promise<void>((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        setUploadProgress(Math.round(percentComplete));
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const b2FileData = JSON.parse(xhr.responseText);
+                            const finalUrl = `${publicUrlBase}/${b2FileData.fileName}`;
+                            setLessonVideoUrl(finalUrl);
+                            resolve();
+                        } catch (parseErr) {
+                            reject(new Error('Falha ao processar resposta do B2'));
+                        }
+                    } else {
+                        reject(new Error(`B2 falhou com status ${xhr.status}: ${xhr.responseText}`));
+                    }
+                });
+
+                xhr.addEventListener('error', () => reject(new Error('Falha na conexão com B2')));
+                xhr.addEventListener('abort', () => reject(new Error('Upload cancelado')));
+
+                xhr.open('POST', uploadUrl);
+                xhr.setRequestHeader('Authorization', uploadAuthToken);
+                xhr.setRequestHeader('X-Bz-File-Name', encodeURIComponent(file.name));
+                xhr.setRequestHeader('Content-Type', file.type || 'b2/x-auto');
+                xhr.setRequestHeader('X-Bz-Content-Sha1', sha1);
+
+                xhr.send(file);
             });
-
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`B2 falhou com status ${response.status}: ${errText}`);
-            }
-
-            const b2FileData = await response.json();
-            const finalUrl = `${publicUrlBase}/${b2FileData.fileName}`;
-            setLessonVideoUrl(finalUrl);
 
         } catch (err: any) {
             alert(`Erro no upload: ${err.message}`);
