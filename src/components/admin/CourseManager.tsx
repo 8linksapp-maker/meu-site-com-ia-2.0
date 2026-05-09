@@ -252,6 +252,15 @@ export default function CourseManager() {
                             const b2FileData = JSON.parse(xhr.responseText);
                             const finalUrl = `${publicUrlBase}/${b2FileData.fileName}`;
                             setLessonVideoUrl(finalUrl);
+                            // Auto-trigger análise IA: gera título/descrição/highlights baseado no conteúdo do vídeo.
+                            // Só dispara se os campos estão vazios (não sobrescreve edição manual).
+                            setTimeout(() => {
+                                if (!lessonTitle.trim() && !lessonDescription.trim()) {
+                                    handleAnalyzeWithAI(finalUrl).catch(err => {
+                                        console.warn('Auto-análise IA falhou (não bloqueia upload):', err);
+                                    });
+                                }
+                            }, 500);
                             resolve();
                         } catch (parseErr) {
                             reject(new Error('Falha ao processar resposta do B2'));
@@ -272,7 +281,6 @@ export default function CourseManager() {
 
                 xhr.send(file);
             });
-
         } catch (err: any) {
             alert(`Erro no upload: ${err.message}`);
         } finally {
@@ -330,8 +338,9 @@ export default function CourseManager() {
         }
     };
 
-    const handleAnalyzeWithAI = async () => {
-        if (!lessonVideoUrl) return alert('Adicione um vídeo antes de gerar com IA.');
+    const handleAnalyzeWithAI = async (overrideUrl?: string) => {
+        const targetUrl = overrideUrl || lessonVideoUrl;
+        if (!targetUrl) return alert('Adicione um vídeo antes de gerar com IA.');
         setAiStatus('loading');
         setAiError('');
         try {
@@ -344,7 +353,7 @@ export default function CourseManager() {
                     'Authorization': `Bearer ${session.access_token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ videoUrl: lessonVideoUrl }),
+                body: JSON.stringify({ videoUrl: targetUrl }),
             });
 
             const data = await res.json();
