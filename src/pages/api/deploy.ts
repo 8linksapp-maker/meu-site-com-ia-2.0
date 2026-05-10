@@ -3,6 +3,7 @@ import { Octokit } from '@octokit/rest';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { logDeployError } from '../../lib/logDeployError';
+import { createDeployHookWithRetry, ensureDeployHookEnv } from '../../lib/deployHook';
 
 const deploySchema = z.object({
     userId: z.string().optional(),
@@ -255,23 +256,24 @@ export const POST: APIRoute = async ({ request }) => {
             }), { status: 400 });
         }
 
-        // 2.5. Criar Deploy Hook (best-effort: falha aqui não aborta criação do site)
-        let deployHookUrl = '';
-        try {
-            const hookRes = await fetch(`https://api.vercel.com/v1/projects/${projectId}/deploy-hooks`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: 'CMS Deploy', ref: 'main' }),
+        // 2.5. Criar Deploy Hook com retry (1s/3s/5s entre tentativas).
+        // Se falhar TODAS as 3 tentativas, loggamos como warning mas NÃO abortamos —
+        // o site funciona sem hook (só perde "Salvar dispara redeploy" no admin),
+        // e o endpoint /api/admin/ensure-deploy-hook permite recuperar depois.
+        const hookResult = await createDeployHookWithRetry(vercelToken, projectId);
+        let deployHookWarning: string | null = null;
+        if (!hookResult.url) {
+            const refCode = await logDeployError({
+                userId, userEmail, stage: 'env_vars',
+                templateId: templateId_, templateName: templateName_, repoName: safeRepoName,
+                errorMessage: `Deploy hook não criado após ${hookResult.attempts} tentativas: ${hookResult.lastError}`,
+                githubRepoUrl: newRepoHtmlUrl,
+                rawResponse: { attempts: hookResult.attempts, lastError: hookResult.lastError },
             });
-            if (hookRes.ok) {
-                const hookData = await hookRes.json();
-                const hooks = hookData?.link?.deployHooks ?? [];
-                const fresh = hooks.filter((h: any) => h.name === 'CMS Deploy').sort((a: any, b: any) => b.createdAt - a.createdAt)[0];
-                deployHookUrl = fresh?.url ?? '';
-            }
-        } catch { /* swallow */ }
+            deployHookWarning = `Deploy hook não foi criado (ref ${refCode}). Recupere em /admin → Sites → Reativar deploy manual.`;
+        }
 
-        // 3. Adicionar Variáveis de Ambiente
+        // 3. Adicionar Variáveis de Ambiente (sem DEPLOY_HOOK_URL ainda — vai depois pra evitar race)
         const envVars: Array<{ key: string; value: string; type: string; target: string[] }> = [
             { key: 'GITHUB_TOKEN', value: githubToken, type: 'encrypted', target: ['production', 'preview', 'development'] },
             { key: 'GITHUB_OWNER', value: githubUsername, type: 'plain', target: ['production', 'preview', 'development'] },
@@ -279,9 +281,6 @@ export const POST: APIRoute = async ({ request }) => {
         ];
         if (adminPassword) {
             envVars.push({ key: 'ADMIN_SECRET', value: adminPassword, type: 'encrypted', target: ['production', 'preview', 'development'] });
-        }
-        if (deployHookUrl) {
-            envVars.push({ key: 'DEPLOY_HOOK_URL', value: deployHookUrl, type: 'encrypted', target: ['production', 'preview', 'development'] });
         }
 
         const envRes = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env`, {
@@ -295,6 +294,23 @@ export const POST: APIRoute = async ({ request }) => {
             if (vercelProjectCreated) await deleteVercelProject(vercelToken, projectId);
             if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
             return new Response(JSON.stringify({ error: 'Erro ao configurar o projeto. Tente novamente ou atualize seus tokens.' }), { status: 500 });
+        }
+
+        // 3.5. Setar DEPLOY_HOOK_URL via helper idempotente (suporta POST + PATCH se existir).
+        if (hookResult.url) {
+            const envSet = await ensureDeployHookEnv(vercelToken, projectId, hookResult.url);
+            if (!envSet.ok) {
+                // env não foi setada mas hook existe — site funciona, só não tem deploy manual.
+                // Loggamos pra recovery posterior.
+                const refCode = await logDeployError({
+                    userId, userEmail, stage: 'env_vars',
+                    templateId: templateId_, templateName: templateName_, repoName: safeRepoName,
+                    errorMessage: `DEPLOY_HOOK_URL env falhou: ${envSet.lastError}`,
+                    githubRepoUrl: newRepoHtmlUrl,
+                    rawResponse: envSet,
+                });
+                deployHookWarning = `Deploy hook configurado parcialmente (ref ${refCode}). Recupere em /admin → Sites → Reativar deploy manual.`;
+            }
         }
 
         // 4. Disparar Deploy inicial via gitSource API (não usa hook —
@@ -338,6 +354,7 @@ export const POST: APIRoute = async ({ request }) => {
             deploymentId: deployData.id,
             siteSlug: safeRepoName,
             githubOwner: githubUsername,
+            ...(deployHookWarning ? { warning: deployHookWarning } : {}),
         }), { status: 200 });
     } catch (error: any) {
         // Rollback em caso de erro inesperado
