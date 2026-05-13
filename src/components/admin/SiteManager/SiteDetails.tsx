@@ -32,6 +32,7 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
 
     // UI Local State
     const [dnsMethod, setDnsMethod] = useState<Record<string, 'records' | 'vercel'>>({});
+    const [showDnsConfig, setShowDnsConfig] = useState<Record<string, boolean>>({});
     const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info', message: string } | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteInput, setDeleteInput] = useState('');
@@ -75,6 +76,23 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
         }
     }, [activeTab]);
 
+    // Auto-expand DNS config para domínios não configurados (exceto .vercel.app)
+    useEffect(() => {
+        if (activeTab === 'domains' && domains.length > 0) {
+            const unconfigured = domains.filter(d => !d.name.endsWith('.vercel.app') && (!d.verified || !d.configured));
+            if (unconfigured.length > 0) {
+                const newState: Record<string, boolean> = {};
+                unconfigured.forEach(d => {
+                    newState[d.name] = true;
+                    if (!dnsMethod[d.name]) {
+                        setDnsMethod(prev => ({ ...prev, [d.name]: 'records' }));
+                    }
+                });
+                setShowDnsConfig(prev => ({ ...prev, ...newState }));
+            }
+        }
+    }, [domains, activeTab]);
+
     const handleAddDomain = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newDomain) return;
@@ -90,9 +108,15 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                 body: JSON.stringify({ name: newDomain })
             });
             if (res.ok) {
+                const addedDomain = newDomain.toLowerCase().trim();
                 setNewDomain('');
-                showToast('Domínio adicionado com sucesso!');
+                showToast('Domínio adicionado! Configure os DNS abaixo.', 'info');
                 fetchData('domains');
+                // Abre automaticamente o painel DNS do novo domínio
+                setTimeout(() => {
+                    setShowDnsConfig(prev => ({ ...prev, [addedDomain]: true }));
+                    setDnsMethod(prev => ({ ...prev, [addedDomain]: 'records' }));
+                }, 500);
             } else {
                 const err = await res.json();
                 showToast(err.error?.message || 'Erro ao adicionar domínio', 'error');
@@ -260,6 +284,10 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
         setDnsMethod(prev => ({ ...prev, [domain]: method }));
     };
 
+    const toggleDnsConfig = (domain: string) => {
+        setShowDnsConfig(prev => ({ ...prev, [domain]: !prev[domain] }));
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-500 pb-20 relative">
 
@@ -416,7 +444,7 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
                                                         <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded">TARGET: PRODUÇÃO</span>
-                                                        {dom.verified ? (
+                                                        {dom.name.endsWith('.vercel.app') || (dom.verified && dom.configured) ? (
                                                             <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded flex items-center gap-1">
                                                                 <CheckCircle className="w-3 h-3" /> VERIFICADO
                                                             </span>
@@ -428,27 +456,37 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    {!dom.verified && (
-                                                        <button
-                                                            onClick={() => handleVerifyDomain(dom.name)}
-                                                            className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
-                                                        >
-                                                            <RefreshCw className={`w-3.5 h-3.5 ${verifyingDomain === dom.name ? 'animate-spin' : ''}`} /> Refresh DNS
-                                                        </button>
+                                                    {!dom.name.endsWith('.vercel.app') && (
+                                                        <>
+                                                            {(!dom.verified || !dom.configured) && (
+                                                                <button
+                                                                    onClick={() => handleVerifyDomain(dom.name)}
+                                                                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+                                                                >
+                                                                    <RefreshCw className={`w-3.5 h-3.5 ${verifyingDomain === dom.name ? 'animate-spin' : ''}`} /> Refresh DNS
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => toggleDnsConfig(dom.name)}
+                                                                className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+                                                            >
+                                                                <Edit2 className="w-3.5 h-3.5" /> {showDnsConfig[dom.name] ? 'Ocultar' : 'Editar'}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleRemoveDomain(dom.name)}
+                                                                className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-all flex items-center gap-1.5"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" /> Remover
+                                                            </button>
+                                                        </>
                                                     )}
-                                                    <button className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-1.5">
-                                                        <Edit2 className="w-3.5 h-3.5" /> Editar
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleRemoveDomain(dom.name)}
-                                                        className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-all flex items-center gap-1.5"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5" /> Remover
-                                                    </button>
+                                                    {dom.name.endsWith('.vercel.app') && (
+                                                        <span className="text-xs text-gray-400 font-medium italic">Domínio padrão da Vercel</span>
+                                                    )}
                                                 </div>
                                             </div>
 
-                                            {!dom.verified && (
+                                            {showDnsConfig[dom.name] && (
                                                 <div className="px-6 pb-6">
                                                     <div className="bg-[#f8faff] rounded-xl border border-blue-100 overflow-hidden">
                                                         <div className="flex border-b border-blue-50">
