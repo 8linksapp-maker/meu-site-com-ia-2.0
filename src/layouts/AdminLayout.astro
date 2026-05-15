@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings, Menu, X, Video, MessageSquare, BookMarked, ClipboardCheck, HelpCircle, Radio, AlertTriangle, LifeBuoy, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings, Menu, X, Video, MessageSquare, BookMarked, ClipboardCheck, HelpCircle, Radio, AlertTriangle, LifeBuoy, PanelLeftClose, PanelLeftOpen, Lightbulb } from 'lucide-react';
 
 interface Props {
 	title: string;
@@ -197,6 +197,18 @@ const pathname = new URL(Astro.request.url).pathname;
         >
           <LifeBuoy className="w-5 h-5 shrink-0" />
           <span class="sidebar-label">Suporte</span>
+        </a>
+        <a
+          href="/admin/sugestoes"
+          title="Sugestões de Templates"
+          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+            pathname.includes('/admin/sugestoes')
+              ? 'bg-[#7c3aed] text-white font-medium'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <Lightbulb className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Sugestões de Templates</span>
         </a>
         <a
           href="/admin/configuracoes"

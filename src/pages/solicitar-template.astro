@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import TemplateRequestForm from '../components/TemplateRequestForm';
+---
+
+<DashboardLayout title="Solicitar Template">
+    <TemplateRequestForm client:load />
+</DashboardLayout>

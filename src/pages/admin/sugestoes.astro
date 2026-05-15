@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import TemplateRequestsManager from '../../components/admin/TemplateRequestsManager';
+---
+
+<AdminLayout title="Sugestões de Templates">
+    <TemplateRequestsManager client:load />
+</AdminLayout>
