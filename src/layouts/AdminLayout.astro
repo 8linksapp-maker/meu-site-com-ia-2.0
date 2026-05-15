@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings, Menu, X, Video, MessageSquare, BookMarked, ClipboardCheck, HelpCircle, Radio, AlertTriangle, LifeBuoy } from 'lucide-react';
+import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings, Menu, X, Video, MessageSquare, BookMarked, ClipboardCheck, HelpCircle, Radio, AlertTriangle, LifeBuoy, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 interface Props {
 	title: string;
@@ -18,6 +18,29 @@ const pathname = new URL(Astro.request.url).pathname;
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title} | Admin SaaS</title>
+		<script is:inline>
+			(function(){
+				try {
+					var v = localStorage.getItem('msia-admin-sidebar-collapsed') === 'true';
+					document.documentElement.setAttribute('data-admin-collapsed', String(v));
+				} catch(e) {}
+			})();
+		</script>
+		<style is:global>
+			/* Sidebar collapse — desktop only (lg+); mobile usa drawer */
+			@media (min-width: 1024px) {
+				html[data-admin-collapsed="true"] #sidebar { width: 5rem; }
+				html[data-admin-collapsed="true"] #sidebar .sidebar-label,
+				html[data-admin-collapsed="true"] #sidebar .sidebar-brand,
+				html[data-admin-collapsed="true"] #sidebar .sidebar-back-app { display: none; }
+				html[data-admin-collapsed="true"] #sidebar nav a,
+				html[data-admin-collapsed="true"] #sidebar .sidebar-bottom > * { justify-content: center; padding-left: 0; padding-right: 0; }
+				html[data-admin-collapsed="true"] #sidebar .sidebar-header { justify-content: center; padding-left: 0; padding-right: 0; }
+				html[data-admin-collapsed="true"] #toggle-sidebar svg.icon-close { display: none; }
+				html:not([data-admin-collapsed="true"]) #toggle-sidebar svg.icon-open { display: none; }
+			}
+			#sidebar { transition: width .2s ease-out, transform .3s ease-in-out; }
+		</style>
 	</head>
 	<body class="bg-gray-50 text-gray-900 flex h-screen overflow-hidden">
     <div id="admin-loader" class="fixed inset-0 bg-white z-[60] flex items-center justify-center">
@@ -28,167 +51,186 @@ const pathname = new URL(Astro.request.url).pathname;
     <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 lg:hidden opacity-0 invisible transition-all duration-300"></div>
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-64 bg-gray-900 text-white border-r border-gray-800 flex flex-col h-full z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
-      <div class="h-16 flex items-center justify-between px-6 border-b border-gray-800 shrink-0">
-        <h1 class="text-xl font-bold text-white">Admin Panel</h1>
-        <button id="close-sidebar" class="lg:hidden p-2 text-gray-400 hover:bg-gray-800 rounded-md">
-          <X className="w-5 h-5" />
-        </button>
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-64 bg-gray-900 text-white border-r border-gray-800 flex flex-col h-full z-50 transform -translate-x-full lg:translate-x-0">
+      <div class="sidebar-header h-16 flex items-center justify-between px-6 border-b border-gray-800 shrink-0">
+        <h1 class="sidebar-brand text-xl font-bold text-white">Admin Panel</h1>
+        <div class="flex items-center gap-1">
+          <button id="toggle-sidebar" class="hidden lg:inline-flex p-2 text-gray-400 hover:bg-gray-800 hover:text-white rounded-md transition-colors" aria-label="Recolher menu" title="Recolher menu">
+            <PanelLeftClose className="w-5 h-5 icon-close" />
+            <PanelLeftOpen className="w-5 h-5 icon-open" />
+          </button>
+          <button id="close-sidebar" class="lg:hidden p-2 text-gray-400 hover:bg-gray-800 rounded-md">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
       
       <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
-        <a 
-          href="/admin" 
+        <a
+          href="/admin"
+          title="Dashboard"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
             pathname === '/admin' || pathname === '/admin/'
-              ? 'bg-[#7c3aed] text-white font-medium' 
+              ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <LayoutDashboard className="w-5 h-5" />
-          Dashboard
+          <LayoutDashboard className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Dashboard</span>
         </a>
-        <a 
-          href="/admin/usuarios" 
+        <a
+          href="/admin/usuarios"
+          title="Usuários"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/usuarios') 
-              ? 'bg-[#7c3aed] text-white font-medium' 
+            pathname.includes('/admin/usuarios')
+              ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <Users className="w-5 h-5" />
-          Usuários
+          <Users className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Usuários</span>
         </a>
-        <a 
-          href="/admin/templates" 
+        <a
+          href="/admin/templates"
+          title="Templates"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/templates') 
-              ? 'bg-[#7c3aed] text-white font-medium' 
+            pathname.includes('/admin/templates')
+              ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <FileStack className="w-5 h-5" />
-          Templates
+          <FileStack className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Templates</span>
         </a>
-        <a 
-          href="/admin/categorias" 
+        <a
+          href="/admin/categorias"
+          title="Categorias"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/categorias') 
-              ? 'bg-[#7c3aed] text-white font-medium' 
+            pathname.includes('/admin/categorias')
+              ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <Tags className="w-5 h-5" />
-          Categorias
+          <Tags className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Categorias</span>
         </a>
         <a
           href="/admin/aulas"
+          title="Gerenciar Aulas"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
             pathname.includes('/admin/aulas')
               ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <Video className="w-5 h-5" />
-          Gerenciar Aulas
+          <Video className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Gerenciar Aulas</span>
         </a>
         <a
           href="/admin/lives"
+          title="Academy Ao Vivo"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
             pathname.includes('/admin/lives')
               ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <Radio className="w-5 h-5" />
-          Academy Ao Vivo
+          <Radio className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Academy Ao Vivo</span>
         </a>
         <a
           href="/admin/perguntas"
+          title="Perguntas"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
             pathname.includes('/admin/perguntas')
               ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <HelpCircle className="w-5 h-5" />
-          Perguntas
+          <HelpCircle className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Perguntas</span>
         </a>
         <a
           href="/admin/producao"
+          title="Produção"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
             pathname.includes('/admin/producao')
               ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <ClipboardCheck className="w-5 h-5" />
-          Produção
+          <ClipboardCheck className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Produção</span>
         </a>
         <a
           href="/admin/tutoriais"
+          title="Tutoriais"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
             pathname.includes('/admin/tutoriais')
               ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <BookMarked className="w-5 h-5" />
-          Tutoriais
+          <BookMarked className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Tutoriais</span>
         </a>
         <a
           href="/admin/erros"
+          title="Logs de Erros"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
             pathname.includes('/admin/erros')
               ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <AlertTriangle className="w-5 h-5" />
-          Logs de Erros
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Logs de Erros</span>
         </a>
         <a
           href="/admin/suporte"
+          title="Suporte"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
             pathname.includes('/admin/suporte')
               ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <LifeBuoy className="w-5 h-5" />
-          Suporte
+          <LifeBuoy className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Suporte</span>
         </a>
         <a
           href="/admin/configuracoes"
+          title="Configurações"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
             pathname.includes('/admin/configuracoes')
               ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <Settings className="w-5 h-5" />
-          Configurações
+          <Settings className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Configurações</span>
         </a>
-        <a 
-          href="/admin/grupo" 
+        <a
+          href="/admin/grupo"
+          title="Configurar Grupo"
           class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/grupo') 
-              ? 'bg-[#7c3aed] text-white font-medium' 
+            pathname.includes('/admin/grupo')
+              ? 'bg-[#7c3aed] text-white font-medium'
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <MessageSquare className="w-5 h-5" />
-          Configurar Grupo
+          <MessageSquare className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Configurar Grupo</span>
         </a>
       </nav>
 
-      <div class="p-4 border-t border-gray-800 shrink-0">
-        <a href="/sites" class="flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-400 hover:bg-gray-800 hover:text-white transition-colors text-left mb-2">
-          Voltar ao App
+      <div class="sidebar-bottom p-4 border-t border-gray-800 shrink-0">
+        <a href="/sites" title="Voltar ao App" class="sidebar-back-app flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-400 hover:bg-gray-800 hover:text-white transition-colors text-left mb-2">
+          <span class="sidebar-label">Voltar ao App</span>
         </a>
-        <button id="logout-btn" class="flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-400 hover:bg-red-500/10 hover:text-red-500 transition-colors text-left">
-          <LogOut className="w-5 h-5" />
-          Sair
+        <button id="logout-btn" title="Sair" class="flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-400 hover:bg-red-500/10 hover:text-red-500 transition-colors text-left">
+          <LogOut className="w-5 h-5 shrink-0" />
+          <span class="sidebar-label">Sair</span>
         </button>
       </div>
     </aside>
@@ -224,6 +266,27 @@ const pathname = new URL(Astro.request.url).pathname;
       openBtn?.addEventListener('click', toggleSidebar);
       closeBtn?.addEventListener('click', toggleSidebar);
       overlay?.addEventListener('click', toggleSidebar);
+
+      // Desktop Sidebar Collapse Toggle
+      const COLLAPSE_KEY = 'msia-admin-sidebar-collapsed';
+      const toggleBtn = document.getElementById('toggle-sidebar');
+      function applyCollapsed(collapsed: boolean) {
+        document.documentElement.setAttribute('data-admin-collapsed', String(collapsed));
+        try { localStorage.setItem(COLLAPSE_KEY, String(collapsed)); } catch {}
+        if (toggleBtn) {
+          const label = collapsed ? 'Expandir menu' : 'Recolher menu';
+          toggleBtn.setAttribute('aria-label', label);
+          toggleBtn.setAttribute('title', label);
+        }
+      }
+      const initialCollapsed = (() => {
+        try { return localStorage.getItem(COLLAPSE_KEY) === 'true'; } catch { return false; }
+      })();
+      applyCollapsed(initialCollapsed);
+      toggleBtn?.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-admin-collapsed') === 'true';
+        applyCollapsed(!current);
+      });
 
       async function checkAdminAuth() {
         const { data: { session } } = await supabase.auth.getSession();
