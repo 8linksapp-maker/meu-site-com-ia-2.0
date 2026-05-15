@@ -51,52 +51,131 @@ const FEATURES: { value: string; label: string }[] = [
     { value: 'pdf-download', label: 'Download de PDFs / e-books' },
 ];
 
-const CONTENT_SCALES = [
-    { value: '1-5', label: '1 a 5 páginas/produtos' },
-    { value: '6-20', label: '6 a 20 páginas/produtos' },
-    { value: '21-50', label: '21 a 50 páginas/produtos' },
-    { value: '50+', label: 'Mais de 50' },
-];
-
-const STYLES = [
-    { value: 'moderno-minimalista', label: 'Moderno e minimalista' },
-    { value: 'colorido-vibrante', label: 'Colorido e vibrante' },
-    { value: 'elegante-sofisticado', label: 'Elegante e sofisticado' },
-    { value: 'profissional-corporativo', label: 'Profissional / corporativo' },
-    { value: 'divertido-casual', label: 'Divertido e casual' },
-    { value: 'rustico-natural', label: 'Rústico / natural' },
-    { value: 'tech-futurista', label: 'Tech / futurista' },
-    { value: 'nao-sei', label: 'Não sei — preciso de sugestão' },
-];
-
-const URGENCIES = [
-    { value: 'agora', label: 'Agora — já preciso', color: 'red' },
-    { value: '30d', label: 'Próximos 30 dias', color: 'amber' },
-    { value: '90d', label: 'Próximos 90 dias', color: 'blue' },
-    { value: 'sem-pressa', label: 'Sem pressa, só pesquisando', color: 'slate' },
+// Cada estilo tem um mini-preview visual gerado em CSS (sem imagem externa)
+const STYLES: { value: string; label: string; preview: React.ReactNode }[] = [
+    {
+        value: 'moderno-minimalista',
+        label: 'Moderno e minimalista',
+        preview: (
+            <div className="absolute inset-0 bg-white p-2.5">
+                <div className="h-1.5 w-12 bg-slate-900 rounded-full mb-2" />
+                <div className="h-1.5 w-20 bg-slate-300 rounded-full mb-3" />
+                <div className="grid grid-cols-2 gap-1.5">
+                    <div className="aspect-square bg-slate-100 rounded-md" />
+                    <div className="aspect-square bg-slate-100 rounded-md" />
+                </div>
+            </div>
+        ),
+    },
+    {
+        value: 'colorido-vibrante',
+        label: 'Colorido e vibrante',
+        preview: (
+            <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-500 via-orange-400 to-yellow-300 p-2.5">
+                <div className="h-2 w-10 bg-white rounded-full mb-2" />
+                <div className="flex gap-1.5 mb-1.5">
+                    <div className="w-5 h-5 rounded-full bg-cyan-400" />
+                    <div className="w-5 h-5 rounded-full bg-violet-500" />
+                    <div className="w-5 h-5 rounded-full bg-emerald-400" />
+                </div>
+                <div className="h-1.5 w-3/4 bg-white/80 rounded-full" />
+            </div>
+        ),
+    },
+    {
+        value: 'elegante-sofisticado',
+        label: 'Elegante e sofisticado',
+        preview: (
+            <div className="absolute inset-0 bg-stone-50 p-2.5">
+                <div className="h-px w-full bg-amber-700 mb-2" />
+                <p className="text-[10px] font-serif italic text-stone-800 leading-none mb-1.5">Lorem</p>
+                <div className="h-1 w-16 bg-stone-300 rounded-full mb-1" />
+                <div className="h-1 w-12 bg-stone-300 rounded-full mb-2" />
+                <div className="h-px w-full bg-amber-700" />
+            </div>
+        ),
+    },
+    {
+        value: 'profissional-corporativo',
+        label: 'Profissional / corporativo',
+        preview: (
+            <div className="absolute inset-0 bg-white p-2.5">
+                <div className="h-3 w-full bg-blue-700 rounded-sm mb-2" />
+                <div className="grid grid-cols-3 gap-1">
+                    <div className="h-6 bg-slate-100 rounded-sm" />
+                    <div className="h-6 bg-slate-100 rounded-sm" />
+                    <div className="h-6 bg-slate-100 rounded-sm" />
+                </div>
+                <div className="h-1 w-full bg-slate-200 mt-1.5 rounded-full" />
+            </div>
+        ),
+    },
+    {
+        value: 'divertido-casual',
+        label: 'Divertido e casual',
+        preview: (
+            <div className="absolute inset-0 bg-pink-50 p-2.5">
+                <div className="h-2.5 w-14 bg-pink-400 rounded-full mb-1.5" />
+                <div className="flex gap-1 mb-1.5">
+                    <div className="w-7 h-7 rounded-2xl bg-yellow-300" />
+                    <div className="w-7 h-7 rounded-2xl bg-teal-300" />
+                </div>
+                <div className="h-1.5 w-3/4 bg-pink-300 rounded-full" />
+            </div>
+        ),
+    },
+    {
+        value: 'rustico-natural',
+        label: 'Rústico / natural',
+        preview: (
+            <div className="absolute inset-0 bg-amber-50 p-2.5">
+                <div className="h-2 w-14 bg-amber-900 rounded-sm mb-2" />
+                <div className="h-6 w-full bg-gradient-to-r from-green-700 to-amber-700 rounded-sm mb-1.5" />
+                <div className="h-1 w-3/4 bg-amber-800/40 rounded-full" />
+            </div>
+        ),
+    },
+    {
+        value: 'tech-futurista',
+        label: 'Tech / futurista',
+        preview: (
+            <div className="absolute inset-0 bg-slate-900 p-2.5 overflow-hidden">
+                <div className="absolute inset-0 opacity-30" style={{
+                    backgroundImage: 'linear-gradient(rgba(0,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.3) 1px, transparent 1px)',
+                    backgroundSize: '12px 12px',
+                }} />
+                <div className="relative h-2 w-12 bg-cyan-400 rounded-full mb-2 shadow-[0_0_8px_rgba(0,255,255,0.8)]" />
+                <div className="relative h-1.5 w-16 bg-fuchsia-400 rounded-full mb-1 shadow-[0_0_6px_rgba(255,0,255,0.7)]" />
+                <div className="relative h-1.5 w-10 bg-cyan-400/70 rounded-full" />
+            </div>
+        ),
+    },
+    {
+        value: 'nao-sei',
+        label: 'Não sei — sugiram',
+        preview: (
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                <span className="text-3xl font-black text-slate-400">?</span>
+            </div>
+        ),
+    },
 ];
 
 type FormState = {
     businessType: string;
     niche: string;
-    targetAudience: string;
     features: string[];
-    contentScale: string;
     referenceUrls: string[];
     stylePreference: string;
-    urgency: string;
     extraNotes: string;
 };
 
 const INITIAL_STATE: FormState = {
     businessType: '',
     niche: '',
-    targetAudience: '',
     features: [],
-    contentScale: '',
     referenceUrls: ['', '', ''],
     stylePreference: '',
-    urgency: '',
     extraNotes: '',
 };
 
@@ -129,9 +208,9 @@ export default function TemplateRequestForm() {
     }
 
     function canAdvance() {
-        if (step === 1) return !!form.businessType && form.niche.trim().length >= 3 && form.targetAudience.trim().length >= 5;
-        if (step === 2) return form.features.length >= 1 && !!form.contentScale;
-        if (step === 3) return !!form.stylePreference && !!form.urgency;
+        if (step === 1) return !!form.businessType && form.niche.trim().length >= 3;
+        if (step === 2) return form.features.length >= 1;
+        if (step === 3) return !!form.stylePreference;
         return true;
     }
 
@@ -175,12 +254,9 @@ export default function TemplateRequestForm() {
                 user_name: profile?.full_name || (session.user.email || '').split('@')[0],
                 business_type: form.businessType,
                 niche: form.niche.trim(),
-                target_audience: form.targetAudience.trim(),
                 features: form.features,
-                content_scale: form.contentScale,
                 reference_urls: form.referenceUrls.map(u => u.trim()).filter(Boolean),
                 style_preference: form.stylePreference,
-                urgency: form.urgency,
                 extra_notes: form.extraNotes.trim(),
                 status: 'new',
             };
@@ -278,7 +354,7 @@ export default function TemplateRequestForm() {
             {/* Card */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8">
                 {step === 1 && <Step1 form={form} update={updateField} />}
-                {step === 2 && <Step2 form={form} update={updateField} toggleFeature={toggleFeature} />}
+                {step === 2 && <Step2 form={form} toggleFeature={toggleFeature} />}
                 {step === 3 && <Step3 form={form} update={updateField} updateRefUrl={updateRefUrl} />}
 
                 {error && (
@@ -352,41 +428,25 @@ function Step1({ form, update }: { form: FormState; update: <K extends keyof For
                 })}
             </div>
 
-            <div className="space-y-4">
-                <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                        Nicho específico <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        value={form.niche}
-                        onChange={e => update('niche', e.target.value)}
-                        placeholder="Ex: Restaurante japonês em São Paulo, Blog sobre maternidade real, Loja de produtos veganos..."
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#7c3aed] focus:ring-2 focus:ring-purple-500/20"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Quanto mais específico, melhor — não vale só "blog" ou "loja".</p>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                        Quem é o público-alvo? <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                        value={form.targetAudience}
-                        onChange={e => update('targetAudience', e.target.value)}
-                        placeholder="Ex: Mulheres 25-45 anos, mães de primeira viagem, classe média, buscam dicas práticas..."
-                        rows={2}
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#7c3aed] focus:ring-2 focus:ring-purple-500/20 resize-none"
-                    />
-                </div>
+            <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Nicho específico <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="text"
+                    value={form.niche}
+                    onChange={e => update('niche', e.target.value)}
+                    placeholder="Ex: Restaurante japonês em São Paulo, Blog sobre maternidade real, Loja de produtos veganos..."
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#7c3aed] focus:ring-2 focus:ring-purple-500/20"
+                />
+                <p className="text-xs text-gray-500 mt-1">Quanto mais específico, melhor — não vale só "blog" ou "loja".</p>
             </div>
         </>
     );
 }
 
-function Step2({ form, update, toggleFeature }: {
+function Step2({ form, toggleFeature }: {
     form: FormState;
-    update: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
     toggleFeature: (v: string) => void;
 }) {
     return (
@@ -394,7 +454,7 @@ function Step2({ form, update, toggleFeature }: {
             <h3 className="text-xl font-bold text-gray-900 mb-1">O que o site precisa fazer?</h3>
             <p className="text-sm text-gray-500 mb-6">Marca tudo que faz sentido pro seu caso. Quanto mais marca, melhor a gente entende.</p>
 
-            <div className="mb-6">
+            <div>
                 <p className="text-sm font-semibold text-gray-700 mb-3">Funcionalidades (escolha 1 ou mais)</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {FEATURES.map(f => {
@@ -421,28 +481,6 @@ function Step2({ form, update, toggleFeature }: {
                     })}
                 </div>
             </div>
-
-            <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Qual o volume estimado de conteúdo? <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {CONTENT_SCALES.map(s => (
-                        <button
-                            key={s.value}
-                            type="button"
-                            onClick={() => update('contentScale', s.value)}
-                            className={`p-3 rounded-xl border-2 transition-all text-sm font-semibold ${
-                                form.contentScale === s.value
-                                    ? 'border-[#7c3aed] bg-violet-50 text-[#7c3aed]'
-                                    : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
-                            }`}
-                        >
-                            {s.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
         </>
     );
 }
@@ -454,28 +492,41 @@ function Step3({ form, update, updateRefUrl }: {
 }) {
     return (
         <>
-            <h3 className="text-xl font-bold text-gray-900 mb-1">Estilo e referências</h3>
-            <p className="text-sm text-gray-500 mb-6">Última etapa. Aqui a gente captura o "look and feel" que você quer.</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-1">Que vibe você quer?</h3>
+            <p className="text-sm text-gray-500 mb-6">Escolhe o estilo visual que mais te agrada. Não pensa muito — vai pelo que olha e gosta.</p>
 
             <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Estilo desejado <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Estilo visual <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {STYLES.map(s => (
-                        <button
-                            key={s.value}
-                            type="button"
-                            onClick={() => update('stylePreference', s.value)}
-                            className={`p-3 rounded-xl border-2 transition-all text-sm font-medium ${
-                                form.stylePreference === s.value
-                                    ? 'border-[#7c3aed] bg-violet-50 text-[#7c3aed] font-semibold'
-                                    : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
-                            }`}
-                        >
-                            {s.label}
-                        </button>
-                    ))}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {STYLES.map(s => {
+                        const selected = form.stylePreference === s.value;
+                        return (
+                            <button
+                                key={s.value}
+                                type="button"
+                                onClick={() => update('stylePreference', s.value)}
+                                className={`group rounded-xl border-2 transition-all overflow-hidden ${
+                                    selected
+                                        ? 'border-[#7c3aed] shadow-md shadow-purple-500/20 ring-2 ring-purple-500/20'
+                                        : 'border-gray-200 hover:border-gray-400'
+                                }`}
+                            >
+                                <div className="relative aspect-[4/3] overflow-hidden">
+                                    {s.preview}
+                                    {selected && (
+                                        <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-[#7c3aed] rounded-full flex items-center justify-center shadow-md">
+                                            <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                                        </div>
+                                    )}
+                                </div>
+                                <p className={`p-2.5 text-xs text-center leading-tight ${selected ? 'font-bold text-[#7c3aed] bg-violet-50' : 'font-semibold text-gray-700 bg-white'}`}>
+                                    {s.label}
+                                </p>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -496,28 +547,6 @@ function Step3({ form, update, updateRefUrl }: {
                     ))}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Não precisa ser do mesmo nicho — qualquer site cujo visual te agrade.</p>
-            </div>
-
-            <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Quando você precisa? <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {URGENCIES.map(u => (
-                        <button
-                            key={u.value}
-                            type="button"
-                            onClick={() => update('urgency', u.value)}
-                            className={`p-3 rounded-xl border-2 transition-all text-sm font-medium ${
-                                form.urgency === u.value
-                                    ? 'border-[#7c3aed] bg-violet-50 text-[#7c3aed] font-semibold'
-                                    : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
-                            }`}
-                        >
-                            {u.label}
-                        </button>
-                    ))}
-                </div>
             </div>
 
             <div>

@@ -13,12 +13,12 @@ interface TemplateRequest {
     user_name: string;
     business_type: string;
     niche: string;
-    target_audience: string;
+    target_audience?: string;
     features: string[];
-    content_scale: string;
+    content_scale?: string;
     reference_urls: string[];
     style_preference: string;
-    urgency: string;
+    urgency?: string;
     extra_notes: string;
     status: string;
     admin_note: string;
@@ -129,7 +129,6 @@ export default function TemplateRequestsManager() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
-    const [urgencyFilter, setUrgencyFilter] = useState('all');
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -227,15 +226,14 @@ export default function TemplateRequestsManager() {
         return requests.filter(r => {
             if (statusFilter !== 'all' && r.status !== statusFilter) return false;
             if (typeFilter !== 'all' && r.business_type !== typeFilter) return false;
-            if (urgencyFilter !== 'all' && r.urgency !== urgencyFilter) return false;
             if (search) {
                 const q = search.toLowerCase();
-                const haystack = `${r.user_name} ${r.user_email} ${r.niche} ${r.target_audience} ${r.extra_notes} ${BUSINESS_LABELS[r.business_type] || r.business_type}`.toLowerCase();
+                const haystack = `${r.user_name} ${r.user_email} ${r.niche} ${r.extra_notes} ${BUSINESS_LABELS[r.business_type] || r.business_type}`.toLowerCase();
                 if (!haystack.includes(q)) return false;
             }
             return true;
         });
-    }, [requests, search, statusFilter, typeFilter, urgencyFilter]);
+    }, [requests, search, statusFilter, typeFilter]);
 
     const stats = useMemo(() => {
         const total = requests.length;
@@ -252,12 +250,11 @@ export default function TemplateRequestsManager() {
         const featureCounter: Record<string, number> = {};
         requests.forEach(r => r.features?.forEach(f => { featureCounter[f] = (featureCounter[f] || 0) + 1; }));
         const top3Features = Object.entries(featureCounter).sort(([, a], [, b]) => b - a).slice(0, 3);
-        const urgent = requests.filter(r => r.urgency === 'agora' && ['new', 'in_review'].includes(r.status)).length;
         const openForVoting = requests.filter(r => ['new', 'in_review', 'planned', 'in_progress'].includes(r.status));
         const leader = openForVoting.reduce<TemplateRequest | null>((best, r) =>
             !best || (r.votes_week || 0) > (best.votes_week || 0) ? r : best, null);
         const totalVotesThisWeek = openForVoting.reduce((s, r) => s + (r.votes_week || 0), 0);
-        return { total, byStatus, top3Types, top3Features, urgent, leader, totalVotesThisWeek };
+        return { total, byStatus, top3Types, top3Features, leader, totalVotesThisWeek };
     }, [requests]);
 
     if (loading) {
@@ -287,8 +284,8 @@ export default function TemplateRequestsManager() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatCard icon={Lightbulb} label="Total" value={stats.total} color="violet" />
                 <StatCard icon={ThumbsUp} label="Votos esta semana" value={stats.totalVotesThisWeek} color="violet" />
-                <StatCard icon={Clock} label="Urgentes pendentes" value={stats.urgent} color="red" />
                 <StatCard icon={Sparkles} label="Novas" value={stats.byStatus.new || 0} color="blue" />
+                <StatCard icon={Check} label="Entregues" value={stats.byStatus.delivered || 0} color="emerald" />
             </div>
 
             {/* Leader da semana */}
@@ -377,13 +374,9 @@ export default function TemplateRequestsManager() {
                         <option value="all">Todos os status</option>
                         {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label} ({stats.byStatus[s.value] || 0})</option>)}
                     </select>
-                    <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="md:col-span-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]">
+                    <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="md:col-span-4 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]">
                         <option value="all">Todos os tipos</option>
                         {Object.entries(BUSINESS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                    </select>
-                    <select value={urgencyFilter} onChange={e => setUrgencyFilter(e.target.value)} className="md:col-span-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]">
-                        <option value="all">Toda urgência</option>
-                        {Object.entries(URGENCY_LABELS).map(([v, l]) => <option key={v} value={v}>{l.label}</option>)}
                     </select>
                 </div>
             </div>
@@ -447,7 +440,6 @@ function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, 
     const [noteEdit, setNoteEdit] = useState(request.admin_note || '');
     const [noteDirty, setNoteDirty] = useState(false);
     const statusCfg = STATUSES.find(s => s.value === request.status) || STATUSES[0];
-    const urgencyCfg = URGENCY_LABELS[request.urgency] || URGENCY_LABELS['sem-pressa'];
 
     useEffect(() => {
         setNoteEdit(request.admin_note || '');
@@ -465,7 +457,6 @@ function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, 
                                 <Trophy className="w-3 h-3" /> Campeã
                             </span>
                         )}
-                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${urgencyCfg.color}`}>{urgencyCfg.label}</span>
                         <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700">
                             {BUSINESS_LABELS[request.business_type] || request.business_type}
                         </span>
@@ -491,10 +482,14 @@ function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, 
             {expanded && (
                 <div className="px-4 pb-5 pt-2 border-t border-gray-100 space-y-4 bg-gray-50/50">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
-                        <Field label="Público-alvo">{request.target_audience}</Field>
-                        <Field label="Escala estimada">{SCALE_LABELS[request.content_scale] || request.content_scale}</Field>
                         <Field label="Estilo">{STYLE_LABELS[request.style_preference] || request.style_preference}</Field>
                         <Field label="Aluno">{request.user_name} <span className="text-gray-400">({request.user_email})</span></Field>
+                        {request.target_audience && (
+                            <Field label="Público-alvo (legacy)">{request.target_audience}</Field>
+                        )}
+                        {request.content_scale && (
+                            <Field label="Escala (legacy)">{SCALE_LABELS[request.content_scale] || request.content_scale}</Field>
+                        )}
                     </div>
 
                     {request.features?.length > 0 && (

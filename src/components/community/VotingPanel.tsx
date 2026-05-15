@@ -29,10 +29,8 @@ interface RequestWithVotes {
     user_name: string;
     business_type: string;
     niche: string;
-    target_audience: string;
     features: string[];
     style_preference: string;
-    urgency: string;
     extra_notes: string;
     status: string;
     created_at: string;
@@ -368,7 +366,9 @@ function VoteCard({ request, position, isLeader, onVote, voting }: {
                         )}
                     </div>
                     <p className="font-bold text-gray-900 leading-snug">{request.niche}</p>
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{request.target_audience}</p>
+                    {request.extra_notes && (
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{request.extra_notes}</p>
+                    )}
                     {request.features && request.features.length > 0 && (
                         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                             {request.features.slice(0, 4).map(f => (
