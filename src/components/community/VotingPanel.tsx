@@ -4,7 +4,8 @@ import {
     ThumbsUp, Trophy, Calendar, Clock, Loader2, Sparkles, ExternalLink,
     Store, FileText, Megaphone, Building2, Briefcase, UtensilsCrossed,
     UserCircle2, GraduationCap, Link2, Users, Calendar as CalendarIcon,
-    Home as HomeIcon, Cog, HelpCircle, ChevronRight, Flame,
+    Home as HomeIcon, Cog, HelpCircle, ChevronRight, Flame, Video, Lock,
+    Hammer,
 } from 'lucide-react';
 
 const BUSINESS_ICONS: Record<string, React.ElementType> = {
@@ -40,37 +41,68 @@ interface RequestWithVotes {
     user_voted: boolean;
 }
 
-// Monday-based ISO week
+// Ciclo: Domingo 00:00 BRT → Sábado 12:00 BRT (votação aberta).
+// Launch da semana = Sexta seguinte 20:00 BRT (live YouTube).
+// BRT = UTC-3 (sem DST no Brasil atualmente).
+
+// Sunday-based week
 function getCurrentWeekStart(): string {
     const now = new Date();
-    const dow = now.getUTCDay();
-    const offset = (dow + 6) % 7; // Mon=0..Sun=6
-    const monday = new Date(now);
-    monday.setUTCDate(now.getUTCDate() - offset);
-    monday.setUTCHours(0, 0, 0, 0);
-    return monday.toISOString().slice(0, 10);
+    const dow = now.getUTCDay(); // 0 = Sunday
+    const sunday = new Date(now);
+    sunday.setUTCDate(now.getUTCDate() - dow);
+    sunday.setUTCHours(0, 0, 0, 0);
+    return sunday.toISOString().slice(0, 10);
 }
 function getPreviousWeekStart(): string {
     const cur = new Date(getCurrentWeekStart() + 'T00:00:00Z');
     cur.setUTCDate(cur.getUTCDate() - 7);
     return cur.toISOString().slice(0, 10);
 }
-function getNextSunday(): Date {
+// Próximo sábado às 12:00 BRT (= 15:00 UTC).
+function getCloseAt(): Date {
+    const now = new Date();
+    const dow = now.getUTCDay();
+    const daysToSaturday = (6 - dow + 7) % 7;
+    const close = new Date(now);
+    close.setUTCDate(now.getUTCDate() + daysToSaturday);
+    close.setUTCHours(15, 0, 0, 0);
+    if (close.getTime() <= now.getTime()) close.setUTCDate(close.getUTCDate() + 7);
+    return close;
+}
+// Próximo domingo 00:00 BRT (= 03:00 UTC) — quando uma nova votação inicia
+// se a atual já fechou.
+function getNextOpenAt(): Date {
     const now = new Date();
     const dow = now.getUTCDay();
     const daysToSunday = (7 - dow) % 7 || 7;
-    const sunday = new Date(now);
-    sunday.setUTCDate(now.getUTCDate() + daysToSunday);
-    sunday.setUTCHours(23, 59, 59, 0);
-    return sunday;
+    const open = new Date(now);
+    open.setUTCDate(now.getUTCDate() + daysToSunday);
+    open.setUTCHours(3, 0, 0, 0);
+    return open;
 }
-function getNextWednesday(): Date {
-    // Quarta seguinte ao próximo domingo de fechamento
-    const sun = getNextSunday();
-    const wed = new Date(sun);
-    wed.setUTCDate(sun.getUTCDate() + 3);
-    wed.setUTCHours(0, 0, 0, 0);
-    return wed;
+// Próxima sexta 20:00 BRT (= 23:00 UTC) — live launch.
+function getNextLaunchAt(): Date {
+    const now = new Date();
+    const dow = now.getUTCDay();
+    const daysToFriday = (5 - dow + 7) % 7;
+    const friday = new Date(now);
+    friday.setUTCDate(now.getUTCDate() + daysToFriday);
+    friday.setUTCHours(23, 0, 0, 0);
+    if (friday.getTime() <= now.getTime()) friday.setUTCDate(friday.getUTCDate() + 7);
+    return friday;
+}
+function isVotingOpen(): boolean {
+    // Votação aberta entre Dom 00:00 e Sáb 12:00 BRT.
+    const now = new Date();
+    const dow = now.getUTCDay();
+    if (dow === 6) {
+        // sábado: aberta se antes das 15:00 UTC
+        return now.getUTCHours() < 15;
+    }
+    // demais dias da semana exceto domingo madrugada — sempre aberta.
+    // (Detalhe: o "limbo" entre Sáb 12h e Dom 00h é tratado pelo close > now check.)
+    return getCloseAt().getTime() > now.getTime();
 }
 
 function useCountdown(target: Date) {
@@ -96,9 +128,12 @@ export default function VotingPanel() {
     const [filter, setFilter] = useState<'all' | string>('all');
 
     const weekStart = getCurrentWeekStart();
-    const closeAt = getNextSunday();
-    const launchAt = getNextWednesday();
-    const countdown = useCountdown(closeAt);
+    const closeAt = getCloseAt();
+    const nextOpenAt = getNextOpenAt();
+    const launchAt = getNextLaunchAt();
+    const votingOpen = isVotingOpen();
+    const countdown = useCountdown(votingOpen ? closeAt : nextOpenAt);
+    const [inProduction, setInProduction] = useState<RequestWithVotes | null>(null);
 
     useEffect(() => { load(); }, []);
 
@@ -153,6 +188,17 @@ export default function VotingPanel() {
                 .limit(1)
                 .maybeSingle();
             if (winnerData) setWinner({ ...winnerData, votes_count: 0, user_voted: false });
+
+            // Template atualmente "em construção" — status in_progress mais recente
+            const { data: prodData } = await supabase
+                .from('template_requests')
+                .select('*')
+                .eq('status', 'in_progress')
+                .not('won_week_start', 'is', null)
+                .order('won_week_start', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            if (prodData) setInProduction({ ...prodData, votes_count: 0, user_voted: false });
         } catch (e: any) {
             setError(e?.message || 'Erro ao carregar.');
         } finally {
@@ -230,39 +276,83 @@ export default function VotingPanel() {
                 <div className="relative">
                     <div className="flex items-center gap-2 mb-2">
                         <Trophy className="w-5 h-5" />
-                        <h2 className="text-xl font-bold">Campeão da semana vira template real</h2>
+                        <h2 className="text-xl font-bold">
+                            {votingOpen ? 'Mais votado vira template ao vivo' : 'Votação encerrada — próxima começa em breve'}
+                        </h2>
                     </div>
                     <p className="text-purple-100 text-sm mb-5 max-w-2xl">
-                        Toda solicitação aberta entra na votação da semana. A mais votada até <strong>domingo 23:59 UTC</strong> é
-                        marcada como campeã, entra em produção e é entregue na <strong>quarta-feira seguinte</strong>.
+                        {votingOpen ? (
+                            <>
+                                Votação fecha <strong>sábado 12:00 BRT</strong> · O campeão é entregue <strong>sexta seguinte às 20h ao vivo no YouTube</strong> · Nova votação inicia no domingo de manhã.
+                            </>
+                        ) : (
+                            <>
+                                Resultado dessa semana já fechou. Próxima rodada começa <strong>domingo 00:00 BRT</strong> com as solicitações abertas.
+                            </>
+                        )}
                     </p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <CountdownBlock value={countdown.days} label="dias" />
-                        <CountdownBlock value={countdown.hours} label="horas" />
-                        <CountdownBlock value={countdown.minutes} label="min" />
-                        <div className="bg-white/15 backdrop-blur rounded-xl p-3 col-span-2 md:col-span-1">
-                            <p className="text-[10px] uppercase font-bold tracking-widest text-purple-100">Próximo launch</p>
-                            <p className="text-base font-bold mt-1 flex items-center gap-1.5">
-                                <Sparkles className="w-3.5 h-3.5" />
-                                {launchAt.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })}
+                        <CountdownBlock value={countdown.days} label="d" sub={votingOpen ? 'pra fechar' : 'pra abrir'} />
+                        <CountdownBlock value={countdown.hours} label="h" sub={votingOpen ? 'pra fechar' : 'pra abrir'} />
+                        <CountdownBlock value={countdown.minutes} label="min" sub={votingOpen ? 'pra fechar' : 'pra abrir'} />
+                        <div className="bg-white/15 backdrop-blur rounded-xl p-3 col-span-2 md:col-span-1 flex flex-col">
+                            <p className="text-[10px] uppercase font-bold tracking-widest text-purple-100 flex items-center gap-1">
+                                <Video className="w-3 h-3" /> Live launch
                             </p>
+                            <p className="text-sm font-bold mt-1 leading-tight">
+                                Sex {launchAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                            </p>
+                            <p className="text-[11px] text-purple-100 font-semibold">20:00 BRT no YouTube</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Campeão semana passada — em produção */}
-            {winner && (
+            {/* Bloco "Em construção" — destaque sempre visível com autor */}
+            {inProduction && (
+                <div className="relative overflow-hidden bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-5">
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 bg-amber-500 text-white rounded-full">
+                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-wider">Em construção</span>
+                    </div>
+                    <div className="flex items-start gap-4">
+                        <div className="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center shrink-0 shadow-md">
+                            <Hammer className="w-7 h-7 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0 pr-20">
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-amber-700 mb-0.5">Template sendo construído agora</p>
+                            <p className="text-xl font-black text-gray-900 truncate leading-tight">{inProduction.niche}</p>
+                            <p className="text-sm text-gray-700 mt-1">
+                                {BUSINESS_LABELS[inProduction.business_type] || inProduction.business_type} ·
+                                <span className="text-amber-700 font-bold ml-1">Ideia de {inProduction.user_name}</span>
+                            </p>
+                            {inProduction.production_target_date && (
+                                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-amber-200 rounded-lg">
+                                    <Video className="w-4 h-4 text-red-600" />
+                                    <span className="text-sm font-bold text-gray-800">
+                                        Live launch: {new Date(inProduction.production_target_date + 'T00:00:00Z')
+                                            .toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
+                                        <span className="text-amber-700"> · 20:00 BRT</span>
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Campeão semana passada — caso seja diferente do em-produção */}
+            {winner && winner.id !== inProduction?.id && (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
                     <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center shrink-0">
                             <Trophy className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">Em produção pra quarta</p>
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">Campeão da semana passada</p>
                             <p className="text-lg font-bold text-gray-900 truncate">{winner.niche}</p>
                             <p className="text-sm text-gray-600 mt-0.5">
-                                {BUSINESS_LABELS[winner.business_type] || winner.business_type} · Pedido por {winner.user_name}
+                                {BUSINESS_LABELS[winner.business_type] || winner.business_type} · Ideia de <strong>{winner.user_name}</strong>
                             </p>
                         </div>
                     </div>
@@ -326,11 +416,11 @@ export default function VotingPanel() {
     );
 }
 
-function CountdownBlock({ value, label }: { value: number; label: string }) {
+function CountdownBlock({ value, label, sub }: { value: number; label: string; sub: string }) {
     return (
         <div className="bg-white/15 backdrop-blur rounded-xl p-3">
-            <p className="text-3xl font-black tabular-nums">{String(value).padStart(2, '0')}</p>
-            <p className="text-[10px] uppercase font-bold tracking-widest text-purple-100 mt-1">{label} pra fechar</p>
+            <p className="text-3xl font-black tabular-nums leading-none">{String(value).padStart(2, '0')}<span className="text-base font-bold ml-1 opacity-70">{label}</span></p>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-purple-100 mt-1.5">{sub}</p>
         </div>
     );
 }

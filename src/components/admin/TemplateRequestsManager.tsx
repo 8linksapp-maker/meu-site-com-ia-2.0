@@ -29,25 +29,25 @@ interface TemplateRequest {
     votes_total?: number;
 }
 
+// Sunday-based week (matches frontend cycle)
 function getCurrentWeekStart(): string {
     const now = new Date();
     const dow = now.getUTCDay();
-    const offset = (dow + 6) % 7;
-    const monday = new Date(now);
-    monday.setUTCDate(now.getUTCDate() - offset);
-    monday.setUTCHours(0, 0, 0, 0);
-    return monday.toISOString().slice(0, 10);
+    const sunday = new Date(now);
+    sunday.setUTCDate(now.getUTCDate() - dow);
+    sunday.setUTCHours(0, 0, 0, 0);
+    return sunday.toISOString().slice(0, 10);
 }
 
-function getNextWednesday(): string {
+// Próxima sexta-feira (launch ao vivo às 20:00 BRT)
+function getNextFridayLaunch(): string {
     const now = new Date();
     const dow = now.getUTCDay();
-    const daysToSunday = (7 - dow) % 7 || 7;
-    const launchOffsetDays = daysToSunday + 3;
-    const launch = new Date(now);
-    launch.setUTCDate(now.getUTCDate() + launchOffsetDays);
-    launch.setUTCHours(0, 0, 0, 0);
-    return launch.toISOString().slice(0, 10);
+    const daysToFriday = (5 - dow + 7) % 7 || 7;
+    const friday = new Date(now);
+    friday.setUTCDate(now.getUTCDate() + daysToFriday);
+    friday.setUTCHours(0, 0, 0, 0);
+    return friday.toISOString().slice(0, 10);
 }
 
 const BUSINESS_LABELS: Record<string, string> = {
@@ -169,7 +169,7 @@ export default function TemplateRequestsManager() {
     }
 
     async function markAsWeekChampion(id: string) {
-        if (!confirm('Marcar essa solicitação como campeã da semana? Vai setar production_target_date pra próxima quarta e status pra "in_progress".')) return;
+        if (!confirm('Marcar essa solicitação como campeã da semana? Vai setar production_target_date pra próxima sexta (launch ao vivo às 20:00 BRT) e status pra "in_progress".')) return;
         setSavingId(id);
         try {
             const { error } = await supabase
@@ -177,7 +177,7 @@ export default function TemplateRequestsManager() {
                 .update({
                     status: 'in_progress',
                     won_week_start: getCurrentWeekStart(),
-                    production_target_date: getNextWednesday(),
+                    production_target_date: getNextFridayLaunch(),
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', id);
