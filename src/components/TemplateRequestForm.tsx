@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
-    ArrowLeft, ArrowRight, Check, Sparkles, Loader2, Plus, X, Lightbulb,
+    ArrowLeft, ArrowRight, Check, Sparkles, Loader2, Lightbulb,
     Store, FileText, Megaphone, Building2, Briefcase, UtensilsCrossed,
     UserCircle2, GraduationCap, Link2, Users, Calendar, Home, Cog, HelpCircle,
 } from 'lucide-react';
@@ -106,33 +106,6 @@ export default function TemplateRequestForm() {
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
-    const [previousRequests, setPreviousRequests] = useState<any[]>([]);
-    const [loadingPrevious, setLoadingPrevious] = useState(true);
-
-    useEffect(() => {
-        loadPrevious();
-    }, []);
-
-    async function loadPrevious() {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                setLoadingPrevious(false);
-                return;
-            }
-            const { data } = await supabase
-                .from('template_requests')
-                .select('id, business_type, niche, status, created_at')
-                .eq('user_id', session.user.id)
-                .order('created_at', { ascending: false })
-                .limit(5);
-            if (data) setPreviousRequests(data);
-        } catch (e) {
-            // tabela pode não existir ainda — ignora silenciosamente
-        } finally {
-            setLoadingPrevious(false);
-        }
-    }
 
     function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
         setForm(prev => ({ ...prev, [key]: value }));
@@ -214,7 +187,6 @@ export default function TemplateRequestForm() {
             const { error: insertError } = await supabase.from('template_requests').insert(payload);
             if (insertError) throw insertError;
             setSubmitted(true);
-            loadPrevious();
         } catch (e: any) {
             setError(e?.message || 'Erro ao enviar. Tenta de novo daqui a pouco.');
         } finally {
@@ -347,31 +319,6 @@ export default function TemplateRequestForm() {
                 </div>
             </div>
 
-            {/* Histórico */}
-            {!loadingPrevious && previousRequests.length > 0 && (
-                <div className="mt-8 bg-white rounded-2xl border border-gray-200 p-6">
-                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-[#7c3aed]" />
-                        Suas solicitações anteriores
-                    </h3>
-                    <div className="space-y-2">
-                        {previousRequests.map(r => {
-                            const bt = BUSINESS_TYPES.find(b => b.value === r.business_type);
-                            const Icon = bt?.icon || HelpCircle;
-                            return (
-                                <div key={r.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                                    <Icon className="w-5 h-5 text-gray-500 shrink-0" />
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-gray-800 truncate">{bt?.label || r.business_type} — {r.niche}</p>
-                                        <p className="text-xs text-gray-500">{new Date(r.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                                    </div>
-                                    <StatusBadge status={r.status} />
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
@@ -589,19 +536,3 @@ function Step3({ form, update, updateRefUrl }: {
     );
 }
 
-function StatusBadge({ status }: { status: string }) {
-    const map: Record<string, { label: string; bg: string; text: string }> = {
-        new: { label: 'Nova', bg: 'bg-blue-100', text: 'text-blue-700' },
-        in_review: { label: 'Em análise', bg: 'bg-amber-100', text: 'text-amber-700' },
-        planned: { label: 'Aprovada', bg: 'bg-emerald-100', text: 'text-emerald-700' },
-        in_progress: { label: 'Em produção', bg: 'bg-violet-100', text: 'text-violet-700' },
-        delivered: { label: 'Entregue', bg: 'bg-emerald-100', text: 'text-emerald-700' },
-        declined: { label: 'Não viável', bg: 'bg-gray-100', text: 'text-gray-600' },
-    };
-    const cfg = map[status] || map.new;
-    return (
-        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.text} whitespace-nowrap`}>
-            {cfg.label}
-        </span>
-    );
-}

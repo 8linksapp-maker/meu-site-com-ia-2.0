@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { LogOut, LayoutDashboard, Settings, Shield, Heart, Menu, X, GraduationCap, Plus, Globe, MessageSquare, Rocket, LayoutGrid, Radio, LifeBuoy, Lightbulb } from 'lucide-react';
+import { LogOut, LayoutDashboard, Settings, Shield, Heart, Menu, X, GraduationCap, Plus, Globe, MessageSquare, Rocket, LayoutGrid, Radio, LifeBuoy, Lightbulb, Vote } from 'lucide-react';
 import GroupWizard from '../components/GroupWizard';
 import TokenGate from '../components/TokenGate';
 import SpotlightTour from '../components/ui/SpotlightTour';
@@ -142,8 +142,8 @@ const pathname = new URL(Astro.request.url).pathname;
               : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
           }`}
         >
-          <Lightbulb className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Solicitar Template</span>
+          <Vote className="w-4 h-4 shrink-0" />
+          <span class="text-sm">Templates Comunidade</span>
           <span class="ml-auto text-[9px] font-black bg-emerald-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wide">
             Novo
           </span>

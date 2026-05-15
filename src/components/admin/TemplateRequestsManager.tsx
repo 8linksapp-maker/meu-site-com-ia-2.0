@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import {
     Lightbulb, Loader2, Search, ChevronDown, ChevronUp, ExternalLink,
     Calendar, User, Tag, Clock, Sparkles, BarChart3, Save, Check, X,
+    Trophy, ThumbsUp, Flame,
 } from 'lucide-react';
 
 interface TemplateRequest {
@@ -22,6 +23,31 @@ interface TemplateRequest {
     status: string;
     admin_note: string;
     created_at: string;
+    won_week_start: string | null;
+    production_target_date: string | null;
+    votes_week?: number;
+    votes_total?: number;
+}
+
+function getCurrentWeekStart(): string {
+    const now = new Date();
+    const dow = now.getUTCDay();
+    const offset = (dow + 6) % 7;
+    const monday = new Date(now);
+    monday.setUTCDate(now.getUTCDate() - offset);
+    monday.setUTCHours(0, 0, 0, 0);
+    return monday.toISOString().slice(0, 10);
+}
+
+function getNextWednesday(): string {
+    const now = new Date();
+    const dow = now.getUTCDay();
+    const daysToSunday = (7 - dow) % 7 || 7;
+    const launchOffsetDays = daysToSunday + 3;
+    const launch = new Date(now);
+    launch.setUTCDate(now.getUTCDate() + launchOffsetDays);
+    launch.setUTCHours(0, 0, 0, 0);
+    return launch.toISOString().slice(0, 10);
 }
 
 const BUSINESS_LABELS: Record<string, string> = {
@@ -120,11 +146,48 @@ export default function TemplateRequestsManager() {
                 .select('*')
                 .order('created_at', { ascending: false });
             if (error) throw error;
-            setRequests((data as TemplateRequest[]) || []);
+            const list = (data as TemplateRequest[]) || [];
+            const ids = list.map(r => r.id);
+            const weekStart = getCurrentWeekStart();
+            const weekMap: Record<string, number> = {};
+            const totalMap: Record<string, number> = {};
+            if (ids.length) {
+                const { data: votes } = await supabase
+                    .from('template_request_votes')
+                    .select('request_id, week_start')
+                    .in('request_id', ids);
+                (votes || []).forEach((v: any) => {
+                    totalMap[v.request_id] = (totalMap[v.request_id] || 0) + 1;
+                    if (v.week_start === weekStart) weekMap[v.request_id] = (weekMap[v.request_id] || 0) + 1;
+                });
+            }
+            setRequests(list.map(r => ({ ...r, votes_week: weekMap[r.id] || 0, votes_total: totalMap[r.id] || 0 })));
         } catch (e: any) {
             setError(e?.message || 'Erro ao carregar solicitações.');
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function markAsWeekChampion(id: string) {
+        if (!confirm('Marcar essa solicitação como campeã da semana? Vai setar production_target_date pra próxima quarta e status pra "in_progress".')) return;
+        setSavingId(id);
+        try {
+            const { error } = await supabase
+                .from('template_requests')
+                .update({
+                    status: 'in_progress',
+                    won_week_start: getCurrentWeekStart(),
+                    production_target_date: getNextWednesday(),
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', id);
+            if (error) throw error;
+            await load();
+        } catch (e: any) {
+            alert('Erro: ' + (e?.message || 'falha ao marcar'));
+        } finally {
+            setSavingId(null);
         }
     }
 
@@ -190,7 +253,11 @@ export default function TemplateRequestsManager() {
         requests.forEach(r => r.features?.forEach(f => { featureCounter[f] = (featureCounter[f] || 0) + 1; }));
         const top3Features = Object.entries(featureCounter).sort(([, a], [, b]) => b - a).slice(0, 3);
         const urgent = requests.filter(r => r.urgency === 'agora' && ['new', 'in_review'].includes(r.status)).length;
-        return { total, byStatus, top3Types, top3Features, urgent };
+        const openForVoting = requests.filter(r => ['new', 'in_review', 'planned', 'in_progress'].includes(r.status));
+        const leader = openForVoting.reduce<TemplateRequest | null>((best, r) =>
+            !best || (r.votes_week || 0) > (best.votes_week || 0) ? r : best, null);
+        const totalVotesThisWeek = openForVoting.reduce((s, r) => s + (r.votes_week || 0), 0);
+        return { total, byStatus, top3Types, top3Features, urgent, leader, totalVotesThisWeek };
     }, [requests]);
 
     if (loading) {
@@ -219,10 +286,42 @@ export default function TemplateRequestsManager() {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StatCard icon={Lightbulb} label="Total" value={stats.total} color="violet" />
+                <StatCard icon={ThumbsUp} label="Votos esta semana" value={stats.totalVotesThisWeek} color="violet" />
                 <StatCard icon={Clock} label="Urgentes pendentes" value={stats.urgent} color="red" />
                 <StatCard icon={Sparkles} label="Novas" value={stats.byStatus.new || 0} color="blue" />
-                <StatCard icon={Check} label="Entregues" value={stats.byStatus.delivered || 0} color="emerald" />
             </div>
+
+            {/* Leader da semana */}
+            {stats.leader && (stats.leader.votes_week || 0) > 0 && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-5">
+                    <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center shrink-0">
+                            <Trophy className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-bold uppercase tracking-widest text-amber-700 flex items-center gap-1.5">
+                                <Flame className="w-3 h-3" /> Líder da semana
+                            </p>
+                            <p className="text-lg font-bold text-gray-900 truncate">{stats.leader.niche}</p>
+                            <p className="text-sm text-gray-600 mt-0.5">
+                                {BUSINESS_LABELS[stats.leader.business_type] || stats.leader.business_type} ·
+                                Pedido por <strong>{stats.leader.user_name}</strong> ·
+                                <span className="text-amber-700 font-bold ml-1">{stats.leader.votes_week} votos</span>
+                            </p>
+                        </div>
+                        {!stats.leader.won_week_start && (
+                            <button
+                                onClick={() => markAsWeekChampion(stats.leader!.id)}
+                                disabled={savingId === stats.leader.id}
+                                className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white text-sm font-bold rounded-xl shadow-sm transition-colors"
+                            >
+                                {savingId === stats.leader.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trophy className="w-4 h-4" />}
+                                Marcar como campeã
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {(stats.top3Types.length > 0 || stats.top3Features.length > 0) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -306,6 +405,7 @@ export default function TemplateRequestsManager() {
                             onToggle={() => setExpandedId(prev => (prev === r.id ? null : r.id))}
                             onStatusChange={status => updateStatus(r.id, status)}
                             onNoteSave={note => saveNote(r.id, note)}
+                            onMarkChampion={() => markAsWeekChampion(r.id)}
                             saving={savingId === r.id}
                         />
                     ))}
@@ -335,12 +435,13 @@ function StatCard({ icon: Icon, label, value, color }: {
     );
 }
 
-function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, saving }: {
+function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, onMarkChampion, saving }: {
     request: TemplateRequest;
     expanded: boolean;
     onToggle: () => void;
     onStatusChange: (s: string) => void;
     onNoteSave: (n: string) => void;
+    onMarkChampion: () => void;
     saving: boolean;
 }) {
     const [noteEdit, setNoteEdit] = useState(request.admin_note || '');
@@ -359,6 +460,11 @@ function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, 
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${statusCfg.color}`}>{statusCfg.label}</span>
+                        {request.won_week_start && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                                <Trophy className="w-3 h-3" /> Campeã
+                            </span>
+                        )}
                         <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${urgencyCfg.color}`}>{urgencyCfg.label}</span>
                         <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700">
                             {BUSINESS_LABELS[request.business_type] || request.business_type}
@@ -370,7 +476,16 @@ function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, 
                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(request.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                     </p>
                 </div>
-                {expanded ? <ChevronUp className="w-5 h-5 text-gray-400 shrink-0" /> : <ChevronDown className="w-5 h-5 text-gray-400 shrink-0" />}
+                <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-col items-center px-2.5 py-1.5 bg-violet-50 text-violet-700 rounded-lg">
+                        <div className="flex items-center gap-1 font-bold text-sm">
+                            <ThumbsUp className="w-3.5 h-3.5" />
+                            {request.votes_week || 0}
+                        </div>
+                        <p className="text-[9px] uppercase font-bold tracking-wider opacity-70">semana</p>
+                    </div>
+                    {expanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                </div>
             </button>
 
             {expanded && (
@@ -416,6 +531,24 @@ function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, 
                         </div>
                     )}
 
+                    {/* Voting stats inline */}
+                    <div className="flex items-center gap-3 flex-wrap text-xs">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-violet-100 text-violet-700 rounded-md font-bold">
+                            <ThumbsUp className="w-3 h-3" />
+                            {request.votes_week || 0} esta semana
+                        </div>
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md font-bold">
+                            <ThumbsUp className="w-3 h-3" />
+                            {request.votes_total || 0} total
+                        </div>
+                        {request.production_target_date && (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-md font-bold">
+                                <Sparkles className="w-3 h-3" />
+                                Sai em {new Date(request.production_target_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                            </div>
+                        )}
+                    </div>
+
                     {/* Admin controls */}
                     <div className="pt-2 border-t border-gray-200">
                         <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Ações do admin</p>
@@ -428,12 +561,22 @@ function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, 
                             >
                                 {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                             </select>
+                            {!request.won_week_start && (
+                                <button
+                                    onClick={onMarkChampion}
+                                    disabled={saving}
+                                    className="md:col-span-1 flex items-center justify-center gap-2 px-3 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white rounded-lg text-sm font-bold transition-colors"
+                                >
+                                    <Trophy className="w-4 h-4" />
+                                    Marcar campeã
+                                </button>
+                            )}
                             <a
                                 href={`mailto:${request.user_email}?subject=Sua sugestão de template — ${encodeURIComponent(request.niche)}`}
-                                className="md:col-span-2 flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-semibold text-gray-700 transition-colors"
+                                className={`flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-semibold text-gray-700 transition-colors ${request.won_week_start ? 'md:col-span-2' : 'md:col-span-1'}`}
                             >
                                 <ExternalLink className="w-4 h-4" />
-                                Responder por email
+                                Email
                             </a>
                         </div>
                         <div>
