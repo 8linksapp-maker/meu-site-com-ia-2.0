@@ -9,7 +9,12 @@ import vercel from '@astrojs/vercel';
 // https://astro.build/config
 export default defineConfig({
   vite: {
-    plugins: [tailwindcss()]
+    plugins: [tailwindcss()],
+    define: {
+      __BUILD_DATE__: JSON.stringify(
+        new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+      ),
+    },
   },
 
   integrations: [react()],

@@ -1,6 +1,11 @@
 ---
 import '../styles/global.css';
 import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings, Menu, X, Video, MessageSquare, BookMarked, ClipboardCheck, HelpCircle, Radio, AlertTriangle, LifeBuoy, PanelLeftClose, PanelLeftOpen, Lightbulb } from 'lucide-react';
+import AdminFooter from '../components/admin/AdminFooter.tsx';
+import pkg from '../../package.json';
+
+declare const __BUILD_DATE__: string;
+const buildDate = __BUILD_DATE__;
 
 interface Props {
 	title: string;
@@ -258,6 +263,12 @@ const pathname = new URL(Astro.request.url).pathname;
       <div class="flex-1 overflow-y-auto p-4 lg:p-8">
         <slot />
       </div>
+      <AdminFooter
+        client:load
+        appName="MSIA Admin"
+        version={pkg.version}
+        buildDate={buildDate}
+      />
     </main>
 
     <script>
