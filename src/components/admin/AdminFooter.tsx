@@ -73,23 +73,28 @@ export default function AdminFooter({ appName, version, buildDate }: AdminFooter
 
   return (
     <footer
-      className="h-10 px-4 lg:px-8 bg-white border-t border-gray-200 flex justify-between items-center text-xs text-gray-500 shrink-0"
+      className="h-10 px-4 lg:px-8 bg-white border-t border-gray-200 flex justify-between items-center gap-3 text-xs text-gray-600 shrink-0"
       role="contentinfo"
     >
-      <div className="flex items-center gap-2 truncate">
-        <span className="font-medium">{appName}</span>
-        <span aria-hidden="true">·</span>
+      <div className="flex items-center gap-1.5 truncate min-w-0">
+        <span className="font-medium text-gray-700">{appName}</span>
+        <span aria-hidden="true" className="text-gray-400">·</span>
         <span>v{version}</span>
-        <span aria-hidden="true" className="hidden sm:inline">·</span>
-        <span className="hidden sm:inline">Atualizado em {buildDate}</span>
+        <span aria-hidden="true" className="hidden sm:inline text-gray-400">·</span>
+        <span className="hidden sm:inline truncate">Atualizado em {buildDate}</span>
       </div>
       <div
-        className="flex items-center gap-2"
-        role="status"
+        className="flex items-center shrink-0"
+        role="img"
         aria-label={ariaLabel}
         title={titleText}
       >
-        <span className={`w-2 h-2 rounded-full ${dotColor}`} aria-hidden="true" />
+        <span
+          className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 ${dotColor} ${
+            status === 'checking' ? 'animate-pulse motion-reduce:animate-none' : ''
+          }`}
+          aria-hidden="true"
+        />
       </div>
     </footer>
   );
