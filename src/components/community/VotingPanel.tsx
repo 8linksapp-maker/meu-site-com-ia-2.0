@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
+import confetti from 'canvas-confetti';
 import { supabase } from '../../lib/supabase';
+import { getTodayBR } from '../../lib/dateBR';
+import { useVotingStreak } from '../../hooks/useVotingStreak';
 import {
     ThumbsUp, Trophy, Calendar, Clock, Loader2, Sparkles, ExternalLink,
     Store, FileText, Megaphone, Building2, Briefcase, UtensilsCrossed,
@@ -7,13 +10,6 @@ import {
     Home as HomeIcon, Cog, HelpCircle, ChevronRight, Flame, Video, Lock,
     Hammer, X, Info, Palette, CheckCircle2,
 } from 'lucide-react';
-
-// Hoje em horário de Brasília (UTC-3) — usado pra constraint diária do voto.
-function getTodayBR(): string {
-    const now = new Date();
-    const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-    return brt.toISOString().slice(0, 10);
-}
 
 const BUSINESS_ICONS: Record<string, React.ElementType> = {
     ecommerce: Store, blog: FileText, landing: Megaphone, institucional: Building2,
@@ -159,6 +155,11 @@ export default function VotingPanel() {
     const [inProduction, setInProduction] = useState<RequestWithVotes | null>(null);
     const [selected, setSelected] = useState<RequestWithVotes | null>(null);
 
+    const streak = useVotingStreak();
+    const [todayVotersCount, setTodayVotersCount] = useState(0);
+    const [toast, setToast] = useState<string | null>(null);
+    const [bumpId, setBumpId] = useState<string | null>(null);
+
     const weekStart = getCurrentWeekStart();
     const today = getTodayBR();
     const closeAt = getCloseAt();
@@ -240,6 +241,15 @@ export default function VotingPanel() {
                 .limit(1)
                 .maybeSingle();
             if (prodData) setInProduction({ ...prodData, votes_count: 0, user_voted_today: false });
+
+            // Social proof: quantos alunos votaram HOJE (qualquer proposta).
+            // RPC entregue pelo Jurandir; em caso de erro/ausencia ficamos com 0.
+            try {
+                const { data: votersData } = await supabase.rpc('get_today_voters_count');
+                setTodayVotersCount(Number(votersData) || 0);
+            } catch {
+                /* silent — chip simplesmente nao aparece */
+            }
         } catch (e: any) {
             setError(e?.message || 'Erro ao carregar.');
         } finally {
@@ -273,7 +283,37 @@ export default function VotingPanel() {
                         vote_date: today,
                     });
                 if (error) throw error;
+
+                // Capturar streak antes pra comparar com novo apos refetch
+                const prevStreak = streak.currentStreak;
+                // Se eh o 1o voto do user no dia, ele entra na contagem de votantes
+                const userHadVotedTodayBefore = requests.some((r) => r.user_voted_today);
+
                 applyVoteUpdate(req.id, +1, true);
+
+                // Confetti — so em voto novo, nunca em unvote
+                confetti({
+                    particleCount: 60,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    ticks: 80,
+                });
+
+                // Bump no numero do request votado (300ms)
+                setBumpId(req.id);
+                window.setTimeout(() => setBumpId(null), 300);
+
+                // Incrementa social proof local se foi o 1o voto do dia
+                if (!userHadVotedTodayBefore) {
+                    setTodayVotersCount((c) => c + 1);
+                }
+
+                // Refetch streak; dispara toast se aumentou e ja tem >=2 dias seguidos
+                const newStreak = await streak.refetch();
+                if (newStreak.currentStreak > prevStreak && newStreak.currentStreak >= 2) {
+                    setToast(`🔥 ${newStreak.currentStreak} dias seguidos! Continua amanhã pra não quebrar.`);
+                    window.setTimeout(() => setToast(null), 2500);
+                }
             }
         } catch (e: any) {
             alert('Erro: ' + (e?.message || 'falha ao votar'));
@@ -313,6 +353,15 @@ export default function VotingPanel() {
     const leaderVotes = requests[0]?.votes_count || 0;
     const votedSomethingToday = requests.some(r => r.user_voted_today);
 
+    // Derivado pra painel "Sua semana"
+    const votedTodayCount = useMemo(
+        () => requests.filter(r => r.user_voted_today).length,
+        [requests],
+    );
+    // TODO Fase 1.1: trocar stub por RPC dedicada (votos do user na semana corrente).
+    // Por enquanto usa totalVoteDays (historico geral) — Genilson ciente.
+    const weekVotesCount = streak.totalVoteDays;
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-24">
@@ -344,13 +393,22 @@ export default function VotingPanel() {
                             </>
                         )}
                     </p>
-                    {/* Aviso voto diário */}
+                    {/* Aviso voto diário + social proof */}
                     {votingOpen && (
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/15 backdrop-blur rounded-full mb-5">
-                            <Info className="w-3.5 h-3.5 text-yellow-200" />
-                            <span className="text-xs font-bold">
-                                Você pode dar <strong className="text-yellow-200">1 voto por dia</strong> em cada solicitação — volta amanhã pra reforçar!
-                            </span>
+                        <div className="flex flex-wrap items-center gap-2 mb-5">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/15 backdrop-blur rounded-full">
+                                <Info className="w-3.5 h-3.5 text-yellow-200" />
+                                <span className="text-xs font-bold">
+                                    Você pode dar <strong className="text-yellow-200">1 voto por dia</strong> em cada solicitação — volta amanhã pra reforçar!
+                                </span>
+                            </div>
+                            {todayVotersCount > 0 && (
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold bg-white/20 text-white px-2.5 py-1 rounded-full">
+                                    <span aria-hidden="true">👥</span>
+                                    <span className="tabular-nums">{todayVotersCount}</span>
+                                    {todayVotersCount === 1 ? 'aluno votou hoje' : 'alunos votaram hoje'}
+                                </span>
+                            )}
                         </div>
                     )}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -369,6 +427,44 @@ export default function VotingPanel() {
                     </div>
                 </div>
             </div>
+
+            {/* Painel "Sua semana" — engagement pessoal do user */}
+            {currentUserId && streak.totalVoteDays >= 1 && (
+                <div className="bg-violet-50 border border-violet-100 rounded-2xl p-4 md:p-5">
+                    <h3 className="text-sm font-bold text-violet-900 mb-3">Sua semana</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl shrink-0" aria-hidden="true">🔥</span>
+                            <div className="min-w-0">
+                                <div className="text-xl font-bold text-violet-900 tabular-nums leading-tight">
+                                    {streak.currentStreak} {streak.currentStreak === 1 ? 'dia' : 'dias'}
+                                </div>
+                                <div className="text-xs text-violet-700">
+                                    seguidos{streak.longestStreak > streak.currentStreak ? ` · recorde: ${streak.longestStreak}` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl shrink-0" aria-hidden="true">✓</span>
+                            <div className="min-w-0">
+                                <div className="text-xl font-bold text-violet-900 tabular-nums leading-tight">
+                                    {votedTodayCount} {votedTodayCount === 1 ? 'proposta' : 'propostas'}
+                                </div>
+                                <div className="text-xs text-violet-700">votadas hoje</div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl shrink-0" aria-hidden="true">⚡</span>
+                            <div className="min-w-0">
+                                <div className="text-xl font-bold text-violet-900 tabular-nums leading-tight">
+                                    {weekVotesCount} {weekVotesCount === 1 ? 'voto' : 'votos'}
+                                </div>
+                                <div className="text-xs text-violet-700">seus essa semana</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Bloco "Em construção" */}
             {inProduction && (
@@ -471,6 +567,7 @@ export default function VotingPanel() {
                             onVote={() => toggleVote(r)}
                             onOpen={() => setSelected(r)}
                             voting={!!voting[r.id]}
+                            bumping={bumpId === r.id}
                         />
                     ))}
                 </div>
@@ -483,7 +580,19 @@ export default function VotingPanel() {
                     onClose={() => setSelected(null)}
                     onVote={() => toggleVote(selected)}
                     voting={!!voting[selected.id]}
+                    bumping={bumpId === selected.id}
                 />
+            )}
+
+            {/* Toast de streak (apos voto novo que aumenta a sequencia) */}
+            {toast && (
+                <div
+                    role="status"
+                    aria-live="polite"
+                    className="fixed bottom-4 right-4 z-[200] bg-amber-500 text-white px-4 py-3 rounded-xl shadow-lg animate-streak-toast max-w-[90vw] text-sm font-semibold"
+                >
+                    {toast}
+                </div>
             )}
         </div>
     );
@@ -498,13 +607,14 @@ function CountdownBlock({ value, label, sub }: { value: number; label: string; s
     );
 }
 
-function VoteCard({ request, position, isLeader, onVote, onOpen, voting }: {
+function VoteCard({ request, position, isLeader, onVote, onOpen, voting, bumping }: {
     request: RequestWithVotes;
     position: number;
     isLeader: boolean;
     onVote: () => void;
     onOpen: () => void;
     voting: boolean;
+    bumping: boolean;
 }) {
     const Icon = BUSINESS_ICONS[request.business_type] || HelpCircle;
     const podium = position <= 3 && request.votes_count > 0;
@@ -565,14 +675,15 @@ function VoteCard({ request, position, isLeader, onVote, onOpen, voting }: {
                     request={request}
                     voting={voting}
                     onVote={onVote}
+                    bumping={bumping}
                 />
             </div>
         </div>
     );
 }
 
-function VoteButton({ request, voting, onVote, large = false }: {
-    request: RequestWithVotes; voting: boolean; onVote: () => void; large?: boolean;
+function VoteButton({ request, voting, onVote, large = false, bumping = false }: {
+    request: RequestWithVotes; voting: boolean; onVote: () => void; large?: boolean; bumping?: boolean;
 }) {
     const voted = request.user_voted_today;
     const sizeClasses = large ? 'px-5 py-3.5 min-w-[96px]' : 'px-4 py-3 min-w-[72px]';
@@ -598,7 +709,7 @@ function VoteButton({ request, voting, onVote, large = false }: {
                     ) : (
                         <ThumbsUp className={`${large ? 'w-6 h-6' : 'w-5 h-5'}`} />
                     )}
-                    <span className={`${numberClasses} font-black tabular-nums leading-none`}>{request.votes_count}</span>
+                    <span className={`${numberClasses} font-black tabular-nums leading-none inline-block ${bumping ? 'animate-bump' : ''}`}>{request.votes_count}</span>
                     {large && (
                         <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
                             {voted ? 'Votou hoje' : 'Votar hoje'}
@@ -610,11 +721,12 @@ function VoteButton({ request, voting, onVote, large = false }: {
     );
 }
 
-function DetailModal({ request, onClose, onVote, voting }: {
+function DetailModal({ request, onClose, onVote, voting, bumping }: {
     request: RequestWithVotes;
     onClose: () => void;
     onVote: () => void;
     voting: boolean;
+    bumping: boolean;
 }) {
     const Icon = BUSINESS_ICONS[request.business_type] || HelpCircle;
 
@@ -733,7 +845,7 @@ function DetailModal({ request, onClose, onVote, voting }: {
                             ? <span className="text-emerald-600 font-bold">✓ Você já votou hoje!</span>
                             : 'Vote hoje pra ajudar o template a virar real.'}
                     </div>
-                    <VoteButton request={request} voting={voting} onVote={onVote} large />
+                    <VoteButton request={request} voting={voting} onVote={onVote} large bumping={bumping} />
                 </div>
             </div>
         </div>

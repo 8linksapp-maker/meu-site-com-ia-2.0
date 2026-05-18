@@ -4,6 +4,7 @@ import { LogOut, LayoutDashboard, Settings, Shield, Heart, Menu, X, GraduationCa
 import GroupWizard from '../components/GroupWizard';
 import TokenGate from '../components/TokenGate';
 import SpotlightTour from '../components/ui/SpotlightTour';
+import StreakBadge from '../components/community/StreakBadge.tsx';
 
 interface Props {
 	title: string;
@@ -203,8 +204,12 @@ const pathname = new URL(Astro.request.url).pathname;
           <h2 class="text-lg font-semibold text-gray-800 truncate">{title}</h2>
         </div>
         
-        {/* DROPDOWN MENU */}
-        <div id="header-menu-wrapper" class="relative h-full flex items-center">
+        {/* Right cluster: streak badge + dropdown menu */}
+        <div class="flex items-center gap-3">
+          <StreakBadge client:load />
+
+          {/* DROPDOWN MENU */}
+          <div id="header-menu-wrapper" class="relative h-full flex items-center">
           <button id="header-menu-btn" type="button" aria-label="Menu da conta" aria-expanded="false" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition text-gray-600 outline-none">
             <Settings className="w-5 h-5" />
           </button>
@@ -236,6 +241,7 @@ const pathname = new URL(Astro.request.url).pathname;
                 Sair da Plataforma
               </button>
             </div>
+          </div>
           </div>
         </div>
       </header>
