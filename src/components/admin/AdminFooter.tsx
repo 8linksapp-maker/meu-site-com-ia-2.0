@@ -18,9 +18,6 @@ export default function AdminFooter({ appName, version, buildDate }: AdminFooter
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const ping = async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), PING_TIMEOUT_MS);
-
     try {
       const result = await Promise.race([
         supabase
@@ -40,7 +37,6 @@ export default function AdminFooter({ appName, version, buildDate }: AdminFooter
     } catch {
       setStatus('down');
     } finally {
-      clearTimeout(timeoutId);
       setLastCheckedAt(new Date());
     }
   };
