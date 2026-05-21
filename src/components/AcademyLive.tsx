@@ -49,7 +49,7 @@ function ReplayModal({ lesson, onClose }: { lesson: Lesson; onClose: () => void 
             <div className="w-full max-w-4xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-3">
                     <h3 className="text-white font-black text-lg truncate pr-4">{lesson.title}</h3>
-                    <button onClick={onClose} className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition">
+                    <button onClick={onClose} aria-label="Fechar replay" className="shrink-0 w-11 h-11 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
