@@ -173,7 +173,8 @@ export default function UserSitesManager() {
                                     <a
                                         href={site.domain ? `https://${site.domain}` : `https://${site.github_repo}.vercel.app`}
                                         target="_blank"
-                                        className="p-1.5 text-gray-400 hover:text-[#7c3aed] hover:bg-purple-50 rounded-lg transition-colors shrink-0"
+                                        className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-[#7c3aed] hover:bg-purple-50 rounded-lg transition-colors shrink-0"
+                                        aria-label="Abrir site em nova aba"
                                         title="Ver Site"
                                     >
                                         <ExternalLink className="w-4 h-4" />
@@ -188,16 +189,18 @@ export default function UserSitesManager() {
                                     <a
                                         href={site.domain ? `https://${site.domain}/admin` : `https://${site.github_repo.split('/').pop()}.vercel.app/admin`}
                                         target="_blank"
-                                        className="flex items-center justify-center gap-1.5 py-2 bg-blue-50/50 text-blue-600 rounded-xl text-[12px] font-bold hover:bg-blue-100 transition"
+                                        title="Abre seu painel de posts em nova aba"
+                                        className="flex items-center justify-center gap-1.5 py-3 min-h-[44px] bg-blue-50/50 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-100 transition"
                                     >
                                         <LayoutDashboard className="w-3.5 h-3.5" />
                                         Painel CMS
+                                        <ExternalLink className="w-3 h-3" />
                                     </a>
 
                                     {/* Botão Gerenciar Pro (Vercel) */}
                                     <button
                                         onClick={() => setSelectedSite(site)}
-                                        className="flex items-center justify-center gap-1.5 py-2 bg-purple-50/30 text-[#7c3aed] rounded-xl text-[12px] font-bold hover:bg-purple-100 transition border border-purple-100/50"
+                                        className="flex items-center justify-center gap-1.5 py-3 min-h-[44px] bg-purple-50/30 text-[#7c3aed] rounded-xl text-sm font-bold hover:bg-purple-100 transition border border-purple-100/50"
                                     >
                                         <Settings className="w-3.5 h-3.5" />
                                         Gerenciar
