@@ -44,7 +44,7 @@ function BrandPanel() {
                     </p>
                     <h1 className="text-4xl font-black text-white leading-[1.1] tracking-tight">
                         Crie sites<br />
-                        <span style={{ background: 'linear-gradient(135deg, #a78bfa, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        <span className="text-[#a78bfa] font-black">
                             profissionais
                         </span><br />
                         com IA.
@@ -188,10 +188,14 @@ export default function Login() {
             }
         } catch (err: any) {
             const msg = err.message || '';
-            if (msg.includes('Invalid login credentials')) setError('E-mail ou senha incorretos. Se é seu primeiro acesso, clique em "Primeiro acesso" abaixo.');
-            else if (msg.includes('Email not confirmed')) setError('Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada e pasta de spam.');
-            else if (msg.includes('rate limit exceeded')) setError('Muitos e-mails enviados recentemente pelo servidor. Por favor, aguarde alguns minutos e tente novamente.');
-            else setError(msg || 'Ocorreu um erro. Tente novamente.');
+            const ERR_MAP: Record<string, string> = {
+                'Invalid login credentials': 'E-mail ou senha incorretos.',
+                'Email not confirmed': 'Confirme seu e-mail antes de entrar.',
+                'rate limit exceeded': 'Muitas tentativas. Aguarde alguns minutos.',
+            };
+            const friendly = Object.entries(ERR_MAP).find(([k]) => msg.includes(k))?.[1]
+                ?? (msg || 'Erro ao entrar. Tente novamente.');
+            setError(friendly);
         } finally {
             isRequesting.current = false;
             setLoading(false);
@@ -301,7 +305,8 @@ export default function Login() {
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(v => !v)}
-                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                            aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
                                         >
                                             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                         </button>
@@ -344,7 +349,7 @@ export default function Login() {
                                         className="w-full py-3 rounded-2xl border-2 border-[#7c3aed]/20 text-sm font-bold text-[#7c3aed] hover:bg-[#7c3aed]/5 hover:border-[#7c3aed]/30 transition-all flex items-center justify-center gap-2"
                                     >
                                         <Mail className="w-4 h-4" />
-                                        Primeiro acesso? Clique aqui
+                                        Entrar sem senha (receber link no e-mail)
                                     </button>
                                     <p className="text-[10px] text-gray-400 text-center">
                                         Acabou de comprar? Use o e-mail da compra para receber seu link de acesso.
