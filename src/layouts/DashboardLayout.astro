@@ -129,9 +129,10 @@ const pathname = new URL(Astro.request.url).pathname;
           </span>
         </a>
 
+        {/* Marketplace + Painel do Vendedor: teaser "Em breve" enquanto rola redesign. Click leva pro ComingSoon. */}
         <a
           href="/marketplace"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors opacity-70 hover:opacity-100 ${
             pathname.startsWith('/marketplace')
               ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
               : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
@@ -139,11 +140,14 @@ const pathname = new URL(Astro.request.url).pathname;
         >
           <ShoppingBag className="w-4 h-4 shrink-0" />
           <span class="text-sm">Marketplace</span>
+          <span class="ml-auto text-[9px] font-black bg-[#7c3aed]/10 text-[#7c3aed] px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+            Em breve
+          </span>
         </a>
 
         <a
           href="/seller/dashboard"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors opacity-70 hover:opacity-100 ${
             pathname.startsWith('/seller')
               ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
               : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
@@ -151,6 +155,9 @@ const pathname = new URL(Astro.request.url).pathname;
         >
           <Store className="w-4 h-4 shrink-0" />
           <span class="text-sm">Painel do Vendedor</span>
+          <span class="ml-auto text-[9px] font-black bg-[#7c3aed]/10 text-[#7c3aed] px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+            Em breve
+          </span>
         </a>
 
         {/* ── CONTRIBUIR ── */}

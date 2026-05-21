@@ -1,23 +1,14 @@
 ---
 import PublicLayout from '../../layouts/PublicLayout.astro';
-import ListingDetail from '../../components/marketplace/ListingDetail';
-import { supabase } from '../../lib/supabase';
-import type { Listing } from '../../lib/marketplace-types';
-
-const { slug } = Astro.params;
-
-const { data: listing } = await supabase
-  .from('marketplace_listings')
-  .select('*')
-  .eq('slug', slug)
-  .eq('status', 'published')
-  .single();
-
-if (!listing) {
-  return new Response(null, { status: 404 });
-}
+import ComingSoon from '../../components/marketplace/ComingSoon';
 ---
 
-<PublicLayout title={listing.title} description={listing.description.slice(0, 160)}>
-  <ListingDetail listing={listing as Listing} client:load />
+<PublicLayout title="Marketplace — em breve" description="Loja de templates premium do Meu Site Com IA — em breve.">
+  <ComingSoon
+    title="Marketplace em breve"
+    description="O template que você procura ainda não está disponível publicamente. Volte logo — estamos preparando uma loja de templates premium."
+    backHref="/marketplace"
+    backLabel="Voltar ao Marketplace"
+    client:load
+  />
 </PublicLayout>

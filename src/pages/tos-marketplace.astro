@@ -1,19 +1,12 @@
 ---
 import PublicLayout from '../layouts/PublicLayout.astro';
-import { Content } from '../data/tos-marketplace.md';
+import ComingSoon from '../components/marketplace/ComingSoon';
 ---
 
-<PublicLayout
-  title="Termos de Compra"
-  description="Termos e condições de compra do Marketplace do Meu Site Com IA."
->
-  <div class="max-w-2xl">
-    <h1 class="text-2xl font-bold text-gray-900 mb-6">Termos de Compra</h1>
-    <div class="bg-white rounded-2xl border border-gray-200 p-6 text-sm text-gray-600 leading-relaxed">
-      <Content />
-    </div>
-    <p class="mt-4 text-xs text-gray-400">
-      Dúvidas? Entre em contato pelo <a href="/suporte" class="text-[#7c3aed] hover:underline">suporte</a>.
-    </p>
-  </div>
+<PublicLayout title="Termos de Compra — em breve" description="Termos e condições do Marketplace — em breve.">
+  <ComingSoon
+    title="Termos em breve"
+    description="Os termos de compra serão publicados quando o Marketplace abrir."
+    client:load
+  />
 </PublicLayout>

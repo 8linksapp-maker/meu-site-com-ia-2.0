@@ -1,8 +1,12 @@
 ---
 import PublicLayout from '../../layouts/PublicLayout.astro';
-import SellerDashboard from '../../components/seller/SellerDashboard';
+import ComingSoon from '../../components/marketplace/ComingSoon';
 ---
 
-<PublicLayout title="Painel do Vendedor">
-  <SellerDashboard client:load />
+<PublicLayout title="Painel do Vendedor — em breve" description="Painel de vendedor do Marketplace — em breve.">
+  <ComingSoon
+    title="Painel do Vendedor em breve"
+    description="Em breve você vai poder publicar seus próprios templates no Marketplace e acompanhar suas vendas por aqui."
+    client:load
+  />
 </PublicLayout>
