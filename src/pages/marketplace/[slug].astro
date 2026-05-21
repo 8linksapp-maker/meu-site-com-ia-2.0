@@ -1,0 +1,14 @@
+---
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import ComingSoon from '../../components/marketplace/ComingSoon';
+---
+
+<PublicLayout title="Marketplace — em breve" description="Loja de templates premium do Meu Site Com IA — em breve.">
+  <ComingSoon
+    title="Marketplace em breve"
+    description="O template que você procura ainda não está disponível publicamente. Volte logo — estamos preparando uma loja de templates premium."
+    backHref="/marketplace"
+    backLabel="Voltar ao Marketplace"
+    client:load
+  />
+</PublicLayout>
