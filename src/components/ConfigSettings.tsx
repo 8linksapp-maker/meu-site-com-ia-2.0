@@ -128,7 +128,8 @@ function TokenInput({
                 <button
                     type="button"
                     onClick={() => setShow(s => !s)}
-                    className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label={show ? 'Ocultar token' : 'Mostrar token'}
+                    className="w-10 h-10 flex items-center justify-center -mr-2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                     {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -139,7 +140,7 @@ function TokenInput({
 
 // ── MAIN ──────────────────────────────────────────────────────────────
 export default function ConfigSettings() {
-    const [activeTab, setActiveTab] = useState<'acesso' | 'integracao'>('acesso');
+    const [activeTab, setActiveTab] = useState<'acesso' | 'integracao'>('integracao');
 
     const [githubToken, setGithubToken] = useState('');
     const [vercelToken, setVercelToken] = useState('');
@@ -234,7 +235,7 @@ export default function ConfigSettings() {
                         {tab === 'integracao' ? (
                             <span className="flex items-center gap-2">
                                 <Zap className="w-3.5 h-3.5" />
-                                Integração
+                                Configurar Sites
                                 {!bothSaved && <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />}
                             </span>
                         ) : (

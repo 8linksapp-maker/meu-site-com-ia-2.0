@@ -480,6 +480,8 @@ function VoteCard({ request, position, isLeader, onVote, voting }: {
                 <button
                     onClick={onVote}
                     disabled={voting}
+                    aria-label={request.user_voted ? 'Você já votou neste template' : 'Votar neste template'}
+                    title={request.user_voted ? 'Você já votou neste template' : undefined}
                     className={`shrink-0 flex flex-col items-center justify-center gap-1 px-4 py-3 rounded-xl border-2 transition-all min-w-[72px] ${
                         request.user_voted
                             ? 'border-[#7c3aed] bg-[#7c3aed] text-white shadow-md shadow-purple-500/30'
@@ -488,9 +490,14 @@ function VoteCard({ request, position, isLeader, onVote, voting }: {
                 >
                     {voting ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : request.user_voted ? (
+                        <>
+                            <ThumbsUp className="w-5 h-5 fill-current" />
+                            <span className="text-[10px] font-bold leading-none">Votado</span>
+                        </>
                     ) : (
                         <>
-                            <ThumbsUp className={`w-5 h-5 ${request.user_voted ? 'fill-current' : ''}`} />
+                            <ThumbsUp className="w-5 h-5" />
                             <span className="text-lg font-black tabular-nums leading-none">{request.votes_count}</span>
                         </>
                     )}

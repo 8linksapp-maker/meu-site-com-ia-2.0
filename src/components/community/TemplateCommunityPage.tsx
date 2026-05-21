@@ -18,6 +18,11 @@ export default function TemplateCommunityPage() {
 
     return (
         <div className="max-w-5xl mx-auto">
+            <div className="mb-6">
+                <h1 className="text-2xl font-black text-gray-900 mb-1">Templates da Comunidade</h1>
+                <p className="text-sm text-gray-500">Vote nos templates que quer ver, sugira novos ou acompanhe seus pedidos.</p>
+            </div>
+
             {/* Tabs */}
             <div className="flex items-center gap-1 mb-6 border-b border-gray-200">
                 <TabButton active={tab === 'vote'} onClick={() => setTab('vote')} icon={ThumbsUp} label="Votar" />

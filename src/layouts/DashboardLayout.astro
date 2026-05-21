@@ -28,10 +28,10 @@ const pathname = new URL(Astro.request.url).pathname;
     <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 lg:hidden opacity-0 invisible transition-all duration-300"></div>
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex flex-col h-full z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+    <aside id="sidebar" aria-hidden="true" class="fixed lg:static inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex flex-col h-full z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
       <div class="h-16 flex items-center justify-between px-6 border-b border-gray-200 shrink-0">
         <h1 class="text-xl font-bold text-[#7c3aed]">Meu Site Com IA</h1>
-        <button id="close-sidebar" class="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-md">
+        <button id="close-sidebar" aria-label="Fechar menu" class="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-md">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -110,7 +110,7 @@ const pathname = new URL(Astro.request.url).pathname;
           }`}
         >
           <GraduationCap className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Academy</span>
+          <span class="text-sm">Aulas</span>
         </a>
 
         <a
@@ -219,7 +219,7 @@ const pathname = new URL(Astro.request.url).pathname;
           }`}
         >
           <LifeBuoy className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Juvenal</span>
+          <span class="text-sm">Suporte</span>
         </a>
 
       </nav>
@@ -228,7 +228,7 @@ const pathname = new URL(Astro.request.url).pathname;
     <main class="flex-1 flex flex-col h-full overflow-hidden min-w-0">
       <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 shrink-0">
         <div class="flex items-center gap-4">
-          <button id="open-sidebar" class="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-md">
+          <button id="open-sidebar" aria-label="Abrir menu de navegacao" class="lg:hidden w-11 h-11 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-md">
             <Menu className="w-6 h-6" />
           </button>
           <h2 class="text-lg font-semibold text-gray-800 truncate">{title}</h2>
@@ -236,7 +236,7 @@ const pathname = new URL(Astro.request.url).pathname;
         
         {/* DROPDOWN MENU */}
         <div id="header-menu-wrapper" class="relative h-full flex items-center">
-          <button id="header-menu-btn" type="button" aria-label="Menu da conta" aria-expanded="false" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition text-gray-600 outline-none">
+          <button id="header-menu-btn" type="button" aria-label="Menu da conta" aria-expanded="false" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] focus-visible:ring-offset-2">
             <Settings className="w-5 h-5" />
           </button>
 
@@ -383,9 +383,11 @@ const pathname = new URL(Astro.request.url).pathname;
       const closeBtn = document.getElementById('close-sidebar');
 
       function toggleSidebar() {
+        const isHidden = sidebar?.getAttribute('aria-hidden') !== 'false';
         sidebar?.classList.toggle('-translate-x-full');
         overlay?.classList.toggle('opacity-0');
         overlay?.classList.toggle('invisible');
+        sidebar?.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
       }
 
       openBtn?.addEventListener('click', toggleSidebar);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 import OnboardingGuide from './ui/OnboardingGuide';
 
 interface Props {
@@ -258,71 +259,18 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
 
     if (hasTokens === false) {
         return (
-            <div className="bg-white border border-gray-200 rounded-3xl p-10 text-left mx-auto shadow-sm max-w-4xl mt-10">
-                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
-                    <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center text-3xl shadow-inner">⚠️</div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Integração Necessária</h2>
-                        <p className="text-gray-500 mt-1">Configure seus Access Tokens para liberar a geração automática de sites.</p>
-                    </div>
+            <div className="text-center py-12 px-6">
+                <div className="w-16 h-16 mx-auto bg-amber-100 rounded-2xl flex items-center justify-center mb-4">
+                    <AlertTriangle className="w-8 h-8 text-amber-600" />
                 </div>
-
-                <div className="space-y-6">
-                    <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                            <span className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-xs">1</span>
-                            Token do GitHub (Armazenamento do Código)
-                        </h4>
-                        <p className="text-sm text-gray-600 mb-3 ml-8">
-                            Nós criamos o repositório do site na sua própria conta do GitHub para que você tenha total controle do seu projeto.
-                        </p>
-                        <ul className="list-disc pl-12 text-sm text-gray-600 space-y-1.5">
-                            <li>Acesse sua conta no GitHub e vá em <strong>Settings &gt; Developer Settings &gt; Personal Access Tokens (Tokens classic)</strong>.</li>
-                            <li>Clique em <strong>Generate new token (classic)</strong>.</li>
-                            <li>Dê um nome, não coloque data de expiração (No expiration), e marque apenas a caixa <code className="bg-gray-200 px-1 rounded">repo</code> (Full control of private repositories).</li>
-                            <li>Gere e copie a chave que irá aparecer na tela verde.</li>
-                        </ul>
-                        <div className="ml-8 mt-4">
-                            <a href="https://github.com/settings/tokens/new" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-2.5 rounded-lg text-xs font-bold shadow-sm transition">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" /><path d="M9 18c-4.51 2-5-2-7-2" /></svg>
-                                Gerar Token do GitHub
-                            </a>
-                        </div>
-                    </div>
-
-                    <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                            <span className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-xs">2</span>
-                            Token da Vercel (Hospedagem do Site)
-                        </h4>
-                        <p className="text-sm text-gray-600 mb-3 ml-8">
-                            A Vercel hospedará seu site gratuitamente, injetando as variáveis de ambiente e aplicando o certificado SSL (HTTPS).
-                        </p>
-                        <ul className="list-disc pl-12 text-sm text-gray-600 space-y-1.5">
-                            <li>Crie uma conta na Vercel se não tiver, e vá em <strong>Account Settings &gt; Tokens</strong>.</li>
-                            <li>Crie um novo token com o escopo padrão (Full Access).</li>
-                            <li>Gere e copie a chave longa.</li>
-                        </ul>
-                        <div className="ml-8 mt-4">
-                            <a href="https://vercel.com/account/tokens" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 bg-black hover:bg-gray-800 text-white px-4 py-2.5 rounded-lg text-xs font-bold shadow-sm transition">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M24 22.525H0l12-21.05 12 21.05z" /></svg>
-                                Gerar Token da Vercel
-                            </a>
-                        </div>
-                    </div>
-
-                    <div className="bg-[#7c3aed]/5 p-6 rounded-2xl border border-[#7c3aed]/20 flex justify-between items-center shadow-sm">
-                        <div>
-                            <h4 className="font-bold text-[#7c3aed] mb-1 flex items-center gap-2">
-                                <span className="w-6 h-6 bg-[#7c3aed] text-white rounded-full flex items-center justify-center text-xs shadow-md">3</span>
-                                Salve as Chaves na Plataforma
-                            </h4>
-                            <p className="text-sm text-gray-600 ml-8 max-w-lg">
-                                Após possuir as duas chaves copiadas nas etapas acima, acesse o menu <strong>"Integrações"</strong> na barra lateral esquerda aqui do painel e salve-as lá. Depois retorne para esta vitrine.
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Configure suas integrações</h3>
+                <p className="text-sm text-gray-600 mb-6 max-w-md mx-auto">
+                    Pra criar sites automaticamente você precisa conectar GitHub e Vercel. O passo a passo guiado está na página de Configurações.
+                </p>
+                <a href="/configuracoes?tab=integracao" className="inline-flex items-center gap-2 bg-[#7c3aed] text-white px-6 py-3 rounded-2xl font-bold hover:bg-[#6d28d9] transition shadow-lg shadow-purple-500/20">
+                    Configurar em 2 minutos
+                    <ArrowRight className="w-4 h-4" />
+                </a>
             </div>
         );
     }
@@ -332,7 +280,7 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
 
             {/* AVISOS GLOBAIS (APARECEM SE O USUÁRIO TIVER PENDÊNCIAS) */}
             {subscriptionStatus !== 'active' && (
-                <div className="flex flex-col gap-4 mb-6">
+                <div id="subscription-banner" className="flex flex-col gap-4 mb-6">
                     <div className="bg-[#7c3aed]/5 border border-[#7c3aed]/20 rounded-2xl p-6 text-[#7c3aed] shadow-sm text-left flex items-start sm:items-center justify-between flex-col sm:flex-row gap-5">
                         <div>
                             <h3 className="text-lg font-extrabold mb-1 flex items-center gap-2 text-gray-900">💎 Desbloqueie a Criação Automática</h3>
@@ -348,7 +296,8 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
             )}
 
             {/* BARRA DE FILTRO POR CATEGORIA */}
-            <div className="flex gap-2 overflow-x-auto pb-4 mb-2 hide-scrollbar w-full">
+            <div className="relative">
+            <div className="flex gap-2 overflow-x-auto pb-4 mb-2 w-full">
                 <button
                     onClick={() => setSelectedFilterCategory(null)}
                     className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${selectedFilterCategory === null
@@ -370,6 +319,8 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
                         {cat.name}
                     </button>
                 ))}
+            </div>
+            <div className="absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white to-transparent pointer-events-none" />
             </div>
 
             {/* GRID NORMAL DE TEMPLATES */}
@@ -404,7 +355,7 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
                                 <div className="absolute top-3 right-3 z-10" title={favoriteIds.includes(template.id) ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}>
                                     <button
                                         onClick={(e) => toggleFavorite(template.id, e)}
-                                        className={`w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md shadow-sm transition-all duration-300 ${favoriteIds.includes(template.id) ? 'bg-rose-500 text-white hover:bg-rose-600 scale-110' : 'bg-white/90 hover:bg-white text-gray-400 hover:text-rose-500'}`}
+                                        className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md shadow-sm transition-all duration-300 ${favoriteIds.includes(template.id) ? 'bg-rose-500 text-white hover:bg-rose-600 scale-110' : 'bg-white/90 hover:bg-white text-gray-400 hover:text-rose-500'}`}
                                     >
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill={favoriteIds.includes(template.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                                     </button>
@@ -573,12 +524,18 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
                                         )}
                                         <button
                                             data-tour="btn-criar-site"
-                                            disabled={subscriptionStatus !== 'active' || selectedTemplate.is_locked}
-                                            onClick={() => setIsDeployMode(true)}
+                                            disabled={selectedTemplate.is_locked}
+                                            onClick={() => {
+                                                if (subscriptionStatus !== 'active') {
+                                                    document.getElementById('subscription-banner')?.scrollIntoView({ behavior: 'smooth' });
+                                                } else {
+                                                    setIsDeployMode(true);
+                                                }
+                                            }}
                                             className="w-full flex items-center justify-center gap-2 py-2.5 lg:py-3 px-4 rounded-xl bg-[#7c3aed] text-white hover:bg-[#6d28d9] font-bold text-xs shadow-[0_8px_20px_-6px_rgba(124,58,237,0.5)] hover:shadow-[0_12px_25px_-8px_rgba(124,58,237,0.6)] hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:bg-gray-400 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none"
                                         >
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
-                                            {selectedTemplate.is_locked ? 'Em Desenvolvimento' : (subscriptionStatus !== 'active' ? 'Bloqueado' : 'Criar site')}
+                                            {selectedTemplate.is_locked ? 'Em Desenvolvimento' : (subscriptionStatus !== 'active' ? 'Ativar plano para criar' : 'Criar site')}
                                         </button>
                                     </div>
 
@@ -706,14 +663,11 @@ export default function SitesGrid({ showOnlyFavorites = false }: Props) {
                     <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
                         <button
                             onClick={() => {
-                                if (!loading) {
-                                    setIsDeployMode(false);
-                                    setDeployedUrl('');
-                                    setStatus('');
-                                }
+                                setIsDeployMode(false);
+                                setDeployedUrl('');
+                                setStatus('');
                             }}
-                            disabled={loading}
-                            className="absolute top-5 right-5 text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="absolute top-5 right-5 text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center transition-all"
                         >
                             ✕
                         </button>

@@ -13,7 +13,7 @@ export default function SalesPage() {
             {/* Hero Text */}
             <h1 className="text-4xl md:text-5xl font-black text-gray-900 leading-tight mb-4">
                 Assuma o Controle Total do <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7c3aed] to-blue-600">Seu Ecossistema Digital</span>
+                <span className="text-[#7c3aed]">Seu Ecossistema Digital</span>
             </h1>
             <p className="text-gray-500 max-w-2xl text-lg mb-10 leading-relaxed font-medium">
                 Gerencie todos os seus sites de um único lugar. Controle domínios, acompanhe builds da Vercel e gerencie variáveis de ambiente sem nunca sair do seu painel.

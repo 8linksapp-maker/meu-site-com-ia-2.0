@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Eye, EyeOff, CheckCircle2, Loader2, AlertCircle, ArrowRight, Check, Play } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, Loader2, AlertCircle, ArrowRight, Check, Play, X } from 'lucide-react';
 
 // ── ICON HELPERS ─────────────────────────────────────────────────────
 function GithubIcon({ className }: { className?: string }) {
@@ -38,7 +38,8 @@ function TokenInput({
             <button
                 type="button"
                 onClick={onToggleShow}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label={show ? 'Ocultar token' : 'Mostrar token'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center -mr-2 text-gray-400 hover:text-gray-600 transition-colors"
             >
                 {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -142,6 +143,13 @@ export default function TokenGate() {
         localStorage.setItem('tokengate_skipped_at', String(Date.now()));
         setVisible(false);
     }
+
+    useEffect(() => {
+        if (!visible) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleSkip(); };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [visible]);
 
     async function handleNextStep() {
         setError('');
@@ -261,6 +269,14 @@ export default function TokenGate() {
                 style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.09) 0%, transparent 65%)' }} />
 
             <div className="relative w-full max-w-5xl my-auto bg-white rounded-[28px] shadow-2xl overflow-hidden">
+
+                <button
+                    onClick={handleSkip}
+                    aria-label="Fechar setup de tokens"
+                    className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
+                >
+                    <X className="w-5 h-5" />
+                </button>
 
                 {/* ── HEADER ── */}
                 <div className="bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 px-7 pt-6 pb-5">
@@ -426,7 +442,7 @@ export default function TokenGate() {
                                     <button
                                         type="button"
                                         onClick={handleSkip}
-                                        className="text-[11px] text-gray-400 hover:text-gray-500 transition-colors underline underline-offset-2"
+                                        className="text-[11px] text-gray-400 hover:text-gray-500 transition-colors underline underline-offset-2 py-2 px-4"
                                     >
                                         Configurar depois
                                     </button>

@@ -251,7 +251,7 @@ export default function JuvenalSupport() {
             <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
                 <button
                     onClick={() => { setTab('novo'); setSubmitSuccess(''); }}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-all ${
                         tab === 'novo'
                             ? 'bg-white text-[#7c3aed] shadow-sm'
                             : 'text-gray-500 hover:text-gray-700'
@@ -262,7 +262,7 @@ export default function JuvenalSupport() {
                 </button>
                 <button
                     onClick={() => { setTab('lista'); setSubmitSuccess(''); loadTickets(); }}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-all ${
                         tab === 'lista'
                             ? 'bg-white text-[#7c3aed] shadow-sm'
                             : 'text-gray-500 hover:text-gray-700'
