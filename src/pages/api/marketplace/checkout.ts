@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const { data: listing, error: listingErr } = await supabaseAdmin
       .from('marketplace_listings')
-      .select('id, title, price_cents, status')
+      .select('id, title, slug, price_cents, status')
       .eq('id', listing_id)
       .single();
 
@@ -92,7 +92,7 @@ export const POST: APIRoute = async ({ request }) => {
         ...(buyer_id ? { buyer_id } : {}),
       },
       success_url: `${siteUrl}/buyer/library?ok=1`,
-      cancel_url: `${siteUrl}/marketplace/${listing_id}?cancel=1`,
+      cancel_url: `${siteUrl}/marketplace/${listing.slug}?cancel=1`,
     });
 
     // Insere purchase pendente
@@ -101,7 +101,7 @@ export const POST: APIRoute = async ({ request }) => {
       buyer_email,
       listing_id,
       price_paid_cents: listing.price_cents,
-      stripe_payment_id: session.payment_intent as string,
+      stripe_payment_id: session.id,
       status: 'pending',
     });
 

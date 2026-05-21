@@ -21,23 +21,23 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Assinatura inválida' }), { status: 400 });
   }
 
-  if (event.type !== 'payment_intent.succeeded') {
+  if (event.type !== 'checkout.session.completed') {
     return new Response(JSON.stringify({ received: true }), { status: 200 });
   }
 
   try {
-    const pi = event.data.object;
-    const paymentIntentId = pi.id;
+    const session = event.data.object;
+    const sessionId = session.id;
 
     // Idempotência: verifica se purchase já foi processada
     const { data: purchase } = await supabaseAdmin
       .from('marketplace_purchases')
       .select('id, status, buyer_email, listing_id, price_paid_cents')
-      .eq('stripe_payment_id', paymentIntentId)
+      .eq('stripe_payment_id', sessionId)
       .single();
 
     if (!purchase) {
-      console.warn('[webhook] purchase não encontrada para PI:', paymentIntentId);
+      console.warn('[webhook] purchase não encontrada para session:', sessionId);
       return new Response(JSON.stringify({ received: true }), { status: 200 });
     }
 

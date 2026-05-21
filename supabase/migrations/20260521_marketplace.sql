@@ -94,3 +94,8 @@ CREATE POLICY "Service role only on tokens" ON public.marketplace_download_token
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('marketplace', 'marketplace', false)
 ON CONFLICT (id) DO NOTHING;
+
+-- Storage bucket marketplace-public (publico — thumbs e gallery servidos diretamente pelo CDN)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('marketplace-public', 'marketplace-public', true)
+ON CONFLICT (id) DO NOTHING;

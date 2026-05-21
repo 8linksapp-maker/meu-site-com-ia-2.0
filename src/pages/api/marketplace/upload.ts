@@ -75,28 +75,28 @@ export const POST: APIRoute = async ({ request }) => {
     const baseSlug = generateSlug(title);
     const slug = `${baseSlug}-${listingId.slice(0, 8)}`;
 
-    // Upload thumbnail
+    // Upload thumbnail → bucket público (Francis renderiza <img> direto)
     const thumbExt = thumbnail.name.split('.').pop() || 'jpg';
     const thumbPath = `${listingId}/thumbnail.${thumbExt}`;
     const { error: thumbErr } = await supabaseAdmin.storage
-      .from('marketplace')
+      .from('marketplace-public')
       .upload(thumbPath, await thumbnail.arrayBuffer(), { contentType: thumbnail.type });
     if (thumbErr) throw new Error(`Thumbnail upload falhou: ${thumbErr.message}`);
 
     const { data: thumbUrlData } = supabaseAdmin.storage
-      .from('marketplace')
+      .from('marketplace-public')
       .getPublicUrl(thumbPath);
 
-    // Upload gallery
+    // Upload gallery → bucket público
     const galleryUrls: string[] = [];
     for (let i = 0; i < galleryFiles.length; i++) {
       const f = galleryFiles[i];
       const ext = f.name.split('.').pop() || 'jpg';
       const path = `${listingId}/gallery_${i}.${ext}`;
       await supabaseAdmin.storage
-        .from('marketplace')
+        .from('marketplace-public')
         .upload(path, await f.arrayBuffer(), { contentType: f.type });
-      const { data: urlData } = supabaseAdmin.storage.from('marketplace').getPublicUrl(path);
+      const { data: urlData } = supabaseAdmin.storage.from('marketplace-public').getPublicUrl(path);
       galleryUrls.push(urlData.publicUrl);
     }
 
