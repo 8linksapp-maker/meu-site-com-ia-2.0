@@ -1,0 +1,10 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import ListingDetail from '../../components/marketplace/ListingDetail';
+
+const { slug } = Astro.params;
+---
+
+<DashboardLayout title="Marketplace">
+  <ListingDetail slug={slug!} client:load />
+</DashboardLayout>

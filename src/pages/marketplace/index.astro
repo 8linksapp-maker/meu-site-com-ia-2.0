@@ -1,0 +1,13 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import MarketplaceGrid from '../../components/marketplace/MarketplaceGrid';
+---
+
+<DashboardLayout title="Marketplace">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Marketplace</h1>
+    <p class="text-gray-500 mt-1 text-sm">Templates prontos para baixar e customizar no seu projeto.</p>
+  </div>
+
+  <MarketplaceGrid client:load />
+</DashboardLayout>

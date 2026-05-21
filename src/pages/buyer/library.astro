@@ -1,0 +1,10 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import BuyerLibrary from '../../components/marketplace/BuyerLibrary';
+
+const ok = Astro.url.searchParams.get('ok') === '1';
+---
+
+<DashboardLayout title="Meus Downloads">
+  <BuyerLibrary showSuccess={ok} client:load />
+</DashboardLayout>

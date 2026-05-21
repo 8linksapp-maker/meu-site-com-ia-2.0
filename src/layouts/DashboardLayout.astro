@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { LogOut, LayoutDashboard, Settings, Shield, Heart, Menu, X, GraduationCap, Plus, Globe, MessageSquare, Rocket, LayoutGrid, Radio, LifeBuoy, Lightbulb, Vote } from 'lucide-react';
+import { LogOut, LayoutDashboard, Settings, Shield, Heart, Menu, X, GraduationCap, Plus, Globe, MessageSquare, Rocket, LayoutGrid, Radio, LifeBuoy, Lightbulb, Vote, ShoppingBag } from 'lucide-react';
 import GroupWizard from '../components/GroupWizard';
 import TokenGate from '../components/TokenGate';
 import SpotlightTour from '../components/ui/SpotlightTour';
@@ -127,6 +127,18 @@ const pathname = new URL(Astro.request.url).pathname;
             <span class="w-1 h-1 rounded-full bg-white animate-pulse" />
             Live
           </span>
+        </a>
+
+        <a
+          href="/marketplace"
+          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+            pathname.startsWith('/marketplace')
+              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
+              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+          }`}
+        >
+          <ShoppingBag className="w-4 h-4 shrink-0" />
+          <span class="text-sm">Marketplace</span>
         </a>
 
         {/* ── CONTRIBUIR ── */}
