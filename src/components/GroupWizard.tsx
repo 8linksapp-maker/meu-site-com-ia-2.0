@@ -243,7 +243,7 @@ export default function GroupWizard({ isOpen: propIsOpen, onClose }: Props) {
                                 <button
                                     onClick={handleBack}
                                     disabled={currentStep === 0}
-                                    className="flex items-center gap-2 text-gray-400 font-bold text-xs uppercase tracking-widest hover:text-gray-900 transition disabled:opacity-0"
+                                    className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-gray-100 text-gray-400 font-bold text-xs uppercase tracking-widest hover:text-gray-900 transition disabled:opacity-0"
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                     Voltar
