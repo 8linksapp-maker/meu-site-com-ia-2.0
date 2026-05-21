@@ -40,7 +40,7 @@ export default function OnboardingGuide({ page, hasTokens = false, hasSites = fa
                 {/* Background decoration */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#7c3aed]/5 rounded-full -translate-y-1/2 translate-x-1/2" />
 
-                <button onClick={dismiss} className="absolute top-3 right-3 text-gray-300 hover:text-gray-500 transition-colors p-1">
+                <button onClick={dismiss} aria-label="Fechar guia" className="absolute top-3 right-3 text-gray-300 hover:text-gray-500 transition-colors w-8 h-8 flex items-center justify-center">
                     <X className="w-4 h-4" />
                 </button>
 
@@ -155,7 +155,7 @@ export default function OnboardingGuide({ page, hasTokens = false, hasSites = fa
 
         return (
             <div className="bg-white border border-[#7c3aed]/15 rounded-2xl p-5 mb-4 relative shadow-sm">
-                <button onClick={dismiss} className="absolute top-3 right-3 text-gray-300 hover:text-gray-500 transition-colors p-1">
+                <button onClick={dismiss} aria-label="Fechar guia" className="absolute top-3 right-3 text-gray-300 hover:text-gray-500 transition-colors w-8 h-8 flex items-center justify-center">
                     <X className="w-4 h-4" />
                 </button>
 
