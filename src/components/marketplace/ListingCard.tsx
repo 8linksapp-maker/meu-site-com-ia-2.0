@@ -1,14 +1,6 @@
 import { formatBRL } from '../../lib/marketplace';
+import { CATEGORY_LABELS } from '../../data/marketplace-categories';
 import type { Listing } from '../../lib/marketplace-types';
-
-const CATEGORY_LABELS: Record<string, string> = {
-  blog: 'Blog',
-  loja: 'Loja',
-  landing: 'Landing Page',
-  portfolio: 'Portfólio',
-  institucional: 'Institucional',
-  outro: 'Outro',
-};
 
 interface Props {
   listing: Listing;

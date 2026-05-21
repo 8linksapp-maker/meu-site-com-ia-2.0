@@ -1,10 +1,11 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import PublicLayout from '../../layouts/PublicLayout.astro';
 import BuyerLibrary from '../../components/marketplace/BuyerLibrary';
+import type { Purchase } from '../../lib/marketplace-types';
 
 const ok = Astro.url.searchParams.get('ok') === '1';
 ---
 
-<DashboardLayout title="Meus Downloads">
-  <BuyerLibrary showSuccess={ok} client:load />
-</DashboardLayout>
+<PublicLayout title="Meus Downloads">
+  <BuyerLibrary initialPurchases={[] as Purchase[]} showSuccess={ok} client:load />
+</PublicLayout>

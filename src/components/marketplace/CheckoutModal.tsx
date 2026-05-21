@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Mail, Download, CreditCard, Loader2, CheckCircle } from 'lucide-react';
+import { X, Mail, Download, CreditCard, Loader2, CheckCircle, ExternalLink } from 'lucide-react';
 import { formatBRL } from '../../lib/marketplace';
 import type { Listing } from '../../lib/marketplace-types';
 import { supabase } from '../../lib/supabase';
@@ -107,6 +107,24 @@ export default function CheckoutModal({ listing, onClose }: Props) {
                   : 'O link de download chegará nesse e-mail após o pagamento.'}
               </p>
             </div>
+
+            {/* TOS */}
+            <label className="flex items-start gap-2 text-xs text-gray-500 cursor-pointer">
+              <input type="checkbox" required className="mt-0.5 accent-[#7c3aed]" />
+              <span>
+                Li e aceito os{' '}
+                <a
+                  href="/tos-marketplace"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#7c3aed] underline inline-flex items-center gap-0.5"
+                >
+                  termos de compra
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+                .
+              </span>
+            </label>
 
             <button
               type="submit"

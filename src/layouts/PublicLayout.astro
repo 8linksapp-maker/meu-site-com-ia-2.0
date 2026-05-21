@@ -1,0 +1,49 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Templates prontos para o seu projeto' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title} | Meu Site Com IA</title>
+    <meta name="description" content={description} />
+  </head>
+  <body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+    <header class="bg-white border-b border-gray-200 h-14 flex items-center px-4 lg:px-8 shrink-0">
+      <a href="/" class="text-lg font-bold text-[#7c3aed]">Meu Site Com IA</a>
+      <nav class="ml-auto flex items-center gap-2 sm:gap-4">
+        <a
+          href="/marketplace"
+          class="text-sm text-gray-600 hover:text-[#7c3aed] transition-colors px-2 py-1"
+        >
+          Marketplace
+        </a>
+        <a
+          href="/"
+          class="text-sm font-semibold bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-4 py-2 rounded-xl transition-colors"
+        >
+          Entrar
+        </a>
+      </nav>
+    </header>
+
+    <main class="flex-1 w-full max-w-6xl mx-auto px-4 lg:px-8 py-6 lg:py-10">
+      <slot />
+    </main>
+
+    <footer class="border-t border-gray-200 bg-white py-6 px-4 lg:px-8 text-center text-xs text-gray-400">
+      © {new Date().getFullYear()} Meu Site Com IA — todos os direitos reservados
+    </footer>
+  </body>
+</html>

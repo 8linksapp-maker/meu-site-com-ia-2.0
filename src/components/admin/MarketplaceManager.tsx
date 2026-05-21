@@ -10,14 +10,17 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
+  Ticket,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Listing } from '../../lib/marketplace-types';
 import { formatBRL } from '../../lib/marketplace';
+import { MARKETPLACE_CATEGORIES } from '../../data/marketplace-categories';
 
 interface FinanceData {
-  revenue_month_cents: number;
-  total_sales: number;
+  month_revenue_cents: number;
+  total_sales_count: number;
+  avg_ticket_cents: number;
   recent_purchases: Array<{
     id: string;
     buyer_email: string;
@@ -27,7 +30,7 @@ interface FinanceData {
   }>;
 }
 
-const CATEGORIES = ['blog', 'loja', 'landing', 'portfolio', 'institucional', 'outro'];
+const CATEGORIES = MARKETPLACE_CATEGORIES.map((c) => c.slug);
 
 export default function MarketplaceManager() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -97,7 +100,7 @@ export default function MarketplaceManager() {
       fd.append('price_cents', form.price_cents);
       fd.append('github_repo', form.github_repo);
       fd.append('thumbnail', thumb);
-      gallery.forEach((f) => fd.append('gallery', f));
+      gallery.forEach((f, i) => fd.append(`gallery_${i}`, f));
       fd.append('zip', zip);
 
       const res = await fetch('/api/marketplace/upload', {
@@ -131,27 +134,36 @@ export default function MarketplaceManager() {
     <div className="space-y-6">
       {/* Stats */}
       {finance && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-[#7c3aed]/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#7c3aed]/10 flex items-center justify-center shrink-0">
               <DollarSign className="w-5 h-5 text-[#7c3aed]" />
             </div>
             <div>
               <p className="text-xs text-gray-500 font-medium">Receita este mês</p>
-              <p className="text-xl font-black text-gray-900">{formatBRL(finance.revenue_month_cents)}</p>
+              <p className="text-xl font-black text-gray-900">{formatBRL(finance.month_revenue_cents)}</p>
             </div>
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
               <ShoppingBag className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 font-medium">Total de vendas</p>
-              <p className="text-xl font-black text-gray-900">{finance.total_sales}</p>
+              <p className="text-xs text-gray-500 font-medium">Vendas este mês</p>
+              <p className="text-xl font-black text-gray-900">{finance.total_sales_count}</p>
             </div>
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
+              <Ticket className="w-5 h-5 text-orange-500" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Ticket médio</p>
+              <p className="text-xl font-black text-gray-900">{formatBRL(finance.avg_ticket_cents)}</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
               <TrendingUp className="w-5 h-5 text-blue-600" />
             </div>
             <div>
@@ -206,8 +218,8 @@ export default function MarketplaceManager() {
                   onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
                   className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 focus:border-[#7c3aed] bg-white"
                 >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                  {MARKETPLACE_CATEGORIES.map((c) => (
+                    <option key={c.slug} value={c.slug}>{c.label}</option>
                   ))}
                 </select>
               </div>

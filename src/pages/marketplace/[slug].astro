@@ -1,10 +1,23 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import PublicLayout from '../../layouts/PublicLayout.astro';
 import ListingDetail from '../../components/marketplace/ListingDetail';
+import { supabase } from '../../lib/supabase';
+import type { Listing } from '../../lib/marketplace-types';
 
 const { slug } = Astro.params;
+
+const { data: listing } = await supabase
+  .from('marketplace_listings')
+  .select('*')
+  .eq('slug', slug)
+  .eq('status', 'published')
+  .single();
+
+if (!listing) {
+  return new Response(null, { status: 404 });
+}
 ---
 
-<DashboardLayout title="Marketplace">
-  <ListingDetail slug={slug!} client:load />
-</DashboardLayout>
+<PublicLayout title={listing.title} description={listing.description.slice(0, 160)}>
+  <ListingDetail listing={listing as Listing} client:load />
+</PublicLayout>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,93 +9,18 @@ import {
   Clock,
   FileArchive,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { CATEGORY_LABELS } from '../../data/marketplace-categories';
 import type { Listing } from '../../lib/marketplace-types';
 import { formatBRL } from '../../lib/marketplace';
 import CheckoutModal from './CheckoutModal';
 
 interface Props {
-  slug: string;
+  listing: Listing;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  blog: 'Blog',
-  loja: 'Loja',
-  landing: 'Landing Page',
-  portfolio: 'Portfólio',
-  institucional: 'Institucional',
-  outro: 'Outro',
-};
-
-const MOCK: Listing = {
-  id: 'mock-1',
-  seller_id: 'mock',
-  slug: 'walker-blog-pro',
-  title: 'Walker Blog Pro',
-  description:
-    'Template de blog completo com editor visual, SEO automático, dark mode e muito mais.\n\nO que está incluído:\n• Editor visual drag & drop\n• SEO automático (meta tags, OG, JSON-LD)\n• Dark mode nativo\n• RSS feed gerado automaticamente\n• Analytics integrado\n• Suporte a múltiplos autores\n\nStack: Astro 5 + React + Tailwind + Supabase\n\nRequisitos: conta GitHub + Vercel (Hobby funciona) + Supabase gratuito.',
-  category: 'blog',
-  price_cents: 0,
-  thumbnail_url: '',
-  gallery_urls: [],
-  zip_storage_path: null,
-  github_repo: null,
-  status: 'published',
-  total_sales: 142,
-  total_revenue_cents: 0,
-  created_at: '2026-01-01T00:00:00Z',
-  published_at: '2026-01-01T00:00:00Z',
-};
-
-export default function ListingDetail({ slug }: Props) {
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function ListingDetail({ listing }: Props) {
   const [galleryIdx, setGalleryIdx] = useState(0);
   const [showCheckout, setShowCheckout] = useState(false);
-
-  useEffect(() => {
-    load();
-  }, [slug]);
-
-  const load = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('marketplace_listings')
-      .select('*')
-      .eq('slug', slug)
-      .eq('status', 'published')
-      .single();
-
-    setListing(!error && data ? (data as Listing) : MOCK);
-    setGalleryIdx(0);
-    setLoading(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="animate-pulse max-w-5xl space-y-6">
-        <div className="h-4 bg-gray-100 rounded w-24" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-4">
-            <div className="aspect-video bg-gray-100 rounded-2xl" />
-            <div className="bg-gray-100 rounded-2xl h-48" />
-          </div>
-          <div className="bg-gray-100 rounded-2xl h-64" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!listing) {
-    return (
-      <div className="text-center py-20">
-        <p className="text-gray-500">Template não encontrado.</p>
-        <a href="/marketplace" className="text-sm text-[#7c3aed] mt-2 inline-block hover:underline">
-          ← Voltar ao Marketplace
-        </a>
-      </div>
-    );
-  }
 
   const allImages = [
     ...(listing.thumbnail_url ? [listing.thumbnail_url] : []),
@@ -176,7 +101,7 @@ export default function ListingDetail({ slug }: Props) {
                     <button
                       key={i}
                       onClick={() => setGalleryIdx(i)}
-                      className={`shrink-0 w-16 h-10 rounded-lg overflow-hidden border-2 transition-colors ${
+                      className={`shrink-0 w-16 h-10 rounded-lg overflow-hidden border-2 transition-all ${
                         i === galleryIdx ? 'border-[#7c3aed]' : 'border-transparent opacity-60 hover:opacity-100'
                       }`}
                     >
@@ -254,7 +179,7 @@ export default function ListingDetail({ slug }: Props) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Download className="w-3.5 h-3.5 shrink-0" />
-                  Download via /api/marketplace/download
+                  Download imediato por e-mail
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5 shrink-0" />
