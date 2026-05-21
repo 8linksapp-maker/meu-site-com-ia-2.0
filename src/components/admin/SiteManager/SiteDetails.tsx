@@ -774,8 +774,8 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
 
                 {/* MODAL DE EDIÇÃO DE ENV */}
                 {editingEnv && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                        <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => setEditingEnv(null)}>
+                        <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
                             <div className="p-8 space-y-6">
                                 <div className="flex justify-between items-center">
                                     <h3 className="text-xl font-bold text-gray-900">Editar Variável</h3>
