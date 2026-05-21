@@ -15,7 +15,9 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
       <section class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden">
         <div class="absolute top-0 right-0 w-64 h-64 bg-[#7c3aed]/5 rounded-bl-full -mr-10 -mt-10 pointer-events-none"></div>
         <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3 relative z-10">
-          <span class="w-12 h-12 bg-[#7c3aed]/10 text-[#7c3aed] flex items-center justify-center rounded-2xl text-xl shadow-inner">🚀</span>
+          <span class="w-12 h-12 bg-[#7c3aed]/10 text-[#7c3aed] flex items-center justify-center rounded-2xl shadow-inner">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+          </span>
           A Mágica por Trás: Como Funciona?
         </h2>
         <div class="space-y-4 text-gray-600 leading-relaxed relative z-10">
@@ -23,15 +25,15 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           
           <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8">
             <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200/60 hover:border-[#7c3aed]/30 transition-colors">
-              <h3 class="font-bold text-gray-900 mb-2 flex items-center gap-2"><span class="bg-[#7c3aed] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span> O Modelo</h3>
+              <h3 class="font-bold text-gray-900 mb-2 flex items-center gap-2"><span class="bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">1</span> O Modelo</h3>
               <p class="text-sm">Você escolhe um Template na Vitrine e clica em Fazer Deploy.</p>
             </div>
             <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200/60 hover:border-black/30 transition-colors">
-              <h3 class="font-bold text-gray-900 mb-2 flex items-center gap-2"><span class="bg-black text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span> Arquivamento</h3>
+              <h3 class="font-bold text-gray-900 mb-2 flex items-center gap-2"><span class="bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">2</span> Arquivamento</h3>
               <p class="text-sm">Injetamos uma cópia blindada desse site direto dentro da sua conta do <strong>GitHub</strong> na mesma hora.</p>
             </div>
             <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200/60 hover:border-black/30 transition-colors">
-              <h3 class="font-bold text-gray-900 mb-2 flex items-center gap-2"><span class="bg-black text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span> O Servidor</h3>
+              <h3 class="font-bold text-gray-900 mb-2 flex items-center gap-2"><span class="bg-[#7c3aed]/10 text-[#7c3aed] border border-[#7c3aed]/20 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">3</span> O Servidor</h3>
               <p class="text-sm">A <strong>Vercel</strong> puxa esse código, monta o site, aplica o cadeado de segurança (HTTPS) e entrega online.</p>
             </div>
           </div>
@@ -41,7 +43,9 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
       {/* SEÇÃO 2: POR QUE TOKENS? */}
       <section class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
         <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-          <span class="w-12 h-12 bg-amber-50 text-amber-600 flex items-center justify-center rounded-2xl text-xl shadow-inner">🔑</span>
+          <span class="w-12 h-12 bg-[#7c3aed]/10 text-[#7c3aed] flex items-center justify-center rounded-2xl shadow-inner">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+          </span>
           Por que preciso das Chaves (Tokens)?
         </h2>
         <div class="text-gray-600 leading-relaxed space-y-4">
@@ -70,6 +74,10 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
               <li>Dê um nome, escolha "No Expiration" e marque a caixinha <code>repo</code>. Gere e copie a chave.</li>
             </ol>
           </div>
+          <a href="/configuracoes?tab=integracao" class="inline-flex items-center gap-1 text-[#7c3aed] font-medium text-sm mt-3 hover:underline">
+            Cole seu token em Configurações
+            <span aria-hidden="true">→</span>
+          </a>
         </div>
       </section>
 
@@ -92,13 +100,19 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
               <li>Crie um token dando um nome qualquer e scope "Full Access". Copie a chave longa.</li>
             </ol>
           </div>
+          <a href="/configuracoes?tab=integracao" class="inline-flex items-center gap-1 text-[#7c3aed] font-medium text-sm mt-3 hover:underline">
+            Cole seu token em Configurações
+            <span aria-hidden="true">→</span>
+          </a>
         </div>
       </section>
 
       {/* SEÇÃO 5: O QUE É ASTRO */}
       <section class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
         <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-          <span class="w-12 h-12 bg-[#7c3aed]/10 text-[#7c3aed] flex items-center justify-center rounded-2xl text-xl shadow-inner">⚡</span>
+          <span class="w-12 h-12 bg-[#7c3aed]/10 text-[#7c3aed] flex items-center justify-center rounded-2xl shadow-inner">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </span>
           Por que usamos Astro.js?
         </h2>
         <div class="text-gray-600 leading-relaxed space-y-4">
