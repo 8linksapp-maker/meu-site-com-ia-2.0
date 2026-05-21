@@ -104,7 +104,7 @@ export default function BuyerLibrary({ initialPurchases, showSuccess = false }: 
               {p.marketplace_listings?.slug && (
                 <a
                   href={`/marketplace/${p.marketplace_listings.slug}`}
-                  className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#7c3aed] hover:underline"
+                  className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-[#7c3aed] hover:underline min-h-[44px] px-2 -mx-2"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Ver

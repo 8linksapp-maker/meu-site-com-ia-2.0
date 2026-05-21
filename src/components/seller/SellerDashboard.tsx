@@ -129,6 +129,21 @@ export default function SellerDashboard() {
       )}
 
       {/* Listings */}
+      {!loading && listings.length === 0 && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
+          <LayoutGrid className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+          <p className="font-semibold text-gray-700 text-sm">Nenhum template publicado ainda</p>
+          <p className="text-xs text-gray-400 mt-1">Use o painel admin para adicionar o primeiro listing.</p>
+          <a
+            href="/admin/marketplace"
+            className="mt-4 inline-flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+          >
+            Ir para Admin
+            <ArrowRight className="w-4 h-4" />
+          </a>
+        </div>
+      )}
+
       {!loading && listings.length > 0 && (
         <div>
           <h2 className="font-bold text-gray-900 mb-3">Meus Templates</h2>
@@ -177,16 +192,16 @@ export default function SellerDashboard() {
           {COMING_SOON.map(({ icon: Icon, title, desc }) => (
             <div
               key={title}
-              className="bg-white rounded-2xl border border-gray-200 p-5 flex gap-4 opacity-75"
+              className="bg-white rounded-2xl border border-gray-200 p-5 flex gap-4 opacity-80"
             >
-              <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-                <Icon className="w-4 h-4 text-gray-400" />
+              <div className="w-9 h-9 rounded-xl bg-[#7c3aed]/8 flex items-center justify-center shrink-0">
+                <Icon className="w-4 h-4 text-[#7c3aed]/60" />
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <p className="font-semibold text-gray-700 text-sm">{title}</p>
-                  <span className="text-[9px] font-black bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-full uppercase tracking-wide">
-                    Em breve V2
+                  <span className="text-[9px] font-black bg-[#7c3aed]/10 text-[#7c3aed] px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                    V2
                   </span>
                 </div>
                 <p className="text-xs text-gray-400 leading-relaxed">{desc}</p>
