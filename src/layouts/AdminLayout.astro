@@ -1,349 +1,283 @@
 ---
 import '../styles/global.css';
-import { LogOut, LayoutDashboard, Users, FileStack, Tags, Settings, Menu, X, Video, MessageSquare, BookMarked, ClipboardCheck, HelpCircle, Radio, AlertTriangle, LifeBuoy, PanelLeftClose, PanelLeftOpen, Lightbulb, ShoppingBag } from 'lucide-react';
+import {
+    LogOut, LayoutDashboard, Users, FileStack, Tags, Settings,
+    Menu, X, Video, MessageSquare, BookMarked,
+    HelpCircle, Radio, AlertTriangle, LifeBuoy,
+    PanelLeftClose, PanelLeftOpen, Lightbulb, ShoppingBag,
+    ArrowLeft, Shield, DollarSign,
+} from 'lucide-react';
 
 interface Props {
-	title: string;
+    title: string;
 }
 
 const { title } = Astro.props;
 const pathname = new URL(Astro.request.url).pathname;
+
+interface NavItem {
+    href: string;
+    label: string;
+    icon: any;
+    isActive: boolean;
+}
+
+interface NavGroup {
+    label: string;
+    items: NavItem[];
+}
+
+function matches(prefix: string): boolean {
+    if (prefix === '/admin') return pathname === '/admin' || pathname === '/admin/';
+    return pathname.startsWith(prefix);
+}
+
+const NAV_GROUPS: NavGroup[] = [
+    {
+        label: 'Geral',
+        items: [
+            { href: '/admin',           label: 'Dashboard',    icon: LayoutDashboard, isActive: matches('/admin') && !pathname.includes('/admin/') },
+            { href: '/admin/usuarios',  label: 'Usuários',     icon: Users,           isActive: matches('/admin/usuarios') },
+        ],
+    },
+    {
+        label: 'Conteúdo',
+        items: [
+            { href: '/admin/templates',  label: 'Templates',    icon: FileStack,  isActive: matches('/admin/templates') },
+            { href: '/admin/categorias', label: 'Categorias',   icon: Tags,       isActive: matches('/admin/categorias') },
+            { href: '/admin/aulas',      label: 'Aulas',        icon: Video,      isActive: matches('/admin/aulas') },
+            { href: '/admin/lives',      label: 'Aulas ao vivo', icon: Radio,     isActive: matches('/admin/lives') },
+            { href: '/admin/tutoriais',  label: 'Tutoriais',    icon: BookMarked, isActive: matches('/admin/tutoriais') },
+        ],
+    },
+    {
+        label: 'Comunidade',
+        items: [
+            { href: '/admin/perguntas', label: 'Perguntas',      icon: HelpCircle,    isActive: matches('/admin/perguntas') },
+            { href: '/admin/sugestoes', label: 'Sugestões',      icon: Lightbulb,     isActive: matches('/admin/sugestoes') },
+            { href: '/admin/ajuda',     label: 'Ajuda (FAQ)',    icon: BookMarked,    isActive: matches('/admin/ajuda') },
+            { href: '/admin/suporte',   label: 'Suporte',        icon: LifeBuoy,      isActive: matches('/admin/suporte') },
+            { href: '/admin/grupo',     label: 'Grupo WhatsApp', icon: MessageSquare, isActive: matches('/admin/grupo') },
+        ],
+    },
+    {
+        label: 'Sistema',
+        items: [
+            { href: '/admin/afiliados',     label: 'Afiliados',     icon: DollarSign,     isActive: matches('/admin/afiliados') },
+            { href: '/admin/marketplace',   label: 'Marketplace',   icon: ShoppingBag,    isActive: matches('/admin/marketplace') },
+            { href: '/admin/erros',         label: 'Logs de erros', icon: AlertTriangle,  isActive: matches('/admin/erros') },
+            { href: '/admin/configuracoes', label: 'Configurações', icon: Settings,       isActive: matches('/admin/configuracoes') },
+        ],
+    },
+];
 ---
 
 <!doctype html>
 <html lang="pt-BR">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<title>{title} | Admin SaaS</title>
-		<script is:inline>
-			(function(){
-				try {
-					var v = localStorage.getItem('msia-admin-sidebar-collapsed') === 'true';
-					document.documentElement.setAttribute('data-admin-collapsed', String(v));
-				} catch(e) {}
-			})();
-		</script>
-		<style is:global>
-			/* Sidebar collapse — desktop only (lg+); mobile usa drawer */
-			@media (min-width: 1024px) {
-				html[data-admin-collapsed="true"] #sidebar { width: 5rem; }
-				html[data-admin-collapsed="true"] #sidebar .sidebar-label,
-				html[data-admin-collapsed="true"] #sidebar .sidebar-brand,
-				html[data-admin-collapsed="true"] #sidebar .sidebar-back-app { display: none; }
-				html[data-admin-collapsed="true"] #sidebar nav a,
-				html[data-admin-collapsed="true"] #sidebar .sidebar-bottom > * { justify-content: center; padding-left: 0; padding-right: 0; }
-				html[data-admin-collapsed="true"] #sidebar .sidebar-header { justify-content: center; padding-left: 0; padding-right: 0; }
-				html[data-admin-collapsed="true"] #toggle-sidebar svg.icon-close { display: none; }
-				html:not([data-admin-collapsed="true"]) #toggle-sidebar svg.icon-open { display: none; }
-			}
-			#sidebar { transition: width .2s ease-out, transform .3s ease-in-out; }
-		</style>
-	</head>
-	<body class="bg-gray-50 text-gray-900 flex h-screen overflow-hidden">
-    <div id="admin-loader" class="fixed inset-0 bg-white z-[60] flex items-center justify-center">
-      <div class="text-[#7c3aed] font-medium">Verificando permissões...</div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <meta name="generator" content={Astro.generator} />
+        <title>{title} | Admin · MSIA</title>
+        <script is:inline>
+            (function(){
+                try {
+                    var v = localStorage.getItem('msia-admin-sidebar-collapsed') === 'true';
+                    document.documentElement.setAttribute('data-admin-collapsed', String(v));
+                } catch(e) {}
+            })();
+        </script>
+        <style is:global>
+            /* Sidebar collapse — desktop only (lg+); mobile usa drawer */
+            @media (min-width: 1024px) {
+                html[data-admin-collapsed="true"] #sidebar { width: 5rem; }
+                html[data-admin-collapsed="true"] #sidebar .sidebar-label,
+                html[data-admin-collapsed="true"] #sidebar .sidebar-brand,
+                html[data-admin-collapsed="true"] #sidebar .sidebar-group-label,
+                html[data-admin-collapsed="true"] #sidebar .sidebar-back-app-label { display: none; }
+                html[data-admin-collapsed="true"] #sidebar nav a,
+                html[data-admin-collapsed="true"] #sidebar .sidebar-bottom > * { justify-content: center; padding-left: 0; padding-right: 0; }
+                html[data-admin-collapsed="true"] #sidebar .sidebar-header { justify-content: center; padding-left: 0; padding-right: 0; }
+                html[data-admin-collapsed="true"] #sidebar .sidebar-group-divider { margin: 1rem 0.5rem; }
+                html[data-admin-collapsed="true"] #toggle-sidebar svg.icon-close { display: none; }
+                html:not([data-admin-collapsed="true"]) #toggle-sidebar svg.icon-open { display: none; }
+            }
+            #sidebar { transition: width .2s ease-out, transform .3s ease-in-out; }
+        </style>
+    </head>
+    <body class="bg-papel-craft text-carvao-quente flex h-screen overflow-hidden">
+
+    <!-- Auth loader -->
+    <div id="admin-loader" class="fixed inset-0 bg-papel-craft z-[60] flex flex-col items-center justify-center gap-3">
+        <div class="w-7 h-7 border-4 border-coral-terra/30 border-t-coral-terra rounded-full animate-spin"></div>
+        <p class="text-cafe-medio text-sm">Verificando permissões…</p>
     </div>
 
     <!-- Overlay Mobile -->
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 lg:hidden opacity-0 invisible transition-all duration-300"></div>
+    <div id="sidebar-overlay" class="fixed inset-0 bg-carvao-quente/40 z-40 lg:hidden opacity-0 invisible transition-all duration-300"></div>
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-64 bg-gray-900 text-white border-r border-gray-800 flex flex-col h-full z-50 transform -translate-x-full lg:translate-x-0">
-      <div class="sidebar-header h-16 flex items-center justify-between px-6 border-b border-gray-800 shrink-0">
-        <h1 class="sidebar-brand text-xl font-bold text-white">Admin Panel</h1>
-        <div class="flex items-center gap-1">
-          <button id="toggle-sidebar" class="hidden lg:inline-flex p-2 text-gray-400 hover:bg-gray-800 hover:text-white rounded-md transition-colors" aria-label="Recolher menu" title="Recolher menu">
-            <PanelLeftClose className="w-5 h-5 icon-close" />
-            <PanelLeftOpen className="w-5 h-5 icon-open" />
-          </button>
-          <button id="close-sidebar" class="lg:hidden p-2 text-gray-400 hover:bg-gray-800 rounded-md">
-            <X className="w-5 h-5" />
-          </button>
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-64 bg-cream-elevated border-r border-borda-cafe flex flex-col h-full z-50 transform -translate-x-full lg:translate-x-0">
+        <div class="sidebar-header h-16 flex items-center justify-between px-5 border-b border-borda-cafe shrink-0">
+            <div class="sidebar-brand flex items-center gap-2 min-w-0">
+                <div class="w-7 h-7 rounded-full bg-coral-terra flex items-center justify-center shrink-0">
+                    <Shield className="w-4 h-4 text-papel-craft" />
+                </div>
+                <h1 class="font-display text-lg font-medium tracking-tight text-carvao-quente truncate">Admin · MSIA</h1>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+                <button id="toggle-sidebar" class="hidden lg:inline-flex p-2 text-cafe-cinza-quente hover:text-coral-terra hover:bg-coral-wash rounded-md transition-colors" aria-label="Recolher menu" title="Recolher menu">
+                    <PanelLeftClose className="w-4 h-4 icon-close" />
+                    <PanelLeftOpen className="w-4 h-4 icon-open" />
+                </button>
+                <button id="close-sidebar" class="lg:hidden p-2 text-cafe-cinza-quente hover:bg-coral-wash hover:text-coral-terra rounded-md">
+                    <X className="w-5 h-5" />
+                </button>
+            </div>
         </div>
-      </div>
-      
-      <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
-        <a
-          href="/admin"
-          title="Dashboard"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname === '/admin' || pathname === '/admin/'
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <LayoutDashboard className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Dashboard</span>
-        </a>
-        <a
-          href="/admin/usuarios"
-          title="Usuários"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/usuarios')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <Users className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Usuários</span>
-        </a>
-        <a
-          href="/admin/templates"
-          title="Templates"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/templates')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <FileStack className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Templates</span>
-        </a>
-        <a
-          href="/admin/categorias"
-          title="Categorias"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/categorias')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <Tags className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Categorias</span>
-        </a>
-        <a
-          href="/admin/marketplace"
-          title="Marketplace"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/marketplace')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <ShoppingBag className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Marketplace</span>
-        </a>
-        <a
-          href="/admin/aulas"
-          title="Gerenciar Aulas"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/aulas')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <Video className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Gerenciar Aulas</span>
-        </a>
-        <a
-          href="/admin/lives"
-          title="Academy Ao Vivo"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/lives')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <Radio className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Academy Ao Vivo</span>
-        </a>
-        <a
-          href="/admin/perguntas"
-          title="Perguntas"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/perguntas')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <HelpCircle className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Perguntas</span>
-        </a>
-        <a
-          href="/admin/producao"
-          title="Produção"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/producao')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <ClipboardCheck className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Produção</span>
-        </a>
-        <a
-          href="/admin/tutoriais"
-          title="Tutoriais"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/tutoriais')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <BookMarked className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Tutoriais</span>
-        </a>
-        <a
-          href="/admin/erros"
-          title="Logs de Erros"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/erros')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <AlertTriangle className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Logs de Erros</span>
-        </a>
-        <a
-          href="/admin/suporte"
-          title="Suporte"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/suporte')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <LifeBuoy className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Suporte</span>
-        </a>
-        <a
-          href="/admin/sugestoes"
-          title="Sugestões de Templates"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/sugestoes')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <Lightbulb className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Sugestões de Templates</span>
-        </a>
-        <a
-          href="/admin/configuracoes"
-          title="Configurações"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/configuracoes')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <Settings className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Configurações</span>
-        </a>
-        <a
-          href="/admin/grupo"
-          title="Configurar Grupo"
-          class={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-            pathname.includes('/admin/grupo')
-              ? 'bg-[#7c3aed] text-white font-medium'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-          }`}
-        >
-          <MessageSquare className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Configurar Grupo</span>
-        </a>
-      </nav>
 
-      <div class="sidebar-bottom p-4 border-t border-gray-800 shrink-0">
-        <a href="/sites" title="Voltar ao App" class="sidebar-back-app flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-400 hover:bg-gray-800 hover:text-white transition-colors text-left mb-2">
-          <span class="sidebar-label">Voltar ao App</span>
-        </a>
-        <button id="logout-btn" title="Sair" class="flex items-center gap-3 px-3 py-2 w-full rounded-md text-gray-400 hover:bg-red-500/10 hover:text-red-500 transition-colors text-left">
-          <LogOut className="w-5 h-5 shrink-0" />
-          <span class="sidebar-label">Sair</span>
-        </button>
-      </div>
+        <nav class="flex-1 px-3 py-4 overflow-y-auto">
+            {NAV_GROUPS.map((group, gi) => (
+                <div class={gi > 0 ? 'mt-5' : ''}>
+                    <div class="sidebar-group-divider hidden sidebar-group-only-collapsed:block h-px bg-borda-cafe mx-3 my-3"></div>
+                    <p class="sidebar-group-label px-3 mb-1.5 text-xs font-bold text-cafe-cinza-quente uppercase tracking-[0.12em]">
+                        {group.label}
+                    </p>
+                    <div class="space-y-0.5">
+                        {group.items.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <a
+                                    href={item.href}
+                                    title={item.label}
+                                    class={`flex items-center gap-3 px-3 py-2 rounded-[8px] transition-colors text-sm font-medium ${
+                                        item.isActive
+                                            ? 'bg-cream-surface text-coral-terra font-semibold'
+                                            : 'text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo'
+                                    }`}
+                                >
+                                    <Icon className="w-4 h-4 shrink-0" />
+                                    <span class="sidebar-label truncate">{item.label}</span>
+                                </a>
+                            );
+                        })}
+                    </div>
+                </div>
+            ))}
+        </nav>
+
+        <div class="sidebar-bottom p-3 border-t border-borda-cafe shrink-0 space-y-1">
+            <a
+                href="/dashboard"
+                title="Voltar ao app"
+                class="flex items-center gap-3 px-3 py-2 w-full rounded-[8px] text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo transition-colors text-left text-sm font-medium"
+            >
+                <ArrowLeft className="w-4 h-4 shrink-0" />
+                <span class="sidebar-back-app-label sidebar-label">Voltar ao app</span>
+            </a>
+            <button
+                id="logout-btn"
+                title="Sair"
+                type="button"
+                class="flex items-center gap-3 px-3 py-2 w-full rounded-[8px] text-cafe-medio hover:bg-[oklch(94%_0.025_28)] hover:text-vermelho-tijolo transition-colors text-left text-sm font-medium"
+            >
+                <LogOut className="w-4 h-4 shrink-0" />
+                <span class="sidebar-label">Sair</span>
+            </button>
+        </div>
     </aside>
 
-    <main class="flex-1 flex flex-col h-full overflow-hidden bg-gray-100 min-w-0">
-      <header class="h-16 bg-white shadow-sm flex items-center px-4 lg:px-8 shrink-0 gap-4">
-        <button id="open-sidebar" class="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-md">
-          <Menu className="w-6 h-6" />
-        </button>
-        <h2 class="text-xl font-semibold text-gray-800 truncate">{title}</h2>
-      </header>
-      
-      <div class="flex-1 overflow-y-auto p-4 lg:p-8">
-        <slot />
-      </div>
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-papel-craft min-w-0">
+        <header class="h-16 bg-papel-craft border-b border-borda-cafe flex items-center justify-between px-4 lg:px-8 shrink-0 gap-4">
+            <div class="flex items-center gap-3 min-w-0">
+                <button id="open-sidebar" aria-label="Abrir menu" class="lg:hidden w-11 h-11 flex items-center justify-center text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo rounded-md">
+                    <Menu className="w-6 h-6" />
+                </button>
+                <h2 class="font-display text-2xl font-normal text-carvao-quente tracking-tight truncate">{title}</h2>
+            </div>
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-coral-wash text-coral-terra rounded-full text-xs font-semibold uppercase tracking-wide shrink-0">
+                <Shield className="w-3 h-3" />
+                Admin
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 lg:p-6">
+            <slot />
+        </div>
     </main>
 
     <script>
-      import { supabase } from '../lib/supabase';
-      
-      // Menu Mobile Toggle
-      const sidebar = document.getElementById('sidebar');
-      const overlay = document.getElementById('sidebar-overlay');
-      const openBtn = document.getElementById('open-sidebar');
-      const closeBtn = document.getElementById('close-sidebar');
+        import { supabase } from '../lib/supabase';
 
-      function toggleSidebar() {
-        sidebar?.classList.toggle('-translate-x-full');
-        overlay?.classList.toggle('opacity-0');
-        overlay?.classList.toggle('invisible');
-      }
+        // Menu Mobile Toggle
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const openBtn = document.getElementById('open-sidebar');
+        const closeBtn = document.getElementById('close-sidebar');
 
-      openBtn?.addEventListener('click', toggleSidebar);
-      closeBtn?.addEventListener('click', toggleSidebar);
-      overlay?.addEventListener('click', toggleSidebar);
-
-      // Desktop Sidebar Collapse Toggle
-      const COLLAPSE_KEY = 'msia-admin-sidebar-collapsed';
-      const toggleBtn = document.getElementById('toggle-sidebar');
-      function applyCollapsed(collapsed: boolean) {
-        document.documentElement.setAttribute('data-admin-collapsed', String(collapsed));
-        try { localStorage.setItem(COLLAPSE_KEY, String(collapsed)); } catch {}
-        if (toggleBtn) {
-          const label = collapsed ? 'Expandir menu' : 'Recolher menu';
-          toggleBtn.setAttribute('aria-label', label);
-          toggleBtn.setAttribute('title', label);
-        }
-      }
-      const initialCollapsed = (() => {
-        try { return localStorage.getItem(COLLAPSE_KEY) === 'true'; } catch { return false; }
-      })();
-      applyCollapsed(initialCollapsed);
-      toggleBtn?.addEventListener('click', () => {
-        const current = document.documentElement.getAttribute('data-admin-collapsed') === 'true';
-        applyCollapsed(!current);
-      });
-
-      async function checkAdminAuth() {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          window.location.href = '/';
-          return;
+        function toggleSidebar() {
+            sidebar?.classList.toggle('-translate-x-full');
+            overlay?.classList.toggle('opacity-0');
+            overlay?.classList.toggle('invisible');
         }
 
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id);
+        openBtn?.addEventListener('click', toggleSidebar);
+        closeBtn?.addEventListener('click', toggleSidebar);
+        overlay?.addEventListener('click', toggleSidebar);
 
-        const isAdmin = profiles?.some(p => p.role === 'admin');
+        // Desktop Sidebar Collapse Toggle
+        const COLLAPSE_KEY = 'msia-admin-sidebar-collapsed';
+        const toggleBtn = document.getElementById('toggle-sidebar');
+        function applyCollapsed(collapsed: boolean) {
+            document.documentElement.setAttribute('data-admin-collapsed', String(collapsed));
+            try { localStorage.setItem(COLLAPSE_KEY, String(collapsed)); } catch {}
+            if (toggleBtn) {
+                const label = collapsed ? 'Expandir menu' : 'Recolher menu';
+                toggleBtn.setAttribute('aria-label', label);
+                toggleBtn.setAttribute('title', label);
+            }
+        }
+        const initialCollapsed = (() => {
+            try { return localStorage.getItem(COLLAPSE_KEY) === 'true'; } catch { return false; }
+        })();
+        applyCollapsed(initialCollapsed);
+        toggleBtn?.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-admin-collapsed') === 'true';
+            applyCollapsed(!current);
+        });
 
-        if (!isAdmin) {
-          window.location.href = '/sites';
-          return;
+        async function checkAdminAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = '/';
+                return;
+            }
+
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id);
+
+            const isAdmin = profiles?.some(p => p.role === 'admin');
+
+            if (!isAdmin) {
+                window.location.href = '/dashboard';
+                return;
+            }
+
+            const loader = document.getElementById('admin-loader');
+            if (loader) loader.style.display = 'none';
         }
 
-        // Removendo o loader se for admin
-        const loader = document.getElementById('admin-loader');
-        if (loader) loader.style.display = 'none';
-      }
+        checkAdminAuth();
 
-      checkAdminAuth();
+        async function handleLogout() {
+            await supabase.auth.signOut();
+            window.location.href = '/';
+        }
 
-      async function handleLogout() {
-        await supabase.auth.signOut();
-        window.location.href = '/';
-      }
-
-      document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+        document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
     </script>
-	</body>
+    </body>
 </html>

@@ -1,10 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import {
     ArrowLeft, ArrowRight, Check, Sparkles, Loader2, Lightbulb,
     Store, FileText, Megaphone, Building2, Briefcase, UtensilsCrossed,
     UserCircle2, GraduationCap, Link2, Users, Calendar, Home, Cog, HelpCircle,
+    ThumbsUp, Search,
 } from 'lucide-react';
+import { Card, Banner, Field, Input, Textarea } from './ui';
+
+// Domingo da semana atual em UTC — mesmo cálculo do VotingPanel
+function getCurrentWeekStart(): string {
+    const now = new Date();
+    const dow = now.getUTCDay();
+    const sunday = new Date(now);
+    sunday.setUTCDate(now.getUTCDate() - dow);
+    sunday.setUTCHours(0, 0, 0, 0);
+    return sunday.toISOString().slice(0, 10);
+}
+
+interface SimilarRequest {
+    id: string;
+    niche: string;
+    business_type: string;
+    user_name: string;
+    votes_count: number;
+    user_voted: boolean;
+}
 
 interface BusinessOption {
     value: string;
@@ -51,7 +72,8 @@ const FEATURES: { value: string; label: string }[] = [
     { value: 'pdf-download', label: 'Download de PDFs / e-books' },
 ];
 
-// Cada estilo tem um mini-preview visual gerado em CSS (sem imagem externa)
+// Previews CSS dos estilos — mantidos como mockups internos (representação dos estilos
+// sendo demonstrados ao user, NÃO refletem a paleta MSIA principal).
 const STYLES: { value: string; label: string; preview: React.ReactNode }[] = [
     {
         value: 'moderno-minimalista',
@@ -263,8 +285,8 @@ export default function TemplateRequestForm() {
             const { error: insertError } = await supabase.from('template_requests').insert(payload);
             if (insertError) throw insertError;
             setSubmitted(true);
-        } catch (e: any) {
-            setError(e?.message || 'Erro ao enviar. Tenta de novo daqui a pouco.');
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : 'Erro ao enviar. Tenta de novo daqui a pouco.');
         } finally {
             setSubmitting(false);
         }
@@ -279,71 +301,82 @@ export default function TemplateRequestForm() {
 
     if (submitted) {
         return (
-            <div className="max-w-2xl mx-auto">
-                <div className="bg-white rounded-2xl border border-emerald-200 shadow-sm p-10 text-center">
-                    <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Check className="w-8 h-8 text-emerald-600" />
+            <Card padding="lg" className="max-w-2xl mx-auto !border-verde-oliva/40">
+                <div className="text-center py-6">
+                    <div className="w-16 h-16 bg-verde-oliva rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Check className="w-8 h-8 text-papel-craft" strokeWidth={2.5} />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Solicitação enviada!</h2>
-                    <p className="text-gray-600 mb-6">
-                        Recebemos sua sugestão e ela já está na nossa fila de análise.
-                        Quando criarmos um template que encaixe no seu pedido, você é avisado.
+                    <h2 className="font-display text-2xl font-normal text-carvao-quente tracking-tight">
+                        Solicitação enviada.
+                    </h2>
+                    <p className="text-base text-cafe-medio mt-2 mb-6 max-w-md mx-auto leading-relaxed">
+                        Recebemos sua sugestão e ela já entra na votação dessa semana. Outros alunos podem votar — se for a campeã, vira template ao vivo na sexta.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <button
+                            type="button"
                             onClick={resetForm}
-                            className="px-6 py-3 bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold rounded-xl transition-colors"
+                            className="inline-flex items-center justify-center gap-2 bg-coral-terra hover:bg-terracota-profundo text-papel-craft px-5 py-2.5 rounded-[12px] font-semibold text-sm transition-colors active:scale-[0.98] min-h-[44px]"
                         >
                             Enviar outra sugestão
                         </button>
                         <a
                             href="/dashboard"
-                            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors"
+                            className="inline-flex items-center justify-center gap-2 bg-cream-elevated hover:bg-coral-wash text-carvao-quente hover:text-terracota-profundo border border-borda-cafe px-5 py-2.5 rounded-[12px] font-semibold text-sm transition-colors active:scale-[0.98] min-h-[44px]"
                         >
                             Voltar ao dashboard
                         </a>
                     </div>
                 </div>
-            </div>
+            </Card>
         );
     }
 
     return (
-        <div className="max-w-3xl mx-auto pb-12">
-            {/* Header explanation */}
-            <div className="mb-6 flex items-start gap-4 bg-violet-50 border border-violet-100 rounded-2xl p-5">
-                <div className="w-10 h-10 bg-[#7c3aed] rounded-xl flex items-center justify-center shrink-0">
-                    <Lightbulb className="w-5 h-5 text-white" />
+        <div className="max-w-3xl mx-auto pb-8 space-y-6">
+            {/* Header explicação */}
+            <Card padding="md" className="!border-coral-terra/30">
+                <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-coral-wash flex items-center justify-center shrink-0">
+                        <Lightbulb className="w-5 h-5 text-coral-terra" />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                            Sugira o template que você precisa
+                        </p>
+                        <p className="text-sm text-cafe-medio mt-1 leading-relaxed">
+                            Não achou template ideal pro seu nicho? Conta o que falta — leva 2-3 minutos. Outros alunos votam na sua sugestão. As mais votadas viram template ao vivo.
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h2 className="font-bold text-gray-900 mb-1">Ajude a gente a criar o template que você precisa</h2>
-                    <p className="text-sm text-gray-600">
-                        Não achou um template ideal pro seu nicho? Conta o que falta. Levamos 2-3 minutos pra você responder
-                        e a gente prioriza criar templates baseado nessa demanda real.
-                    </p>
-                </div>
-            </div>
+            </Card>
 
             {/* Stepper */}
-            <div className="flex items-center justify-between mb-8 px-2">
+            <div className="flex items-center justify-between px-2">
                 {[1, 2, 3].map((n, i) => (
                     <div key={n} className="flex items-center flex-1">
                         <div className={`relative flex flex-col items-center ${i === 0 ? '' : 'flex-1'}`}>
                             {i > 0 && (
-                                <div className={`absolute right-1/2 top-5 h-0.5 w-full ${step > n - 1 ? 'bg-[#7c3aed]' : 'bg-gray-200'}`} />
+                                <div className={`absolute right-1/2 top-5 h-px w-full ${step > n - 1 ? 'bg-coral-terra' : 'bg-borda-cafe'}`} />
                             )}
                             <div
-                                className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 transition-all ${
+                                className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm border transition-colors ${
                                     step > n
-                                        ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
+                                        ? 'bg-verde-oliva border-verde-oliva text-papel-craft'
                                         : step === n
-                                            ? 'bg-white border-[#7c3aed] text-[#7c3aed] shadow-md shadow-purple-500/20'
-                                            : 'bg-gray-100 border-gray-200 text-gray-400'
+                                            ? 'bg-coral-terra border-coral-terra text-papel-craft'
+                                            : 'bg-cream-elevated border-borda-cafe text-cafe-cinza-quente'
                                 }`}
                             >
-                                {step > n ? <Check className="w-5 h-5" /> : n}
+                                {step > n ? <Check className="w-5 h-5" strokeWidth={2.5} /> : <span className="tabular-nums">{n}</span>}
                             </div>
-                            <span className={`mt-2 text-xs font-semibold whitespace-nowrap ${step === n ? 'text-[#7c3aed]' : step > n ? 'text-gray-700' : 'text-gray-400'}`}>
+                            <span className={`mt-2 text-xs font-semibold whitespace-nowrap ${
+                                step === n
+                                    ? 'text-coral-terra'
+                                    : step > n
+                                        ? 'text-carvao-quente'
+                                        : 'text-cafe-cinza-quente'
+                            }`}>
                                 {n === 1 ? 'Negócio' : n === 2 ? 'Funcionalidades' : 'Estilo'}
                             </span>
                         </div>
@@ -351,61 +384,158 @@ export default function TemplateRequestForm() {
                 ))}
             </div>
 
-            {/* Card */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8">
+            {/* Card do wizard */}
+            <Card padding="lg" className="space-y-6">
                 {step === 1 && <Step1 form={form} update={updateField} />}
                 {step === 2 && <Step2 form={form} toggleFeature={toggleFeature} />}
                 {step === 3 && <Step3 form={form} update={updateField} updateRefUrl={updateRefUrl} />}
 
-                {error && (
-                    <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700">
-                        {error}
-                    </div>
-                )}
+                {error && <Banner tone="error">{error}</Banner>}
 
                 {/* Navigation */}
-                <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+                <div className="flex items-center justify-between pt-5 border-t border-borda-cafe">
                     <button
+                        type="button"
                         onClick={prev}
                         disabled={step === 1}
-                        className="flex items-center gap-2 px-4 py-2.5 text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed font-medium transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 text-cafe-medio hover:text-coral-terra disabled:opacity-30 disabled:cursor-not-allowed font-semibold text-sm transition-colors min-h-[44px]"
                     >
                         <ArrowLeft className="w-4 h-4" />
                         Voltar
                     </button>
                     {step < 3 ? (
                         <button
+                            type="button"
                             onClick={next}
                             disabled={!canAdvance()}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-[#7c3aed] hover:bg-[#6d28d9] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-md shadow-purple-500/20"
+                            className="inline-flex items-center gap-2 bg-coral-terra hover:bg-terracota-profundo disabled:opacity-60 disabled:cursor-not-allowed text-papel-craft px-5 py-2.5 rounded-[12px] font-semibold text-sm transition-colors active:scale-[0.98] min-h-[44px]"
                         >
                             Próximo
                             <ArrowRight className="w-4 h-4" />
                         </button>
                     ) : (
                         <button
+                            type="button"
                             onClick={handleSubmit}
                             disabled={!canAdvance() || submitting}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors shadow-md shadow-emerald-500/20"
+                            className="inline-flex items-center gap-2 bg-coral-terra hover:bg-terracota-profundo disabled:opacity-60 disabled:cursor-not-allowed text-papel-craft px-5 py-2.5 rounded-[12px] font-semibold text-sm transition-colors active:scale-[0.98] min-h-[44px]"
                         >
                             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                            {submitting ? 'Enviando...' : 'Enviar solicitação'}
+                            {submitting ? 'Enviando…' : 'Enviar solicitação'}
                         </button>
                     )}
                 </div>
-            </div>
-
+            </Card>
         </div>
     );
 }
 
-function Step1({ form, update }: { form: FormState; update: <K extends keyof FormState>(k: K, v: FormState[K]) => void }) {
+// ── STEP 1 ─────────────────────────────────────────────────────────────
+function Step1({ form, update }: {
+    form: FormState;
+    update: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+}) {
+    const [similar, setSimilar] = useState<SimilarRequest[]>([]);
+    const [searching, setSearching] = useState(false);
+    const [supporting, setSupporting] = useState<Record<string, boolean>>({});
+
+    useEffect(() => {
+        const q = form.niche.trim();
+        if (q.length < 4) {
+            setSimilar([]);
+            return;
+        }
+        const timer = setTimeout(async () => {
+            setSearching(true);
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const uid = session?.user.id || null;
+
+                const baseQ = supabase
+                    .from('template_requests')
+                    .select('id, niche, business_type, user_name')
+                    .ilike('niche', `%${q}%`)
+                    .in('status', ['new', 'in_review', 'planned', 'in_progress'])
+                    .limit(3);
+
+                const { data: matches } = form.businessType
+                    ? await baseQ.eq('business_type', form.businessType)
+                    : await baseQ;
+
+                if (!matches || matches.length === 0) {
+                    setSimilar([]);
+                    return;
+                }
+
+                const ids = matches.map(m => m.id);
+                const weekStart = getCurrentWeekStart();
+                const { data: votes } = await supabase
+                    .from('template_request_votes')
+                    .select('request_id, user_id')
+                    .in('request_id', ids)
+                    .eq('week_start', weekStart);
+
+                const countMap: Record<string, number> = {};
+                const minePresence: Record<string, boolean> = {};
+                (votes || []).forEach((v: { request_id: string; user_id: string }) => {
+                    countMap[v.request_id] = (countMap[v.request_id] || 0) + 1;
+                    if (uid && v.user_id === uid) minePresence[v.request_id] = true;
+                });
+
+                setSimilar(matches.map(m => ({
+                    id: m.id,
+                    niche: m.niche,
+                    business_type: m.business_type,
+                    user_name: m.user_name || 'aluno',
+                    votes_count: countMap[m.id] || 0,
+                    user_voted: minePresence[m.id] || false,
+                })));
+            } catch {
+                setSimilar([]);
+            } finally {
+                setSearching(false);
+            }
+        }, 600);
+        return () => clearTimeout(timer);
+    }, [form.niche, form.businessType]);
+
+    async function supportExisting(req: SimilarRequest) {
+        if (req.user_voted) return;
+        setSupporting(prev => ({ ...prev, [req.id]: true }));
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert('Você precisa estar logado pra apoiar.');
+                return;
+            }
+            const { error } = await supabase
+                .from('template_request_votes')
+                .insert({
+                    request_id: req.id,
+                    user_id: session.user.id,
+                    week_start: getCurrentWeekStart(),
+                });
+            if (error) throw error;
+            setSimilar(prev => prev.map(s => s.id === req.id
+                ? { ...s, user_voted: true, votes_count: s.votes_count + 1 }
+                : s));
+        } catch (e: unknown) {
+            alert('Erro: ' + (e instanceof Error ? e.message : 'falha ao apoiar'));
+        } finally {
+            setSupporting(prev => ({ ...prev, [req.id]: false }));
+        }
+    }
+
     return (
         <>
-            <h3 className="text-xl font-bold text-gray-900 mb-1">Qual o tipo de site?</h3>
-            <p className="text-sm text-gray-500 mb-6">Escolhe a opção que mais se aproxima. Depois afine nos campos abaixo.</p>
+            <div>
+                <h3 className="font-display text-xl font-normal text-carvao-quente tracking-tight">
+                    Qual o tipo de site?
+                </h3>
+                <p className="text-sm text-cafe-medio mt-1">Escolhe a opção mais próxima. Depois afina nos campos abaixo.</p>
+            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {BUSINESS_TYPES.map(opt => {
                     const Icon = opt.icon;
                     const selected = form.businessType === opt.value;
@@ -414,48 +544,118 @@ function Step1({ form, update }: { form: FormState; update: <K extends keyof For
                             key={opt.value}
                             type="button"
                             onClick={() => update('businessType', opt.value)}
-                            className={`text-left p-3 rounded-xl border-2 transition-all ${
+                            className={`text-left p-3 rounded-[10px] border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra ${
                                 selected
-                                    ? 'border-[#7c3aed] bg-violet-50 shadow-md shadow-purple-500/10'
-                                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                                    ? 'border-coral-terra bg-coral-wash'
+                                    : 'border-borda-cafe bg-cream-elevated hover:bg-coral-wash/50 hover:border-coral-terra/30'
                             }`}
                         >
-                            <Icon className={`w-5 h-5 mb-2 ${selected ? 'text-[#7c3aed]' : 'text-gray-500'}`} />
-                            <p className={`font-semibold text-sm ${selected ? 'text-[#7c3aed]' : 'text-gray-800'}`}>{opt.label}</p>
-                            <p className="text-[11px] text-gray-500 mt-0.5 leading-tight">{opt.description}</p>
+                            <Icon className={`w-5 h-5 mb-2 ${selected ? 'text-coral-terra' : 'text-cafe-cinza-quente'}`} />
+                            <p className={`font-semibold text-sm ${selected ? 'text-terracota-profundo' : 'text-carvao-quente'}`}>
+                                {opt.label}
+                            </p>
+                            <p className="text-xs text-cafe-medio mt-0.5 leading-tight">{opt.description}</p>
                         </button>
                     );
                 })}
             </div>
 
-            <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Nicho específico <span className="text-red-500">*</span>
-                </label>
-                <input
+            <Field
+                label="Nicho específico"
+                htmlFor="niche"
+                helper='Quanto mais específico, melhor — não vale só "blog" ou "loja".'
+            >
+                <Input
+                    id="niche"
                     type="text"
                     value={form.niche}
                     onChange={e => update('niche', e.target.value)}
-                    placeholder="Ex: Restaurante japonês em São Paulo, Blog sobre maternidade real, Loja de produtos veganos..."
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#7c3aed] focus:ring-2 focus:ring-purple-500/20"
+                    placeholder="Ex: Restaurante japonês em SP, Blog sobre maternidade real, Loja de produtos veganos…"
+                    required
                 />
-                <p className="text-xs text-gray-500 mt-1">Quanto mais específico, melhor — não vale só "blog" ou "loja".</p>
-            </div>
+            </Field>
+
+            {/* Detecção de duplicados */}
+            {form.niche.trim().length >= 4 && (searching || similar.length > 0) && (
+                <div className="rounded-[10px] border border-mostarda-amber/40 bg-[oklch(97%_0.025_80)] p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                        {searching ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-[oklch(45%_0.110_80)]" />
+                        ) : (
+                            <Search className="w-4 h-4 text-[oklch(45%_0.110_80)]" />
+                        )}
+                        <p className="text-xs font-bold uppercase tracking-[0.12em] text-[oklch(40%_0.110_80)]">
+                            {searching ? 'Buscando pedidos parecidos…' : `Já encontrei ${similar.length} pedido${similar.length > 1 ? 's' : ''} parecido${similar.length > 1 ? 's' : ''}`}
+                        </p>
+                    </div>
+                    {!searching && similar.length > 0 && (
+                        <>
+                            <p className="text-sm text-cafe-medio mb-3 leading-relaxed">
+                                Em vez de criar novo, você pode <strong className="text-carvao-quente">apoiar um pedido existente</strong> — ele ganha mais votos e sobe na fila.
+                            </p>
+                            <div className="space-y-2">
+                                {similar.map(s => (
+                                    <div key={s.id} className="flex items-center gap-3 bg-cream-surface border border-borda-cafe rounded-[8px] p-3">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-semibold text-sm text-carvao-quente truncate">{s.niche}</p>
+                                            <p className="text-xs text-cafe-cinza-quente mt-0.5">
+                                                Por <strong className="text-cafe-medio">{s.user_name}</strong>
+                                                {' · '}
+                                                <span className="tabular-nums">{s.votes_count} {s.votes_count === 1 ? 'voto' : 'votos'} essa semana</span>
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => supportExisting(s)}
+                                            disabled={s.user_voted || !!supporting[s.id]}
+                                            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-[8px] font-semibold text-xs whitespace-nowrap transition-colors min-h-[36px] shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra disabled:cursor-default ${
+                                                s.user_voted
+                                                    ? 'bg-verde-oliva text-papel-craft'
+                                                    : 'bg-coral-terra hover:bg-terracota-profundo text-papel-craft active:scale-[0.98]'
+                                            }`}
+                                        >
+                                            {supporting[s.id] ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : s.user_voted ? (
+                                                <><Check className="w-3.5 h-3.5" strokeWidth={3} /> Apoiada</>
+                                            ) : (
+                                                <><ThumbsUp className="w-3.5 h-3.5" /> Apoiar</>
+                                            )}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-xs text-cafe-cinza-quente mt-3">
+                                Não é nenhum desses? Continue preenchendo abaixo — sua sugestão também entra na votação.
+                            </p>
+                        </>
+                    )}
+                </div>
+            )}
         </>
     );
 }
 
+// ── STEP 2 ─────────────────────────────────────────────────────────────
 function Step2({ form, toggleFeature }: {
     form: FormState;
     toggleFeature: (v: string) => void;
 }) {
     return (
         <>
-            <h3 className="text-xl font-bold text-gray-900 mb-1">O que o site precisa fazer?</h3>
-            <p className="text-sm text-gray-500 mb-6">Marca tudo que faz sentido pro seu caso. Quanto mais marca, melhor a gente entende.</p>
-
             <div>
-                <p className="text-sm font-semibold text-gray-700 mb-3">Funcionalidades (escolha 1 ou mais)</p>
+                <h3 className="font-display text-xl font-normal text-carvao-quente tracking-tight">
+                    O que o site precisa fazer?
+                </h3>
+                <p className="text-sm text-cafe-medio mt-1">
+                    Marca tudo que faz sentido. Quanto mais marca, melhor a gente entende.
+                </p>
+            </div>
+
+            <div className="space-y-3">
+                <p className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-[0.12em]">
+                    Funcionalidades (mínimo 1)
+                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {FEATURES.map(f => {
                         const checked = form.features.includes(f.value);
@@ -464,18 +664,20 @@ function Step2({ form, toggleFeature }: {
                                 key={f.value}
                                 type="button"
                                 onClick={() => toggleFeature(f.value)}
-                                className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                                className={`flex items-center gap-3 p-3 rounded-[10px] border transition-colors text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra ${
                                     checked
-                                        ? 'border-[#7c3aed] bg-violet-50'
-                                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                                        ? 'border-coral-terra bg-coral-wash'
+                                        : 'border-borda-cafe bg-cream-elevated hover:bg-coral-wash/50 hover:border-coral-terra/30'
                                 }`}
                             >
-                                <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 transition-all ${
-                                    checked ? 'bg-[#7c3aed]' : 'bg-white border-2 border-gray-300'
+                                <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors ${
+                                    checked ? 'bg-coral-terra' : 'bg-cream-surface border border-borda-cafe'
                                 }`}>
-                                    {checked && <Check className="w-3.5 h-3.5 text-white" />}
+                                    {checked && <Check className="w-3.5 h-3.5 text-papel-craft" strokeWidth={3} />}
                                 </div>
-                                <span className={`text-sm ${checked ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{f.label}</span>
+                                <span className={`text-sm ${checked ? 'font-semibold text-terracota-profundo' : 'text-carvao-quente'}`}>
+                                    {f.label}
+                                </span>
                             </button>
                         );
                     })}
@@ -485,6 +687,7 @@ function Step2({ form, toggleFeature }: {
     );
 }
 
+// ── STEP 3 ─────────────────────────────────────────────────────────────
 function Step3({ form, update, updateRefUrl }: {
     form: FormState;
     update: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
@@ -492,13 +695,19 @@ function Step3({ form, update, updateRefUrl }: {
 }) {
     return (
         <>
-            <h3 className="text-xl font-bold text-gray-900 mb-1">Que vibe você quer?</h3>
-            <p className="text-sm text-gray-500 mb-6">Escolhe o estilo visual que mais te agrada. Não pensa muito — vai pelo que olha e gosta.</p>
+            <div>
+                <h3 className="font-display text-xl font-normal text-carvao-quente tracking-tight">
+                    Que vibe você quer?
+                </h3>
+                <p className="text-sm text-cafe-medio mt-1">
+                    Escolhe o estilo visual que mais te agrada. Não pensa muito, vai pelo que olha e gosta.
+                </p>
+            </div>
 
-            <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Estilo visual <span className="text-red-500">*</span>
-                </label>
+            <div className="space-y-3">
+                <p className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-[0.12em]">
+                    Estilo visual
+                </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {STYLES.map(s => {
                         const selected = form.stylePreference === s.value;
@@ -507,21 +716,25 @@ function Step3({ form, update, updateRefUrl }: {
                                 key={s.value}
                                 type="button"
                                 onClick={() => update('stylePreference', s.value)}
-                                className={`group rounded-xl border-2 transition-all overflow-hidden ${
+                                className={`group rounded-[10px] border transition-colors overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra ${
                                     selected
-                                        ? 'border-[#7c3aed] shadow-md shadow-purple-500/20 ring-2 ring-purple-500/20'
-                                        : 'border-gray-200 hover:border-gray-400'
+                                        ? 'border-coral-terra ring-2 ring-coral-terra/30'
+                                        : 'border-borda-cafe hover:border-coral-terra/40'
                                 }`}
                             >
                                 <div className="relative aspect-[4/3] overflow-hidden">
                                     {s.preview}
                                     {selected && (
-                                        <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-[#7c3aed] rounded-full flex items-center justify-center shadow-md">
-                                            <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                                        <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-coral-terra rounded-full flex items-center justify-center shadow-[0_2px_6px_rgba(80,40,20,0.20)]">
+                                            <Check className="w-3 h-3 text-papel-craft" strokeWidth={3} />
                                         </div>
                                     )}
                                 </div>
-                                <p className={`p-2.5 text-xs text-center leading-tight ${selected ? 'font-bold text-[#7c3aed] bg-violet-50' : 'font-semibold text-gray-700 bg-white'}`}>
+                                <p className={`p-2.5 text-xs text-center leading-tight ${
+                                    selected
+                                        ? 'font-semibold text-terracota-profundo bg-coral-wash'
+                                        : 'font-semibold text-carvao-quente bg-cream-elevated'
+                                }`}>
                                     {s.label}
                                 </p>
                             </button>
@@ -530,38 +743,35 @@ function Step3({ form, update, updateRefUrl }: {
                 </div>
             </div>
 
-            <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Sites que você gosta (opcional, até 3)
-                </label>
+            <Field
+                label="Sites que você gosta"
+                htmlFor="ref-url-0"
+                optional
+                helper="Não precisa ser do mesmo nicho — qualquer site cujo visual te agrade (até 3)."
+            >
                 <div className="space-y-2">
                     {form.referenceUrls.map((url, i) => (
-                        <input
+                        <Input
                             key={i}
+                            id={`ref-url-${i}`}
                             type="url"
                             value={url}
                             onChange={e => updateRefUrl(i, e.target.value)}
                             placeholder={`https://exemplo${i + 1}.com`}
-                            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#7c3aed] focus:ring-2 focus:ring-purple-500/20"
                         />
                     ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Não precisa ser do mesmo nicho — qualquer site cujo visual te agrade.</p>
-            </div>
+            </Field>
 
-            <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Mais alguma coisa? (opcional)
-                </label>
-                <textarea
+            <Field label="Mais alguma coisa?" htmlFor="extra-notes" optional>
+                <Textarea
+                    id="extra-notes"
                     value={form.extraNotes}
                     onChange={e => update('extraNotes', e.target.value)}
-                    placeholder="Qualquer detalhe extra que ajude a gente a entender o que você precisa..."
+                    placeholder="Qualquer detalhe extra que ajude a gente a entender o que você precisa…"
                     rows={4}
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#7c3aed] focus:ring-2 focus:ring-purple-500/20 resize-none"
                 />
-            </div>
+            </Field>
         </>
     );
 }
-

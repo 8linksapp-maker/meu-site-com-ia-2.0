@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { ThumbsUp, Lightbulb, FileText, Vote, Sparkles, Plus } from 'lucide-react';
+import { ThumbsUp, FileText, Plus } from 'lucide-react';
+import { Tabs } from '../ui';
+import type { TabItem } from '../ui';
 import VotingPanel from './VotingPanel';
 import MyRequestsPanel from './MyRequestsPanel';
 import TemplateRequestForm from '../TemplateRequestForm';
@@ -11,24 +13,28 @@ export default function TemplateCommunityPage() {
     const [refreshKey, setRefreshKey] = useState(0);
 
     function handleSubmittedFromForm() {
-        // O form mostra sua própria tela de sucesso. Aqui só forçamos
-        // a aba "Minhas" remontar quando o aluno voltar pra ela.
+        // Quando o aluno envia uma solicitação, força "Minhas" remontar quando voltar pra ela.
         setRefreshKey(k => k + 1);
     }
 
+    const tabs: TabItem[] = [
+        { id: 'vote', label: 'Votar' },
+        { id: 'create', label: 'Solicitar' },
+        { id: 'mine', label: 'Minhas' },
+    ];
+
     return (
-        <div className="max-w-5xl mx-auto">
-            <div className="mb-6">
-                <h1 className="text-2xl font-black text-gray-900 mb-1">Templates da Comunidade</h1>
-                <p className="text-sm text-gray-500">Vote nos templates que quer ver, sugira novos ou acompanhe seus pedidos.</p>
+        <div className="max-w-5xl mx-auto space-y-6 pb-8">
+            <div>
+                <h1 className="font-display text-3xl md:text-[2rem] font-normal text-carvao-quente tracking-tight">
+                    Comunidade
+                </h1>
+                <p className="text-base text-cafe-medio mt-1.5">
+                    Vote nos próximos templates da plataforma, sugira novos ou acompanhe suas solicitações.
+                </p>
             </div>
 
-            {/* Tabs */}
-            <div className="flex items-center gap-1 mb-6 border-b border-gray-200">
-                <TabButton active={tab === 'vote'} onClick={() => setTab('vote')} icon={ThumbsUp} label="Votar" />
-                <TabButton active={tab === 'create'} onClick={() => setTab('create')} icon={Plus} label="Solicitar" />
-                <TabButton active={tab === 'mine'} onClick={() => setTab('mine')} icon={FileText} label="Minhas" />
-            </div>
+            <Tabs items={tabs} activeId={tab} onChange={(id) => setTab(id as Tab)} />
 
             {tab === 'vote' && <VotingPanel />}
             {tab === 'create' && (
@@ -38,22 +44,5 @@ export default function TemplateCommunityPage() {
             )}
             {tab === 'mine' && <MyRequestsPanel key={refreshKey} onGoToCreate={() => setTab('create')} />}
         </div>
-    );
-}
-
-function TabButton({ active, onClick, icon: Icon, label }: {
-    active: boolean; onClick: () => void; icon: React.ElementType; label: string;
-}) {
-    return (
-        <button
-            onClick={onClick}
-            className={`relative flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors ${
-                active ? 'text-[#7c3aed]' : 'text-gray-500 hover:text-gray-800'
-            }`}
-        >
-            <Icon className="w-4 h-4" />
-            {label}
-            {active && <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-[#7c3aed] rounded-full" />}
-        </button>
     );
 }

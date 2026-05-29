@@ -22,3 +22,12 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+.claude-persona
+
+# vercel build output
+.vercel/
+
+# agent-teams local config
+.team.yaml
+

@@ -1,15 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import {
-    Check, Eye, EyeOff, Shield, Zap, ArrowRight,
-    Info, AlertCircle, CheckCircle2, Lock, Settings2
-} from 'lucide-react';
+import { Check, Eye, EyeOff, AlertCircle, ArrowRight } from 'lucide-react';
+import { Tabs, Banner, Button, Field, Input, Card } from './ui';
+import type { TabItem } from './ui';
 import { TutorialBlockBySlug } from './ui/TutorialBlock';
 
-// ── SVG ICONS ─────────────────────────────────────────────────────────
+// ── SVG ICONS de marca (mantidos locais) ─────────────────────────────────
 function VercelIcon({ className = 'w-5 h-5' }: { className?: string }) {
     return (
-        <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M24 22.525H0l12-21.05 12 21.05z" />
         </svg>
     );
@@ -17,15 +16,20 @@ function VercelIcon({ className = 'w-5 h-5' }: { className?: string }) {
 
 function GithubIcon({ className = 'w-5 h-5' }: { className?: string }) {
     return (
-        <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
         </svg>
     );
 }
 
-// ── STEP CARD ─────────────────────────────────────────────────────────
+// ── STEP CARD Café-da-Tarde ──────────────────────────────────────────────
 function StepCard({
-    step, title, icon, isComplete, isCurrent, children,
+    step,
+    title,
+    icon,
+    isComplete,
+    isCurrent,
+    children,
 }: {
     step: number;
     title: string;
@@ -37,60 +41,69 @@ function StepCard({
     const [open, setOpen] = useState(isCurrent);
     const prevIsCurrent = useRef(isCurrent);
     useEffect(() => {
-        // Só auto-abre quando este step se torna o atual (false → true)
-        // Nunca força fechamento — respeita o toggle manual do usuário
         if (isCurrent && !prevIsCurrent.current) setOpen(true);
         prevIsCurrent.current = isCurrent;
     }, [isCurrent]);
 
+    const stateBorder = isComplete
+        ? 'border-verde-oliva/40'
+        : isCurrent
+            ? 'border-coral-terra/30'
+            : 'border-borda-cafe';
+    const stateBg = isComplete
+        ? 'bg-[oklch(96%_0.020_145)]'
+        : 'bg-cream-surface';
+    const opacity = !isComplete && !isCurrent ? 'opacity-70' : '';
+
+    const iconChipBg = isComplete
+        ? 'bg-verde-oliva text-papel-craft'
+        : isCurrent
+            ? 'bg-coral-terra text-papel-craft'
+            : 'bg-cream-elevated text-cafe-cinza-quente';
+    const eyebrowColor = isComplete
+        ? 'text-[oklch(40%_0.060_145)]'
+        : isCurrent
+            ? 'text-coral-terra'
+            : 'text-cafe-cinza-quente';
+    const titleColor = isComplete || isCurrent
+        ? 'text-carvao-quente'
+        : 'text-cafe-cinza-quente';
+
     return (
-        <div className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
-            isComplete
-                ? 'border-emerald-200 bg-emerald-50/40'
-                : isCurrent
-                    ? 'border-[#7c3aed]/25 bg-white shadow-sm shadow-purple-100'
-                    : 'border-gray-100 bg-white opacity-60'
-        }`}>
+        <div className={`border ${stateBorder} ${stateBg} ${opacity} rounded-[12px] overflow-hidden transition-colors`}>
             <button
                 type="button"
                 onClick={() => setOpen(o => !o)}
-                className="w-full flex items-center gap-4 p-5 text-left"
+                aria-expanded={open}
+                className="w-full flex items-center gap-4 p-4 md:p-5 text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-coral-terra"
             >
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-all ${
-                    isComplete
-                        ? 'bg-emerald-500 text-white'
-                        : isCurrent
-                            ? 'bg-[#7c3aed] text-white shadow-md shadow-purple-200'
-                            : 'bg-gray-100 text-gray-400'
-                }`}>
+                <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 transition-colors ${iconChipBg}`}>
                     {isComplete ? <Check className="w-5 h-5" /> : icon}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <p className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${
-                        isComplete ? 'text-emerald-600' : isCurrent ? 'text-[#7c3aed]' : 'text-gray-400'
-                    }`}>
+                    <p className={`text-xs font-bold uppercase tracking-[0.12em] mb-0.5 ${eyebrowColor}`}>
                         Passo {step} de 2
                     </p>
-                    <p className={`font-black text-sm ${isComplete || isCurrent ? 'text-gray-900' : 'text-gray-400'}`}>
+                    <p className={`font-semibold text-sm ${titleColor}`}>
                         {title}
                     </p>
                 </div>
 
                 {isComplete && (
-                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-full shrink-0 border border-emerald-200">
-                        Configurado ✓
+                    <span className="px-2.5 py-1 bg-verde-oliva text-papel-craft text-xs font-semibold rounded-full shrink-0 uppercase tracking-wide">
+                        Conectado
                     </span>
                 )}
                 {!isComplete && !isCurrent && (
-                    <span className="px-2.5 py-1 bg-gray-100 text-gray-400 text-[10px] font-bold rounded-full shrink-0">
-                        Pendente
+                    <span className="px-2.5 py-1 bg-cream-elevated text-cafe-cinza-quente text-xs font-semibold rounded-full shrink-0 uppercase tracking-wide">
+                        Falta fazer
                     </span>
                 )}
             </button>
 
             {open && (
-                <div className="px-5 pb-6 pt-1">
+                <div className="px-4 md:px-5 pb-5 pt-1">
                     {children}
                 </div>
             )}
@@ -98,10 +111,15 @@ function StepCard({
     );
 }
 
-// ── TOKEN INPUT ───────────────────────────────────────────────────────
+// ── TOKEN INPUT (custom — usa <Input> com rightAddon pra eye toggle) ─────
 function TokenInput({
-    value, onChange, placeholder, isValid,
+    id,
+    value,
+    onChange,
+    placeholder,
+    isValid,
 }: {
+    id?: string;
     value: string;
     onChange: (v: string) => void;
     placeholder: string;
@@ -109,38 +127,34 @@ function TokenInput({
 }) {
     const [show, setShow] = useState(false);
     return (
-        <div className="relative">
-            <input
-                type={show ? 'text' : 'password'}
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                placeholder={placeholder}
-                className={`w-full pr-20 pl-4 py-2.5 rounded-xl border text-sm font-mono transition-all outline-none ${
-                    isValid
-                        ? 'border-emerald-300 bg-emerald-50 text-emerald-800 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100'
-                        : value
-                            ? 'border-amber-300 bg-amber-50/50 text-amber-800 focus:border-[#7c3aed] focus:ring-2 focus:ring-purple-100'
-                            : 'border-gray-200 bg-gray-50 text-gray-900 focus:border-[#7c3aed] focus:ring-2 focus:ring-purple-100'
-                }`}
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                {isValid && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-                <button
-                    type="button"
-                    onClick={() => setShow(s => !s)}
-                    aria-label={show ? 'Ocultar token' : 'Mostrar token'}
-                    className="w-10 h-10 flex items-center justify-center -mr-2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                    {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-            </div>
-        </div>
+        <Input
+            id={id}
+            type={show ? 'text' : 'password'}
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="font-mono text-sm"
+            invalid={value.length > 0 && !isValid}
+            rightAddon={
+                <div className="flex items-center gap-1">
+                    {isValid && <Check className="w-4 h-4 text-verde-oliva" aria-label="Chave detectada" />}
+                    <button
+                        type="button"
+                        onClick={() => setShow(s => !s)}
+                        aria-label={show ? 'Ocultar chave' : 'Mostrar chave'}
+                        className="w-9 h-9 flex items-center justify-center text-cafe-cinza-quente hover:text-coral-terra transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-coral-terra rounded-md"
+                    >
+                        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                </div>
+            }
+        />
     );
 }
 
-// ── MAIN ──────────────────────────────────────────────────────────────
+// ── MAIN ──────────────────────────────────────────────────────────────────
 export default function ConfigSettings() {
-    const [activeTab, setActiveTab] = useState<'acesso' | 'integracao'>('integracao');
+    const [activeTab, setActiveTab] = useState<'integracao' | 'acesso'>('integracao');
 
     const [githubToken, setGithubToken] = useState('');
     const [vercelToken, setVercelToken] = useState('');
@@ -151,7 +165,7 @@ export default function ConfigSettings() {
     const [email, setEmail] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [authLoading, setAuthLoading] = useState(false);
-    const [authStatus, setAuthStatus] = useState('');
+    const [authStatus, setAuthStatus] = useState<{ tone: 'success' | 'error'; msg: string } | null>(null);
 
     const githubValid = githubToken.length > 10;
     const vercelValid = vercelToken.length > 10;
@@ -191,10 +205,10 @@ export default function ConfigSettings() {
             }).eq('id', user.id);
             if (error) throw error;
             setSaveStatus('success');
-            setSaveMsg('Tokens salvos! Agora você pode criar seus sites.');
-        } catch (err: any) {
+            setSaveMsg('Suas contas estão conectadas. Agora dá pra criar seu primeiro site.');
+        } catch (err: unknown) {
             setSaveStatus('error');
-            setSaveMsg(err.message);
+            setSaveMsg(err instanceof Error ? err.message : 'Algo deu errado salvando suas chaves.');
         } finally {
             setSaving(false);
         }
@@ -202,68 +216,55 @@ export default function ConfigSettings() {
 
     const handleUpdateAccess = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newPassword) { setAuthStatus('Digite uma nova senha.'); return; }
+        if (!newPassword) {
+            setAuthStatus({ tone: 'error', msg: 'Digite uma nova senha.' });
+            return;
+        }
         setAuthLoading(true);
-        setAuthStatus('Atualizando...');
+        setAuthStatus(null);
         try {
             const { error } = await supabase.auth.updateUser({ password: newPassword });
             if (error) throw error;
-            setAuthStatus('Senha atualizada com sucesso!');
+            setAuthStatus({ tone: 'success', msg: 'Senha atualizada.' });
             setNewPassword('');
-        } catch (err: any) {
-            setAuthStatus(`Erro: ${err.message}`);
+        } catch (err: unknown) {
+            setAuthStatus({ tone: 'error', msg: err instanceof Error ? err.message : 'Algo deu errado.' });
         } finally {
             setAuthLoading(false);
         }
     };
 
+    const tabs: TabItem[] = [
+        {
+            id: 'integracao',
+            label: 'Conexões',
+            badge: !bothSaved ? '!' : undefined,
+        },
+        { id: 'acesso', label: 'Conta' },
+    ];
+
     return (
-        <div className="max-w-2xl space-y-1">
+        <div className="max-w-2xl space-y-6 pb-8">
 
-            {/* TABS */}
-            <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl w-fit mb-6">
-                {(['integracao', 'acesso'] as const).map(tab => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${
-                            activeTab === tab
-                                ? 'bg-white text-gray-900 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                    >
-                        {tab === 'integracao' ? (
-                            <span className="flex items-center gap-2">
-                                <Zap className="w-3.5 h-3.5" />
-                                Configurar Sites
-                                {!bothSaved && <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />}
-                            </span>
-                        ) : (
-                            <span className="flex items-center gap-2">
-                                <Lock className="w-3.5 h-3.5" />
-                                Conta
-                            </span>
-                        )}
-                    </button>
-                ))}
-            </div>
+            <Tabs
+                items={tabs}
+                activeId={activeTab}
+                onChange={(id) => setActiveTab(id as 'integracao' | 'acesso')}
+            />
 
-            {/* INTEGRAÇÃO */}
+            {/* ── CONEXÕES ──────────────────────────────────────────────── */}
             {activeTab === 'integracao' && (
                 <div className="space-y-4">
-                    <div className="flex gap-3 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
-                        <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                        <p className="text-sm text-blue-700 leading-relaxed">
-                            Para publicar sites automaticamente, a plataforma precisa de acesso ao seu GitHub (para criar o repositório) e à Vercel (para fazer o deploy). Configure abaixo — é feito uma vez só.
-                        </p>
-                    </div>
+                    <Banner tone="info">
+                        Pra publicar sites automaticamente, a MSIA precisa de acesso ao seu GitHub (criar o repositório) e à Vercel (publicar online). São <strong>2 conexões grátis</strong>, feito uma vez só. A gente te guia.
+                    </Banner>
 
-                    <form onSubmit={handleSaveTokens} className="space-y-4">
+                    <form onSubmit={handleSaveTokens} className="space-y-3">
 
                         {/* PASSO 1 — GITHUB */}
                         <StepCard
                             step={1}
-                            title="Token do GitHub"
+                            title="Conectar GitHub"
                             icon={<GithubIcon className="w-5 h-5" />}
                             isComplete={githubValid}
                             isCurrent={currentStep === 1}
@@ -271,34 +272,26 @@ export default function ConfigSettings() {
                             <div className="space-y-4">
                                 <TutorialBlockBySlug slug="github-token" />
 
-                                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-2.5">
-                                    <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                                    <p className="text-xs text-amber-700">
-                                        <strong>Atenção:</strong> O token só aparece uma vez. Copie logo após gerar e cole abaixo antes de fechar a página.
-                                    </p>
-                                </div>
+                                <Banner tone="warning">
+                                    <strong>Atenção:</strong> A chave só aparece uma vez. Copie logo após gerar e cole abaixo antes de fechar a página.
+                                </Banner>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-gray-600">Seu token do GitHub</label>
+                                <Field label="Sua chave do GitHub" htmlFor="github-token">
                                     <TokenInput
+                                        id="github-token"
                                         value={githubToken}
                                         onChange={setGithubToken}
                                         placeholder="github_pat_... ou ghp_..."
                                         isValid={githubValid}
                                     />
-                                    {githubValid && (
-                                        <p className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
-                                            <Check className="w-3 h-3" /> Token detectado — bom trabalho!
-                                        </p>
-                                    )}
-                                </div>
+                                </Field>
                             </div>
                         </StepCard>
 
                         {/* PASSO 2 — VERCEL */}
                         <StepCard
                             step={2}
-                            title="Token da Vercel"
+                            title="Conectar Vercel"
                             icon={<VercelIcon className="w-5 h-5" />}
                             isComplete={vercelValid}
                             isCurrent={currentStep === 2}
@@ -306,80 +299,54 @@ export default function ConfigSettings() {
                             <div className="space-y-4">
                                 <TutorialBlockBySlug slug="vercel-token" />
 
-                                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-2.5">
-                                    <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                                    <p className="text-xs text-amber-700">
-                                        <strong>Atenção:</strong> O token da Vercel também só aparece uma vez. Copie imediatamente após criar.
-                                    </p>
-                                </div>
+                                <Banner tone="warning">
+                                    <strong>Atenção:</strong> A chave da Vercel também só aparece uma vez. Copie imediatamente após criar.
+                                </Banner>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-gray-600">Seu token da Vercel</label>
+                                <Field label="Sua chave da Vercel" htmlFor="vercel-token">
                                     <TokenInput
+                                        id="vercel-token"
                                         value={vercelToken}
                                         onChange={setVercelToken}
-                                        placeholder="Cole aqui o token da Vercel..."
+                                        placeholder="Cole aqui a chave da Vercel..."
                                         isValid={vercelValid}
                                     />
-                                    {vercelValid && (
-                                        <p className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
-                                            <Check className="w-3 h-3" /> Token detectado — quase lá!
-                                        </p>
-                                    )}
-                                </div>
+                                </Field>
                             </div>
                         </StepCard>
 
-                        {/* SAVE */}
-                        <div className="pt-1">
+                        {/* SAVE / RESULT */}
+                        <div className="pt-2">
                             {saveStatus === 'success' ? (
-                                <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
-                                    <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0">
-                                        <Check className="w-5 h-5 text-white" />
-                                    </div>
-                                    <div>
-                                        <p className="font-black text-emerald-800 text-sm">{saveMsg}</p>
-                                        <a href="/sites" className="text-[11px] text-emerald-600 font-bold flex items-center gap-1 mt-0.5 hover:underline">
-                                            Criar meu primeiro site agora <ArrowRight className="w-3 h-3" />
+                                <Banner
+                                    tone="success"
+                                    title={saveMsg}
+                                    action={
+                                        <a
+                                            href="/sites"
+                                            className="inline-flex items-center gap-1 text-sm font-semibold text-coral-terra hover:text-terracota-profundo transition-colors"
+                                        >
+                                            Criar primeiro site <ArrowRight className="w-3.5 h-3.5" />
                                         </a>
-                                    </div>
-                                </div>
+                                    }
+                                />
                             ) : (
-                                <button
+                                <Button
                                     type="submit"
                                     disabled={saving || (!githubToken && !vercelToken)}
-                                    className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
-                                        bothSaved
-                                            ? 'bg-[#7c3aed] text-white hover:bg-[#6d28d9] shadow-lg shadow-purple-200 active:scale-[0.98]'
-                                            : 'bg-gray-900 text-white hover:bg-black active:scale-[0.98]'
-                                    }`}
+                                    variant="primary"
+                                    size="lg"
+                                    fullWidth
                                 >
-                                    {saving ? (
-                                        <>
-                                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                            </svg>
-                                            Salvando...
-                                        </>
-                                    ) : bothSaved ? (
-                                        <>
-                                            <Zap className="w-4 h-4" />
-                                            Salvar e Ativar Conta
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Shield className="w-4 h-4" />
-                                            Salvar Tokens
-                                        </>
-                                    )}
-                                </button>
+                                    {saving ? 'Salvando…' : bothSaved ? 'Ativar minha conta' : 'Salvar chaves'}
+                                </Button>
                             )}
 
                             {saveStatus === 'error' && (
-                                <div className="mt-2 flex gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
-                                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                                    <p className="text-xs text-red-700">{saveMsg}</p>
+                                <div className="mt-3">
+                                    <Banner tone="error" icon={<AlertCircle className="w-5 h-5" />}>
+                                        {saveMsg}
+                                    </Banner>
                                 </div>
                             )}
                         </div>
@@ -387,60 +354,59 @@ export default function ConfigSettings() {
                 </div>
             )}
 
-            {/* CONTA */}
+            {/* ── CONTA ─────────────────────────────────────────────────── */}
             {activeTab === 'acesso' && (
-                <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
-                    <div>
-                        <h3 className="font-black text-gray-900">Dados da Conta</h3>
-                        <p className="text-sm text-gray-500 mt-1">Altere sua senha de acesso à plataforma.</p>
+                <Card padding="lg">
+                    <div className="space-y-5">
+                        <div>
+                            <h3 className="font-display text-xl font-normal text-carvao-quente tracking-tight">
+                                Dados da conta
+                            </h3>
+                            <p className="text-sm text-cafe-medio mt-1">
+                                Altere a senha que você usa pra entrar na plataforma.
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleUpdateAccess} className="space-y-4">
+                            <Field label="E-mail" htmlFor="email">
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    value={email}
+                                    disabled
+                                />
+                            </Field>
+
+                            <Field
+                                label="Nova senha"
+                                htmlFor="password"
+                                helper="Mínimo 6 caracteres"
+                            >
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    value={newPassword}
+                                    onChange={e => setNewPassword(e.target.value)}
+                                    placeholder="••••••"
+                                />
+                            </Field>
+
+                            {authStatus && (
+                                <Banner tone={authStatus.tone}>
+                                    {authStatus.msg}
+                                </Banner>
+                            )}
+
+                            <Button
+                                type="submit"
+                                disabled={authLoading}
+                                variant="primary"
+                            >
+                                {authLoading ? 'Atualizando…' : 'Atualizar senha'}
+                            </Button>
+                        </form>
                     </div>
-
-                    <form onSubmit={handleUpdateAccess} className="space-y-4">
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-gray-600">E-mail</label>
-                            <input
-                                type="email"
-                                value={email}
-                                disabled
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-400 cursor-not-allowed"
-                            />
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-gray-600">Nova Senha</label>
-                            <input
-                                type="password"
-                                value={newPassword}
-                                onChange={e => setNewPassword(e.target.value)}
-                                placeholder="Mínimo 6 caracteres"
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 transition-all focus:outline-none focus:border-[#7c3aed] focus:ring-2 focus:ring-purple-100"
-                            />
-                        </div>
-
-                        {authStatus && (
-                            <div className={`p-3 rounded-xl text-sm flex gap-2 items-start ${
-                                authStatus.includes('Erro')
-                                    ? 'bg-red-50 text-red-700 border border-red-200'
-                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            }`}>
-                                {authStatus.includes('Erro')
-                                    ? <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                                    : <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                                }
-                                {authStatus}
-                            </div>
-                        )}
-
-                        <button
-                            type="submit"
-                            disabled={authLoading}
-                            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-2xl font-bold text-sm hover:bg-black transition-all disabled:opacity-50 active:scale-[0.98]"
-                        >
-                            <Settings2 className="w-4 h-4" />
-                            {authLoading ? 'Atualizando...' : 'Atualizar Senha'}
-                        </button>
-                    </form>
-                </div>
+                </Card>
             )}
 
         </div>

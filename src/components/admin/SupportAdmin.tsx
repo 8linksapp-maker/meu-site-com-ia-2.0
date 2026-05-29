@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Send, ArrowLeft, Search, RefreshCw } from 'lucide-react';
+import Pagination from '../ui/admin/Pagination';
 
 const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -42,24 +43,24 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-    bug: 'bg-red-100 text-red-700',
-    duvida: 'bg-blue-100 text-blue-700',
-    feature: 'bg-purple-100 text-purple-700',
+    bug: 'bg-red-100 text-vermelho-tijolo',
+    duvida: 'bg-blue-100 text-[oklch(40%_0.110_220)]',
+    feature: 'bg-coral-wash text-coral-terra',
     urgente: 'bg-orange-100 text-orange-700',
 };
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
     aberto: { label: 'Aberto', bg: 'bg-amber-100', text: 'text-amber-800', dot: 'bg-amber-400' },
     em_andamento: { label: 'Em Andamento', bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-400' },
-    resolvido: { label: 'Resolvido', bg: 'bg-emerald-100', text: 'text-emerald-800', dot: 'bg-emerald-400' },
+    resolvido: { label: 'Resolvido', bg: 'bg-[oklch(94%_0.020_145)]', text: 'text-emerald-800', dot: 'bg-emerald-400' },
 };
 
 const PRIORITY_LABELS = ['Normal', 'Baixa', 'Media', 'Alta'];
 const PRIORITY_COLORS = [
-    'bg-gray-100 text-gray-600',
-    'bg-blue-100 text-blue-700',
+    'bg-cream-elevated text-cafe-medio',
+    'bg-blue-100 text-[oklch(40%_0.110_220)]',
     'bg-yellow-100 text-yellow-700',
-    'bg-red-100 text-red-700',
+    'bg-red-100 text-vermelho-tijolo',
 ];
 
 export default function SupportAdmin() {
@@ -70,7 +71,10 @@ export default function SupportAdmin() {
     // Filters
     const [statusFilter, setStatusFilter] = useState('todos');
     const [categoryFilter, setCategoryFilter] = useState('todos');
+    const [page, setPage] = useState(1);
+    const TICKETS_PAGE_SIZE = 25;
     const [search, setSearch] = useState('');
+    useEffect(() => { setPage(1); }, [search, statusFilter, categoryFilter]);
 
     // Detail view
     const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -230,7 +234,7 @@ export default function SupportAdmin() {
             <div>
                 <button
                     onClick={() => setSelectedTicket(null)}
-                    className="flex items-center gap-2 text-sm font-bold text-violet-600 hover:text-violet-800 mb-6 transition-colors"
+                    className="flex items-center gap-2 text-sm font-semibold text-coral-terra hover:text-terracota-profundo mb-6 transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     Voltar aos chamados
@@ -240,11 +244,11 @@ export default function SupportAdmin() {
                     {/* Left: Ticket info + messages */}
                     <div className="lg:col-span-2 space-y-4">
                         {/* Ticket header */}
-                        <div className="bg-white rounded-xl border border-gray-200 p-5">
+                        <div className="bg-cream-surface rounded-[10px] border border-borda-cafe p-5">
                             <div className="flex items-start justify-between gap-4 mb-3">
                                 <div className="min-w-0">
-                                    <h2 className="text-lg font-bold text-gray-900">{selectedTicket.subject}</h2>
-                                    <p className="text-sm text-gray-500 mt-1">
+                                    <h2 className="text-lg font-bold text-carvao-quente">{selectedTicket.subject}</h2>
+                                    <p className="text-sm text-cafe-cinza-quente mt-1">
                                         {selectedTicket.user_email}
                                         {selectedTicket.site_repo && <> &middot; <span className="font-mono text-xs">{selectedTicket.site_repo}</span></>}
                                     </p>
@@ -253,20 +257,20 @@ export default function SupportAdmin() {
                             </div>
 
                             <div className="flex gap-2 flex-wrap mb-4">
-                                <span className={`text-xs font-bold px-2 py-0.5 rounded ${CATEGORY_COLORS[selectedTicket.category] || 'bg-gray-100 text-gray-700'}`}>
+                                <span className={`text-xs font-bold px-2 py-0.5 rounded ${CATEGORY_COLORS[selectedTicket.category] || 'bg-cream-elevated text-cafe-medio'}`}>
                                     {CATEGORY_LABELS[selectedTicket.category] || selectedTicket.category}
                                 </span>
                                 <span className={`text-xs font-bold px-2 py-0.5 rounded ${PRIORITY_COLORS[selectedTicket.priority] || PRIORITY_COLORS[0]}`}>
                                     P{selectedTicket.priority}: {PRIORITY_LABELS[selectedTicket.priority] || 'Normal'}
                                 </span>
-                                <span className="text-xs text-gray-400">
+                                <span className="text-xs text-cafe-cinza-quente">
                                     {new Date(selectedTicket.created_at).toLocaleDateString('pt-BR', {
                                         day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                                     })}
                                 </span>
                             </div>
 
-                            <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap">
+                            <div className="bg-cream-elevated rounded-[8px] p-4 text-sm text-cafe-medio whitespace-pre-wrap">
                                 {selectedTicket.description}
                             </div>
 
@@ -275,7 +279,7 @@ export default function SupportAdmin() {
                                     href={selectedTicket.screenshot_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-block mt-3 text-xs font-bold text-violet-600 hover:underline"
+                                    className="inline-block mt-3 text-xs font-bold text-coral-terra hover:underline"
                                 >
                                     Ver screenshot
                                 </a>
@@ -284,12 +288,12 @@ export default function SupportAdmin() {
 
                         {/* Resolution note */}
                         {selectedTicket.status === 'resolvido' && selectedTicket.resolved_note && (
-                            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                            <div className="bg-[oklch(94%_0.020_145)] border border-emerald-200 rounded-[10px] p-4">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-7 h-7 rounded-lg bg-emerald-200 flex items-center justify-center text-sm font-black text-emerald-800">J</div>
-                                    <span className="text-xs font-black text-emerald-700 uppercase tracking-wider">Resolucao do Juvenal</span>
+                                    <div className="w-7 h-7 rounded-[8px] bg-emerald-200 flex items-center justify-center text-sm font-semibold text-emerald-800">J</div>
+                                    <span className="text-xs font-semibold text-[oklch(40%_0.060_145)] uppercase tracking-wider">Resolucao do Juvenal</span>
                                     {selectedTicket.resolved_at && (
-                                        <span className="text-xs text-emerald-600">
+                                        <span className="text-xs text-[oklch(40%_0.060_145)]">
                                             {new Date(selectedTicket.resolved_at).toLocaleDateString('pt-BR', {
                                                 day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
                                             })}
@@ -301,38 +305,38 @@ export default function SupportAdmin() {
                         )}
 
                         {/* Messages */}
-                        <div className="bg-white rounded-xl border border-gray-200 p-5">
-                            <h3 className="text-sm font-black text-gray-600 uppercase tracking-wider mb-4">
+                        <div className="bg-cream-surface rounded-[10px] border border-borda-cafe p-5">
+                            <h3 className="text-sm font-semibold text-cafe-medio uppercase tracking-wider mb-4">
                                 Conversa ({messages.length})
                             </h3>
 
                             {messages.length === 0 ? (
-                                <p className="text-sm text-gray-400 text-center py-4">Nenhuma mensagem ainda.</p>
+                                <p className="text-sm text-cafe-cinza-quente text-center py-4">Nenhuma mensagem ainda.</p>
                             ) : (
                                 <div className="space-y-3 mb-4">
                                     {messages.map(msg => (
                                         <div
                                             key={msg.id}
-                                            className={`p-3 rounded-xl text-sm ${
+                                            className={`p-3 rounded-[10px] text-sm ${
                                                 msg.author_type === 'juvenal'
-                                                    ? 'bg-violet-50 border border-violet-100 ml-4'
-                                                    : 'bg-gray-50 border border-gray-100 mr-4'
+                                                    ? 'bg-coral-wash/60 border border-coral-terra/20 ml-4'
+                                                    : 'bg-cream-elevated border border-borda-cafe mr-4'
                                             }`}
                                         >
                                             <div className="flex items-center gap-2 mb-1">
                                                 {msg.author_type === 'juvenal' ? (
                                                     <img src="https://bsebtmvautyhglmgmtaa.supabase.co/storage/v1/object/public/Public%20bucket/juvenal-avatar.png" alt="J" className="w-5 h-5 rounded-md object-cover" />
                                                 ) : (
-                                                    <div className="w-5 h-5 rounded-md bg-gray-200 flex items-center justify-center text-[10px] font-black text-gray-500">A</div>
+                                                    <div className="w-5 h-5 rounded-md bg-gray-200 flex items-center justify-center text-[10px] font-semibold text-cafe-cinza-quente">A</div>
                                                 )}
-                                                <span className="text-xs font-bold text-gray-600">{msg.author_name}</span>
-                                                <span className="text-xs text-gray-400">
+                                                <span className="text-xs font-bold text-cafe-medio">{msg.author_name}</span>
+                                                <span className="text-xs text-cafe-cinza-quente">
                                                     {new Date(msg.created_at).toLocaleDateString('pt-BR', {
                                                         day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
                                                     })}
                                                 </span>
                                             </div>
-                                            <p className="text-gray-700 whitespace-pre-wrap">{msg.message}</p>
+                                            <p className="text-cafe-medio whitespace-pre-wrap">{msg.message}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -340,22 +344,22 @@ export default function SupportAdmin() {
 
                             {/* Reply as Juvenal */}
                             {selectedTicket.status !== 'resolvido' && (
-                                <div className="border-t border-gray-100 pt-4">
-                                    <p className="text-xs font-bold text-violet-600 mb-2">Responder como Juvenal:</p>
+                                <div className="border-t border-borda-cafe pt-4">
+                                    <p className="text-xs font-bold text-coral-terra mb-2">Responder como Juvenal:</p>
                                     <div className="flex gap-2">
                                         <textarea
                                             value={replyText}
                                             onChange={e => setReplyText(e.target.value)}
                                             placeholder="Fala pro aluno o que ta acontecendo..."
                                             rows={3}
-                                            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500 resize-none"
+                                            className="flex-1 px-4 py-2.5 border border-borda-cafe rounded-[10px] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-coral-terra resize-none"
                                         />
                                     </div>
                                     <div className="flex justify-end mt-2">
                                         <button
                                             onClick={sendReply}
                                             disabled={sendingReply || !replyText.trim()}
-                                            className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                                            className="flex items-center gap-2 px-5 py-2.5 bg-coral-terra text-white rounded-[10px] text-sm font-bold hover:bg-terracota-profundo disabled:opacity-50 transition-colors"
                                         >
                                             <Send className="w-4 h-4" />
                                             {sendingReply ? 'Enviando...' : 'Enviar'}
@@ -369,16 +373,16 @@ export default function SupportAdmin() {
                     {/* Right: Actions sidebar */}
                     <div className="space-y-4">
                         {/* Status actions */}
-                        <div className="bg-white rounded-xl border border-gray-200 p-5">
-                            <h3 className="text-sm font-black text-gray-600 uppercase tracking-wider mb-4">Acoes</h3>
+                        <div className="bg-cream-surface rounded-[10px] border border-borda-cafe p-5">
+                            <h3 className="text-sm font-semibold text-cafe-medio uppercase tracking-wider mb-4">Acoes</h3>
 
                             {/* Change status */}
                             <div className="mb-4">
-                                <label className="block text-xs font-bold text-gray-500 mb-1.5">Status</label>
+                                <label className="block text-xs font-bold text-cafe-cinza-quente mb-1.5">Status</label>
                                 <select
                                     value={selectedTicket.status}
                                     onChange={e => updateTicket({ status: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-violet-500"
+                                    className="w-full px-3 py-2 border border-borda-cafe rounded-[8px] text-sm focus:outline-none focus:border-coral-terra"
                                 >
                                     <option value="aberto">Aberto</option>
                                     <option value="em_andamento">Em Andamento</option>
@@ -388,11 +392,11 @@ export default function SupportAdmin() {
 
                             {/* Priority */}
                             <div className="mb-4">
-                                <label className="block text-xs font-bold text-gray-500 mb-1.5">Prioridade</label>
+                                <label className="block text-xs font-bold text-cafe-cinza-quente mb-1.5">Prioridade</label>
                                 <select
                                     value={selectedTicket.priority}
                                     onChange={e => updateTicket({ priority: parseInt(e.target.value) })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-violet-500"
+                                    className="w-full px-3 py-2 border border-borda-cafe rounded-[8px] text-sm focus:outline-none focus:border-coral-terra"
                                 >
                                     <option value={0}>0 - Normal</option>
                                     <option value={1}>1 - Baixa</option>
@@ -407,7 +411,7 @@ export default function SupportAdmin() {
                                     {!showResolve ? (
                                         <button
                                             onClick={() => setShowResolve(true)}
-                                            className="w-full py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors"
+                                            className="w-full py-2.5 bg-emerald-600 text-white rounded-[8px] text-sm font-bold hover:bg-emerald-700 transition-colors"
                                         >
                                             Marcar como Resolvido
                                         </button>
@@ -418,19 +422,19 @@ export default function SupportAdmin() {
                                                 onChange={e => setResolveNote(e.target.value)}
                                                 placeholder="O que foi feito pra resolver? (o aluno vai ver isso)"
                                                 rows={4}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                                                className="w-full px-3 py-2 border border-borda-cafe rounded-[8px] text-sm focus:outline-none focus:border-emerald-500 resize-none"
                                             />
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={resolveTicket}
                                                     disabled={resolving}
-                                                    className="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                                                    className="flex-1 py-2 bg-emerald-600 text-white rounded-[8px] text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 transition-colors"
                                                 >
                                                     {resolving ? 'Salvando...' : 'Confirmar'}
                                                 </button>
                                                 <button
                                                     onClick={() => { setShowResolve(false); setResolveNote(''); }}
-                                                    className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-200 transition-colors"
+                                                    className="px-4 py-2 bg-cream-elevated text-cafe-medio rounded-[8px] text-sm font-bold hover:bg-gray-200 transition-colors"
                                                 >
                                                     Cancelar
                                                 </button>
@@ -442,34 +446,34 @@ export default function SupportAdmin() {
                         </div>
 
                         {/* Ticket info card */}
-                        <div className="bg-white rounded-xl border border-gray-200 p-5">
-                            <h3 className="text-sm font-black text-gray-600 uppercase tracking-wider mb-3">Info</h3>
+                        <div className="bg-cream-surface rounded-[10px] border border-borda-cafe p-5">
+                            <h3 className="text-sm font-semibold text-cafe-medio uppercase tracking-wider mb-3">Info</h3>
                             <div className="space-y-2 text-sm">
                                 <div>
-                                    <span className="text-gray-400 text-xs font-bold">Aluno:</span>
-                                    <p className="text-gray-700 font-medium">{selectedTicket.user_name || selectedTicket.user_email}</p>
+                                    <span className="text-cafe-cinza-quente text-xs font-bold">Aluno:</span>
+                                    <p className="text-cafe-medio font-medium">{selectedTicket.user_name || selectedTicket.user_email}</p>
                                 </div>
                                 <div>
-                                    <span className="text-gray-400 text-xs font-bold">Email:</span>
-                                    <p className="text-gray-700 font-mono text-xs">{selectedTicket.user_email}</p>
+                                    <span className="text-cafe-cinza-quente text-xs font-bold">Email:</span>
+                                    <p className="text-cafe-medio font-mono text-xs">{selectedTicket.user_email}</p>
                                 </div>
                                 {selectedTicket.site_repo && (
                                     <div>
-                                        <span className="text-gray-400 text-xs font-bold">Site:</span>
-                                        <p className="text-gray-700 font-mono text-xs">{selectedTicket.site_repo}</p>
+                                        <span className="text-cafe-cinza-quente text-xs font-bold">Site:</span>
+                                        <p className="text-cafe-medio font-mono text-xs">{selectedTicket.site_repo}</p>
                                     </div>
                                 )}
                                 <div>
-                                    <span className="text-gray-400 text-xs font-bold">Criado:</span>
-                                    <p className="text-gray-700 text-xs">
+                                    <span className="text-cafe-cinza-quente text-xs font-bold">Criado:</span>
+                                    <p className="text-cafe-medio text-xs">
                                         {new Date(selectedTicket.created_at).toLocaleDateString('pt-BR', {
                                             day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
                                         })}
                                     </p>
                                 </div>
                                 <div>
-                                    <span className="text-gray-400 text-xs font-bold">ID:</span>
-                                    <p className="text-gray-500 font-mono text-[10px] break-all">{selectedTicket.id}</p>
+                                    <span className="text-cafe-cinza-quente text-xs font-bold">ID:</span>
+                                    <p className="text-cafe-cinza-quente font-mono text-[10px] break-all">{selectedTicket.id}</p>
                                 </div>
                             </div>
                         </div>
@@ -485,14 +489,14 @@ export default function SupportAdmin() {
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {[
-                    { label: 'Abertos', value: stats.abertos, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' },
-                    { label: 'Em Andamento', value: stats.andamento, color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200' },
-                    { label: 'Resolvidos Hoje', value: stats.resolvidosHoje, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
-                    { label: 'Total', value: stats.total, color: 'text-gray-700', bg: 'bg-white border-gray-200' },
+                    { label: 'Abertos', value: stats.abertos, color: 'text-[oklch(40%_0.110_80)]', bg: 'bg-[oklch(94%_0.035_80)] border-amber-200' },
+                    { label: 'Em Andamento', value: stats.andamento, color: 'text-[oklch(45%_0.110_220)]', bg: 'bg-[oklch(94%_0.030_220)] border-blue-200' },
+                    { label: 'Resolvidos Hoje', value: stats.resolvidosHoje, color: 'text-[oklch(40%_0.060_145)]', bg: 'bg-[oklch(94%_0.020_145)] border-emerald-200' },
+                    { label: 'Total', value: stats.total, color: 'text-cafe-medio', bg: 'bg-cream-surface border-borda-cafe' },
                 ].map(s => (
-                    <div key={s.label} className={`${s.bg} border rounded-xl p-4`}>
-                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{s.label}</p>
-                        <p className={`text-2xl font-black mt-1 ${s.color}`}>{s.value}</p>
+                    <div key={s.label} className={`${s.bg} border rounded-[10px] p-4`}>
+                        <p className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-wider">{s.label}</p>
+                        <p className={`text-2xl font-semibold mt-1 ${s.color}`}>{s.value}</p>
                     </div>
                 ))}
             </div>
@@ -500,19 +504,19 @@ export default function SupportAdmin() {
             {/* Filters */}
             <div className="flex flex-wrap gap-3 mb-4 items-center">
                 <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cafe-cinza-quente" />
                     <input
                         type="text"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Buscar por email, assunto ou site..."
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-violet-500"
+                        className="w-full pl-10 pr-4 py-2 border border-borda-cafe rounded-[8px] text-sm focus:outline-none focus:border-coral-terra"
                     />
                 </div>
                 <select
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-violet-500 bg-white"
+                    className="px-3 py-2 border border-borda-cafe rounded-[8px] text-sm focus:outline-none focus:border-coral-terra bg-cream-surface"
                 >
                     <option value="todos">Todos os Status</option>
                     <option value="aberto">Aberto</option>
@@ -522,7 +526,7 @@ export default function SupportAdmin() {
                 <select
                     value={categoryFilter}
                     onChange={e => setCategoryFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-violet-500 bg-white"
+                    className="px-3 py-2 border border-borda-cafe rounded-[8px] text-sm focus:outline-none focus:border-coral-terra bg-cream-surface"
                 >
                     <option value="todos">Todas as Categorias</option>
                     <option value="bug">Bug / Erro</option>
@@ -532,7 +536,7 @@ export default function SupportAdmin() {
                 </select>
                 <button
                     onClick={loadTickets}
-                    className="p-2 border border-gray-300 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-violet-600 transition-colors"
+                    className="p-2 border border-borda-cafe rounded-[8px] text-cafe-cinza-quente hover:bg-cream-elevated hover:text-coral-terra transition-colors"
                     title="Recarregar"
                 >
                     <RefreshCw className="w-4 h-4" />
@@ -540,51 +544,51 @@ export default function SupportAdmin() {
             </div>
 
             {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                <div className="mb-4 p-3 bg-[oklch(94%_0.025_28)] border border-red-200 rounded-[8px] text-sm text-vermelho-tijolo">
                     {error}
                 </div>
             )}
 
             {loading ? (
-                <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500">
+                <div className="bg-cream-surface rounded-[10px] border border-borda-cafe p-12 text-center text-cafe-cinza-quente">
                     Carregando chamados...
                 </div>
             ) : filtered.length === 0 ? (
-                <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-500">
+                <div className="bg-cream-surface rounded-[10px] border border-borda-cafe p-12 text-center text-cafe-cinza-quente">
                     Nenhum chamado encontrado.
                 </div>
             ) : (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="bg-cream-surface rounded-[10px] border border-borda-cafe overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b border-gray-100 bg-gray-50/50">
-                                    <th className="text-left py-3 px-4 text-xs font-black text-gray-500 uppercase tracking-wider">Aluno</th>
-                                    <th className="text-left py-3 px-4 text-xs font-black text-gray-500 uppercase tracking-wider">Assunto</th>
-                                    <th className="text-left py-3 px-4 text-xs font-black text-gray-500 uppercase tracking-wider">Cat.</th>
-                                    <th className="text-left py-3 px-4 text-xs font-black text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="text-left py-3 px-4 text-xs font-black text-gray-500 uppercase tracking-wider">Prio.</th>
-                                    <th className="text-left py-3 px-4 text-xs font-black text-gray-500 uppercase tracking-wider">Data</th>
+                                <tr className="border-b border-borda-cafe bg-cream-elevated/50">
+                                    <th className="text-left py-3 px-4 text-xs font-semibold text-cafe-cinza-quente uppercase tracking-wider">Aluno</th>
+                                    <th className="text-left py-3 px-4 text-xs font-semibold text-cafe-cinza-quente uppercase tracking-wider">Assunto</th>
+                                    <th className="text-left py-3 px-4 text-xs font-semibold text-cafe-cinza-quente uppercase tracking-wider">Cat.</th>
+                                    <th className="text-left py-3 px-4 text-xs font-semibold text-cafe-cinza-quente uppercase tracking-wider">Status</th>
+                                    <th className="text-left py-3 px-4 text-xs font-semibold text-cafe-cinza-quente uppercase tracking-wider">Prio.</th>
+                                    <th className="text-left py-3 px-4 text-xs font-semibold text-cafe-cinza-quente uppercase tracking-wider">Data</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.map(ticket => (
+                                {filtered.slice((page - 1) * TICKETS_PAGE_SIZE, page * TICKETS_PAGE_SIZE).map(ticket => (
                                     <tr
                                         key={ticket.id}
                                         onClick={() => openTicket(ticket)}
-                                        className="border-b border-gray-50 hover:bg-violet-50/30 cursor-pointer transition-colors"
+                                        className="border-b border-borda-cafe hover:bg-coral-wash/60/30 cursor-pointer transition-colors"
                                     >
                                         <td className="py-3 px-4">
-                                            <p className="font-medium text-gray-800 truncate max-w-[160px]">{ticket.user_email}</p>
+                                            <p className="font-medium text-carvao-quente truncate max-w-[160px]">{ticket.user_email}</p>
                                             {ticket.site_repo && (
-                                                <p className="text-[10px] text-gray-400 font-mono truncate max-w-[160px]">{ticket.site_repo}</p>
+                                                <p className="text-[10px] text-cafe-cinza-quente font-mono truncate max-w-[160px]">{ticket.site_repo}</p>
                                             )}
                                         </td>
                                         <td className="py-3 px-4">
-                                            <p className="font-medium text-gray-800 truncate max-w-[250px]">{ticket.subject}</p>
+                                            <p className="font-medium text-carvao-quente truncate max-w-[250px]">{ticket.subject}</p>
                                         </td>
                                         <td className="py-3 px-4">
-                                            <span className={`text-xs font-bold px-2 py-0.5 rounded ${CATEGORY_COLORS[ticket.category] || 'bg-gray-100 text-gray-700'}`}>
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded ${CATEGORY_COLORS[ticket.category] || 'bg-cream-elevated text-cafe-medio'}`}>
                                                 {CATEGORY_LABELS[ticket.category] || ticket.category}
                                             </span>
                                         </td>
@@ -596,7 +600,7 @@ export default function SupportAdmin() {
                                                 P{ticket.priority}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-4 text-xs text-gray-500 whitespace-nowrap">
+                                        <td className="py-3 px-4 text-xs text-cafe-cinza-quente whitespace-nowrap">
                                             {new Date(ticket.created_at).toLocaleDateString('pt-BR', {
                                                 day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
                                             })}
@@ -606,6 +610,14 @@ export default function SupportAdmin() {
                             </tbody>
                         </table>
                     </div>
+                    <Pagination
+                        page={page}
+                        pageSize={TICKETS_PAGE_SIZE}
+                        total={filtered.length}
+                        onPageChange={setPage}
+                        label="tickets"
+                        className="px-4"
+                    />
                 </div>
             )}
         </div>

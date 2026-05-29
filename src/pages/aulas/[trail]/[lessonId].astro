@@ -1,0 +1,14 @@
+---
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+import LessonPage from '../../../components/academy/LessonPage';
+
+const { trail, lessonId } = Astro.params;
+
+if (!trail || !lessonId) {
+  return Astro.redirect('/aulas');
+}
+---
+
+<DashboardLayout title="Sala de aula">
+  <LessonPage client:load trailSlug={trail} lessonId={lessonId} />
+</DashboardLayout>

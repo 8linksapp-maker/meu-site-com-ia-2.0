@@ -294,7 +294,7 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
             {/* TOAST SYSTEM */}
             {notification && (
                 <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-10 duration-300">
-                    <div className={`px-6 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 backdrop-blur-md ${notification.type === 'success' ? 'bg-emerald-500/90 border-emerald-400 text-white' :
+                    <div className={`px-6 py-3 rounded-[12px] shadow-2xl border flex items-center gap-3 backdrop-blur-md ${notification.type === 'success' ? 'bg-emerald-500/90 border-emerald-400 text-white' :
                         notification.type === 'error' ? 'bg-red-500/90 border-red-400 text-white' :
                             'bg-blue-600/90 border-blue-400 text-white'
                         }`}>
@@ -312,7 +312,7 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
             {/* Breadcrumb */}
             <button
                 onClick={onBack}
-                className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-[#7c3aed] transition-colors group"
+                className="flex items-center gap-2 text-sm font-bold text-cafe-cinza-quente hover:text-coral-terra transition-colors group"
             >
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                 Voltar para Meus Sites
@@ -320,19 +320,19 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
 
             {/* Header / Tabs */}
             <div className="space-y-6">
-                <div className="flex flex-wrap gap-2 border-b border-gray-100">
+                <div className="flex flex-wrap gap-2 border-b border-borda-cafe">
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`px-4 py-3 text-sm font-bold transition-all relative ${activeTab === tab.id
-                                ? 'text-[#7c3aed]'
-                                : 'text-gray-400 hover:text-gray-600'
+                                ? 'text-coral-terra'
+                                : 'text-cafe-cinza-quente hover:text-cafe-medio'
                                 }`}
                         >
                             {tab.label}
                             {activeTab === tab.id && (
-                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7c3aed] rounded-full" />
+                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-coral-terra rounded-full" />
                             )}
                         </button>
                     ))}
@@ -341,17 +341,17 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                 {/* VISÃO GERAL */}
                 {activeTab === 'overview' && (
                     <div className="space-y-6 animate-in fade-in duration-500">
-                        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div className="bg-cream-surface p-8 rounded-3xl border border-borda-cafe shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                             <div className="flex items-center gap-5">
-                                <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400">
+                                <div className="w-16 h-16 rounded-[12px] bg-cream-elevated border border-borda-cafe flex items-center justify-center text-cafe-cinza-quente">
                                     <Globe className="w-8 h-8" />
                                 </div>
                                 <div>
-                                    <h1 className="text-3xl font-black text-gray-900">{siteName}</h1>
+                                    <h1 className="text-3xl font-semibold text-carvao-quente">{siteName}</h1>
                                     <a
                                         href={`https://${siteUrl}`}
                                         target="_blank"
-                                        className="text-[#7c3aed] text-sm font-bold flex items-center gap-1.5 hover:underline decoration-2 underline-offset-4"
+                                        className="text-coral-terra text-sm font-bold flex items-center gap-1.5 hover:underline decoration-2 underline-offset-4"
                                     >
                                         {siteUrl}
                                         <ExternalLink className="w-3.5 h-3.5" />
@@ -361,33 +361,33 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                             <a
                                 href={`https://${siteUrl}/admin`}
                                 target="_blank"
-                                className="flex items-center gap-3 px-6 py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-[#7c3aed] transition-all shadow-xl shadow-gray-200 active:scale-95 group"
+                                className="flex items-center gap-3 px-6 py-3 bg-gray-900 text-white rounded-[12px] font-bold hover:bg-coral-terra transition-all shadow-xl shadow-gray-200 active:scale-95 group"
                             >
-                                <LayoutDashboard className="w-5 h-5 text-purple-400 group-hover:text-white" />
+                                <LayoutDashboard className="w-5 h-5 text-coral-terra group-hover:text-papel-craft" />
                                 Acessar Painel CMS
                             </a>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-3">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status do Deploy</span>
+                            <div className="bg-cream-surface p-6 rounded-3xl border border-borda-cafe shadow-sm space-y-3">
+                                <span className="text-[10px] font-semibold text-cafe-cinza-quente uppercase tracking-widest">Status do Deploy</span>
                                 <div className="flex items-center gap-2">
                                     <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                    <span className="text-lg font-bold text-gray-800">Pronto no Ar</span>
+                                    <span className="text-lg font-bold text-carvao-quente">Pronto no Ar</span>
                                 </div>
                             </div>
-                            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-3">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Framework Utilizado</span>
+                            <div className="bg-cream-surface p-6 rounded-3xl border border-borda-cafe shadow-sm space-y-3">
+                                <span className="text-[10px] font-semibold text-cafe-cinza-quente uppercase tracking-widest">Framework Utilizado</span>
                                 <div className="flex items-center gap-2">
                                     <FileCode className="w-5 h-5 text-blue-500" />
-                                    <span className="text-lg font-bold text-gray-800">Astro v5.0</span>
+                                    <span className="text-lg font-bold text-carvao-quente">Astro v5.0</span>
                                 </div>
                             </div>
-                            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-3">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Data de Criação</span>
+                            <div className="bg-cream-surface p-6 rounded-3xl border border-borda-cafe shadow-sm space-y-3">
+                                <span className="text-[10px] font-semibold text-cafe-cinza-quente uppercase tracking-widest">Data de Criação</span>
                                 <div className="flex items-center gap-2">
-                                    <Calendar className="w-5 h-5 text-gray-400" />
-                                    <span className="text-lg font-bold text-gray-800">{createdAt}</span>
+                                    <Calendar className="w-5 h-5 text-cafe-cinza-quente" />
+                                    <span className="text-lg font-bold text-carvao-quente">{createdAt}</span>
                                 </div>
                             </div>
                         </div>
@@ -397,10 +397,10 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                 {/* DOMÍNIOS */}
                 {activeTab === 'domains' && (
                     <div className="space-y-8 animate-in fade-in duration-500">
-                        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                        <div className="bg-cream-surface p-8 rounded-3xl border border-borda-cafe shadow-sm">
                             <div className="mb-8">
-                                <h3 className="text-xl font-bold text-gray-900">Gerenciar Domínios</h3>
-                                <p className="text-sm text-gray-500 mt-1">Adicione domínios personalizados para este projeto.</p>
+                                <h3 className="text-xl font-bold text-carvao-quente">Gerenciar Domínios</h3>
+                                <p className="text-sm text-cafe-cinza-quente mt-1">Adicione domínios personalizados para este projeto.</p>
                             </div>
 
                             <form onSubmit={handleAddDomain} className="flex flex-col md:flex-row gap-4 mb-10">
@@ -409,16 +409,16 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                     placeholder="Ex: meudominio.com.br"
                                     value={newDomain}
                                     onChange={e => setNewDomain(e.target.value)}
-                                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#7c3aed] focus:bg-white transition-all outline-none"
+                                    className="flex-1 px-4 py-3 bg-cream-elevated border border-borda-cafe rounded-[10px] text-sm focus:ring-2 focus:ring-coral-terra focus:bg-cream-surface transition-all outline-none"
                                 />
                                 <div className="flex gap-2">
-                                    <select className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 outline-none">
+                                    <select className="px-4 py-3 bg-cream-elevated border border-borda-cafe rounded-[10px] text-sm font-medium text-cafe-medio outline-none">
                                         <option>Ir para Produção</option>
                                     </select>
                                     <button
                                         disabled={isAddingDomain}
                                         type="submit"
-                                        className="px-8 py-3 bg-[#7c3aed] text-white rounded-xl font-bold text-sm hover:bg-[#6d28d9] transition-all shadow-lg shadow-purple-100 flex items-center gap-2"
+                                        className="px-8 py-3 bg-coral-terra text-white rounded-[10px] font-bold text-sm hover:bg-terracota-profundo transition-all shadow-lg shadow-purple-100 flex items-center gap-2"
                                     >
                                         {isAddingDomain ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                                         Adicionar Domínio
@@ -427,29 +427,29 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                             </form>
 
                             <div className="space-y-6">
-                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">DOMÍNIOS ATIVOS</h4>
+                                <h4 className="text-[10px] font-semibold text-cafe-cinza-quente uppercase tracking-widest">DOMÍNIOS ATIVOS</h4>
 
                                 {loading ? (
-                                    <div className="py-10 text-center text-gray-400 font-medium italic">Buscando domínios...</div>
+                                    <div className="py-10 text-center text-cafe-cinza-quente font-medium italic">Buscando domínios...</div>
                                 ) : domains.length === 0 ? (
-                                    <div className="py-10 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400 font-medium">Nenhum domínio customizado encontrado.</div>
+                                    <div className="py-10 bg-cream-elevated border-2 border-dashed border-borda-cafe rounded-[12px] text-center text-cafe-cinza-quente font-medium">Nenhum domínio customizado encontrado.</div>
                                 ) : (
                                     domains.map((dom, i) => (
-                                        <div key={i} className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:border-[#7c3aed]/20 transition-all">
+                                        <div key={i} className="border border-borda-cafe rounded-[12px] overflow-hidden shadow-sm hover:border-coral-terra/20 transition-all">
                                             <div className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                                 <div className="space-y-2">
                                                     <div className="flex items-center gap-2">
-                                                        <h5 className="font-bold text-gray-900">{dom.name}</h5>
-                                                        <a href={`https://${dom.name}`} target="_blank" className="text-gray-400 hover:text-[#7c3aed]"><ExternalLink className="w-3.5 h-3.5" /></a>
+                                                        <h5 className="font-bold text-carvao-quente">{dom.name}</h5>
+                                                        <a href={`https://${dom.name}`} target="_blank" className="text-cafe-cinza-quente hover:text-coral-terra"><ExternalLink className="w-3.5 h-3.5" /></a>
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
-                                                        <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded">TARGET: PRODUÇÃO</span>
+                                                        <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-semibold rounded">TARGET: PRODUÇÃO</span>
                                                         {dom.name.endsWith('.vercel.app') || (dom.verified && dom.configured) ? (
-                                                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded flex items-center gap-1">
+                                                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-semibold rounded flex items-center gap-1">
                                                                 <CheckCircle className="w-3 h-3" /> VERIFICADO
                                                             </span>
                                                         ) : (
-                                                            <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded flex items-center gap-1">
+                                                            <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-semibold rounded flex items-center gap-1">
                                                                 <AlertCircle className="w-3 h-3" /> CONFIGURAÇÃO PENDENTE
                                                             </span>
                                                         )}
@@ -461,14 +461,14 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                                             {(!dom.verified || !dom.configured) && (
                                                                 <button
                                                                     onClick={() => handleVerifyDomain(dom.name)}
-                                                                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+                                                                    className="px-3 py-1.5 border border-borda-cafe rounded-lg text-xs font-bold text-cafe-medio hover:bg-cream-elevated transition-all flex items-center gap-1.5"
                                                                 >
                                                                     <RefreshCw className={`w-3.5 h-3.5 ${verifyingDomain === dom.name ? 'animate-spin' : ''}`} /> Refresh DNS
                                                                 </button>
                                                             )}
                                                             <button
                                                                 onClick={() => toggleDnsConfig(dom.name)}
-                                                                className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all flex items-center gap-1.5"
+                                                                className="px-3 py-1.5 border border-borda-cafe rounded-lg text-xs font-bold text-cafe-medio hover:bg-cream-elevated transition-all flex items-center gap-1.5"
                                                             >
                                                                 <Edit2 className="w-3.5 h-3.5" /> {showDnsConfig[dom.name] ? 'Ocultar' : 'Editar'}
                                                             </button>
@@ -481,39 +481,39 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                                         </>
                                                     )}
                                                     {dom.name.endsWith('.vercel.app') && (
-                                                        <span className="text-xs text-gray-400 font-medium italic">Domínio padrão da Vercel</span>
+                                                        <span className="text-xs text-cafe-cinza-quente font-medium italic">Domínio padrão da Vercel</span>
                                                     )}
                                                 </div>
                                             </div>
 
                                             {showDnsConfig[dom.name] && (
                                                 <div className="px-6 pb-6">
-                                                    <div className="bg-[#f8faff] rounded-xl border border-blue-100 overflow-hidden">
+                                                    <div className="bg-[#f8faff] rounded-[10px] border border-blue-100 overflow-hidden">
                                                         <div className="flex border-b border-blue-50">
                                                             <button
                                                                 onClick={() => toggleDnsMethod(dom.name, 'records')}
-                                                                className={`px-4 py-2.5 text-xs font-bold transition-all ${dnsMethod[dom.name] !== 'vercel' ? 'text-blue-700 bg-white border-b-2 border-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>
+                                                                className={`px-4 py-2.5 text-xs font-bold transition-all ${dnsMethod[dom.name] !== 'vercel' ? 'text-blue-700 bg-cream-surface border-b-2 border-blue-600' : 'text-cafe-cinza-quente hover:text-cafe-medio'}`}>
                                                                 DNS Records
                                                             </button>
                                                             <button
                                                                 onClick={() => toggleDnsMethod(dom.name, 'vercel')}
-                                                                className={`px-4 py-2.5 text-xs font-bold transition-all ${dnsMethod[dom.name] === 'vercel' ? 'text-blue-700 bg-white border-b-2 border-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>
+                                                                className={`px-4 py-2.5 text-xs font-bold transition-all ${dnsMethod[dom.name] === 'vercel' ? 'text-blue-700 bg-cream-surface border-b-2 border-blue-600' : 'text-cafe-cinza-quente hover:text-cafe-medio'}`}>
                                                                 Vercel DNS
                                                             </button>
                                                         </div>
                                                         <div className="p-6 space-y-4">
                                                             {dnsMethod[dom.name] === 'vercel' ? (
                                                                 <div className="space-y-4">
-                                                                    <div className="p-4 bg-white/50 rounded-xl border border-blue-50/50">
+                                                                    <div className="p-4 bg-cream-surface/50 rounded-[10px] border border-blue-50/50">
                                                                         <p className="text-xs text-slate-500 font-medium leading-relaxed">
                                                                             Atualize os nameservers do seu domínio para ativar o Vercel DNS.
                                                                         </p>
                                                                     </div>
                                                                     <div className="space-y-3">
-                                                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Nameservers</h4>
+                                                                        <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest pl-1">Nameservers</h4>
                                                                         <div className="grid grid-cols-1 gap-3">
                                                                             {['ns1.vercel-dns.com', 'ns2.vercel-dns.com'].map((ns, i) => (
-                                                                                <div key={i} className="bg-white p-4 rounded-xl border border-blue-100/50 flex items-center justify-between group/ns hover:border-blue-200 transition-all">
+                                                                                <div key={i} className="bg-cream-surface p-4 rounded-[10px] border border-blue-100/50 flex items-center justify-between group/ns hover:border-blue-200 transition-all">
                                                                                     <code className="text-xs font-bold text-slate-700">{ns}</code>
                                                                                     <button onClick={() => copyToClipboard(ns)} className="p-2 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover/ns:opacity-100">
                                                                                         <Copy className="w-3.5 h-3.5 text-blue-400" />
@@ -525,20 +525,20 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                                                     <div className="px-1">
                                                                         <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
                                                                             Pode levar algum tempo para as alterações de nameservers serem aplicadas.
-                                                                            <a href="https://vercel.com/docs/concepts/projects/domains/working-with-dns" target="_blank" className="text-[#7c3aed] font-bold hover:underline">Saiba Mais <ExternalLink className="w-3 h-3 inline" /></a>
+                                                                            <a href="https://vercel.com/docs/concepts/projects/domains/working-with-dns" target="_blank" className="text-coral-terra font-bold hover:underline">Saiba Mais <ExternalLink className="w-3 h-3 inline" /></a>
                                                                         </p>
                                                                     </div>
                                                                 </div>
                                                             ) : (
                                                                 <div className="space-y-6">
-                                                                    <div className="p-4 bg-white/50 rounded-xl border border-blue-50/50">
+                                                                    <div className="p-4 bg-cream-surface/50 rounded-[10px] border border-blue-50/50">
                                                                         <p className="text-xs text-slate-500 font-medium leading-relaxed">
                                                                             Os registros DNS no seu provedor devem corresponder aos seguintes registros para verificar e conectar seu domínio à Vercel.
                                                                         </p>
                                                                     </div>
-                                                                    <div className="bg-white rounded-xl border border-blue-100/50 overflow-hidden">
+                                                                    <div className="bg-cream-surface rounded-[10px] border border-blue-100/50 overflow-hidden">
                                                                         <table className="w-full text-[11px] text-left">
-                                                                            <thead className="bg-slate-50/50 text-slate-400 uppercase font-black">
+                                                                            <thead className="bg-slate-50/50 text-slate-400 uppercase font-semibold">
                                                                                 <tr>
                                                                                     <th className="px-6 py-4">Tipo</th>
                                                                                     <th className="px-6 py-4">Nome</th>
@@ -571,7 +571,7 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                                                     <div className="px-1">
                                                                         <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
                                                                             Pode levar algum tempo para os registros DNS serem aplicados.
-                                                                            <a href="https://vercel.com/docs/concepts/get-started/assign-domain" target="_blank" className="text-[#7c3aed] font-bold hover:underline">Saiba Mais <ExternalLink className="w-3 h-3 inline" /></a>
+                                                                            <a href="https://vercel.com/docs/concepts/get-started/assign-domain" target="_blank" className="text-coral-terra font-bold hover:underline">Saiba Mais <ExternalLink className="w-3 h-3 inline" /></a>
                                                                         </p>
                                                                     </div>
                                                                 </div>
@@ -591,31 +591,31 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                 {/* DEPLOYS */}
                 {activeTab === 'deploys' && (
                     <div className="space-y-6 animate-in fade-in duration-500">
-                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="bg-cream-surface rounded-3xl border border-borda-cafe shadow-sm overflow-hidden">
                             <div className="p-6 border-b border-gray-50">
-                                <h3 className="font-bold text-gray-900">Histórico de Deploys</h3>
+                                <h3 className="font-bold text-carvao-quente">Histórico de Deploys</h3>
                             </div>
                             <div className="divide-y divide-gray-50">
                                 {loading ? (
-                                    <div className="p-12 text-center text-gray-400 italic">Carregando deploys...</div>
+                                    <div className="p-12 text-center text-cafe-cinza-quente italic">Carregando deploys...</div>
                                 ) : deploys.length === 0 ? (
-                                    <div className="p-12 text-center text-gray-400 italic">Nenhum deploy recente.</div>
+                                    <div className="p-12 text-center text-cafe-cinza-quente italic">Nenhum deploy recente.</div>
                                 ) : deploys.map((dep, idx) => (
-                                    <div key={idx} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-all group/dep">
+                                    <div key={idx} className="p-4 flex items-center justify-between hover:bg-cream-elevated transition-all group/dep">
                                         <div className="flex items-center gap-4">
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${dep.readyState === 'READY' ? 'bg-emerald-50 text-emerald-500 group-hover/dep:bg-emerald-500 group-hover/dep:text-white' : 'bg-amber-50 text-amber-500 group-hover/dep:bg-amber-500 group-hover/dep:text-white'}`}>
+                                            <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center transition-colors ${dep.readyState === 'READY' ? 'bg-emerald-50 text-emerald-500 group-hover/dep:bg-emerald-500 group-hover/dep:text-white' : 'bg-amber-50 text-amber-500 group-hover/dep:bg-amber-500 group-hover/dep:text-white'}`}>
                                                 <Terminal className="w-5 h-5" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-bold text-gray-900">{dep.name}</p>
-                                                <p className="text-xs text-gray-400">{new Date(dep.createdAt).toLocaleString()}</p>
+                                                <p className="text-sm font-bold text-carvao-quente">{dep.name}</p>
+                                                <p className="text-xs text-cafe-cinza-quente">{new Date(dep.createdAt).toLocaleString()}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <span className={`px-2 py-0.5 text-[10px] font-black rounded ${dep.readyState === 'READY' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                            <span className={`px-2 py-0.5 text-[10px] font-semibold rounded ${dep.readyState === 'READY' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
                                                 {dep.readyState || 'PENDING'}
                                             </span>
-                                            <a href={`https://${dep.url}`} target="_blank" className="p-2 text-gray-400 hover:text-[#7c3aed] transition-colors"><ExternalLink className="w-4 h-4" /></a>
+                                            <a href={`https://${dep.url}`} target="_blank" className="p-2 text-cafe-cinza-quente hover:text-coral-terra transition-colors"><ExternalLink className="w-4 h-4" /></a>
                                         </div>
                                     </div>
                                 ))}
@@ -628,40 +628,40 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                 {activeTab === 'envs' && (
                     <div className="space-y-6 animate-in fade-in duration-500">
                         {/* Formulário de Criação */}
-                        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                        <div className="bg-cream-surface p-8 rounded-3xl border border-borda-cafe shadow-sm">
                             <div className="mb-6">
-                                <h3 className="text-lg font-bold text-gray-900">Variáveis de Ambiente (Environment)</h3>
-                                <p className="text-sm text-gray-400">Adicione tokens, chaves de API e URLs secretas que seu projeto consome.</p>
+                                <h3 className="text-lg font-bold text-carvao-quente">Variáveis de Ambiente (Environment)</h3>
+                                <p className="text-sm text-cafe-cinza-quente">Adicione tokens, chaves de API e URLs secretas que seu projeto consome.</p>
                             </div>
 
                             <form onSubmit={handleAddEnv} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider pl-1">Nome da Variável (Key)</label>
+                                        <label className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-wider pl-1">Nome da Variável (Key)</label>
                                         <input
                                             type="text"
                                             value={newEnv.key}
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewEnv({ ...newEnv, key: e.target.value })}
                                             placeholder="Ex: API_SECRET_KEY"
-                                            className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed] transition-all outline-none text-sm font-medium"
+                                            className="w-full px-5 py-3.5 bg-cream-elevated border border-borda-cafe rounded-[12px] focus:ring-2 focus:ring-coral-terra/20 focus:border-coral-terra transition-all outline-none text-sm font-medium"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider pl-1">Valor (Value)</label>
+                                        <label className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-wider pl-1">Valor (Value)</label>
                                         <input
                                             type="password"
                                             value={newEnv.value}
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewEnv({ ...newEnv, value: e.target.value })}
                                             placeholder="••••••••••••"
-                                            className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed] transition-all outline-none text-sm font-medium"
+                                            className="w-full px-5 py-3.5 bg-cream-elevated border border-borda-cafe rounded-[12px] focus:ring-2 focus:ring-coral-terra/20 focus:border-coral-terra transition-all outline-none text-sm font-medium"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider pl-1">Ambientes Alvo (Target)</label>
+                                    <label className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-wider pl-1">Ambientes Alvo (Target)</label>
                                     <select
-                                        className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed] transition-all outline-none text-sm font-medium appearance-none"
+                                        className="w-full px-5 py-3.5 bg-cream-elevated border border-borda-cafe rounded-[12px] focus:ring-2 focus:ring-coral-terra/20 focus:border-coral-terra transition-all outline-none text-sm font-medium appearance-none"
                                         value={newEnv.target.join(',')}
                                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                                             const val = e.target.value;
@@ -683,7 +683,7 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                     <button
                                         type="submit"
                                         disabled={isAddingEnv}
-                                        className="px-8 py-3.5 bg-[#1e293b] text-white rounded-2xl font-bold text-sm hover:bg-[#0f172a] transition-all shadow-lg flex items-center gap-2"
+                                        className="px-8 py-3.5 bg-[#1e293b] text-white rounded-[12px] font-bold text-sm hover:bg-[#0f172a] transition-all shadow-lg flex items-center gap-2"
                                     >
                                         {isAddingEnv ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                                         Salvar Variável
@@ -693,14 +693,14 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                         </div>
 
                         {/* Lista de Variáveis Salvas */}
-                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                            <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
-                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">VARIÁVEIS SALVAS</h3>
+                        <div className="bg-cream-surface rounded-3xl border border-borda-cafe shadow-sm overflow-hidden">
+                            <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-cream-elevated/30">
+                                <h3 className="text-[10px] font-semibold text-cafe-cinza-quente uppercase tracking-widest pl-1">VARIÁVEIS SALVAS</h3>
                             </div>
 
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
-                                    <thead className="bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                                    <thead className="bg-cream-elevated/50 text-[10px] font-semibold text-cafe-cinza-quente uppercase tracking-wider">
                                         <tr>
                                             <th className="px-6 py-4">CHAVE (KEY)</th>
                                             <th className="px-6 py-4">AMBIENTES</th>
@@ -710,18 +710,18 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
                                         {loading ? (
-                                            <tr><td colSpan={4} className="p-12 text-center text-gray-400 italic">Buscando variáveis...</td></tr>
+                                            <tr><td colSpan={4} className="p-12 text-center text-cafe-cinza-quente italic">Buscando variáveis...</td></tr>
                                         ) : envs.length === 0 ? (
-                                            <tr><td colSpan={4} className="p-12 text-center text-gray-400 italic">Nenhuma variável configurada.</td></tr>
+                                            <tr><td colSpan={4} className="p-12 text-center text-cafe-cinza-quente italic">Nenhuma variável configurada.</td></tr>
                                         ) : envs.map((env, i) => (
-                                            <tr key={i} className="hover:bg-gray-50/50 transition-colors group">
+                                            <tr key={i} className="hover:bg-cream-elevated/50 transition-colors group">
                                                 <td className="px-6 py-4">
-                                                    <span className="text-sm font-bold text-gray-900 font-mono tracking-tight">{env.key}</span>
+                                                    <span className="text-sm font-bold text-carvao-quente font-mono tracking-tight">{env.key}</span>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-wrap gap-1.5">
                                                         {(env.target || []).map((t: string) => (
-                                                            <span key={t} className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-black rounded uppercase tracking-tighter">
+                                                            <span key={t} className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[9px] font-semibold rounded uppercase tracking-tighter">
                                                                 {t === 'production' ? 'PRODUÇÃO' : t === 'preview' ? 'PRÉVIA' : 'DESENVOLVIMENTO'}
                                                             </span>
                                                         ))}
@@ -731,7 +731,7 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                                     <div className="flex items-center justify-center gap-3">
                                                         <span
                                                             onClick={() => showEnvValues[env.id] && env.value && copyToClipboard(env.value)}
-                                                            className={`text-xs text-gray-400 font-mono max-w-[120px] truncate transition-all ${showEnvValues[env.id] && env.value ? 'cursor-copy hover:text-[#7c3aed] active:scale-95' : ''}`}
+                                                            className={`text-xs text-cafe-cinza-quente font-mono max-w-[120px] truncate transition-all ${showEnvValues[env.id] && env.value ? 'cursor-copy hover:text-coral-terra active:scale-95' : ''}`}
                                                             title={showEnvValues[env.id] && env.value ? 'Clique para copiar' : ''}
                                                         >
                                                             {showEnvValues[env.id] ? (env.value || 'Secret Value') : '••••••••••••'}
@@ -739,7 +739,7 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                                         <button
                                                             type="button"
                                                             onClick={() => toggleEnvValue(env.id)}
-                                                            className="p-1.5 text-gray-300 hover:text-gray-500 transition-colors flex-shrink-0"
+                                                            className="p-1.5 text-gray-300 hover:text-cafe-cinza-quente transition-colors flex-shrink-0"
                                                         >
                                                             {showEnvValues[env.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                                         </button>
@@ -750,7 +750,7 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                                         <button
                                                             type="button"
                                                             onClick={() => setEditingEnv({ id: env.id, key: env.key, value: '', target: env.target })}
-                                                            className="p-2 text-gray-300 hover:text-[#7c3aed] transition-colors"
+                                                            className="p-2 text-gray-300 hover:text-coral-terra transition-colors"
                                                         >
                                                             <Edit2 className="w-4 h-4" />
                                                         </button>
@@ -775,37 +775,37 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                 {/* MODAL DE EDIÇÃO DE ENV */}
                 {editingEnv && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => setEditingEnv(null)}>
-                        <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
+                        <div className="bg-cream-surface w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
                             <div className="p-8 space-y-6">
                                 <div className="flex justify-between items-center">
-                                    <h3 className="text-xl font-bold text-gray-900">Editar Variável</h3>
-                                    <button onClick={() => setEditingEnv(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
+                                    <h3 className="text-xl font-bold text-carvao-quente">Editar Variável</h3>
+                                    <button onClick={() => setEditingEnv(null)} className="p-2 hover:bg-cream-elevated rounded-[10px] transition-colors"><X className="w-5 h-5 text-cafe-cinza-quente" /></button>
                                 </div>
 
                                 <form onSubmit={handleUpdateEnv} className="space-y-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider pl-1">Nome da Variável (Key)</label>
+                                        <label className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-wider pl-1">Nome da Variável (Key)</label>
                                         <input
                                             type="text"
                                             disabled
                                             value={editingEnv.key}
-                                            className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-gray-400 cursor-not-allowed outline-none text-sm font-medium"
+                                            className="w-full px-5 py-3.5 bg-cream-elevated border border-borda-cafe rounded-[12px] text-cafe-cinza-quente cursor-not-allowed outline-none text-sm font-medium"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider pl-1">Novo Valor da Variável</label>
+                                        <label className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-wider pl-1">Novo Valor da Variável</label>
                                         <input
                                             type="password"
                                             placeholder="Deixe em branco para manter o segredo atual."
                                             value={editingEnv.value}
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingEnv({ ...editingEnv, value: e.target.value })}
-                                            className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed] transition-all outline-none text-sm font-medium"
+                                            className="w-full px-5 py-3.5 bg-cream-elevated border border-borda-cafe rounded-[12px] focus:ring-2 focus:ring-coral-terra/20 focus:border-coral-terra transition-all outline-none text-sm font-medium"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider pl-1">Ambientes Alvo (Target)</label>
+                                        <label className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-wider pl-1">Ambientes Alvo (Target)</label>
                                         <select
-                                            className="w-full px-5 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed] transition-all outline-none text-sm font-medium"
+                                            className="w-full px-5 py-3.5 bg-cream-elevated border border-borda-cafe rounded-[12px] focus:ring-2 focus:ring-coral-terra/20 focus:border-coral-terra transition-all outline-none text-sm font-medium"
                                             value={(editingEnv.target || []).join(',')}
                                             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                                                 const val = e.target.value;
@@ -827,13 +827,13 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                         <button
                                             type="button"
                                             onClick={() => setEditingEnv(null)}
-                                            className="flex-1 px-6 py-4 bg-gray-50 text-gray-600 rounded-2xl font-bold text-sm hover:bg-gray-100 transition-all"
+                                            className="flex-1 px-6 py-4 bg-cream-elevated text-cafe-medio rounded-[12px] font-bold text-sm hover:bg-cream-elevated transition-all"
                                         >
                                             Cancelar
                                         </button>
                                         <button
                                             type="submit"
-                                            className="flex-1 px-6 py-4 bg-[#7c3aed] text-white rounded-2xl font-bold text-sm hover:bg-[#6d28d9] transition-all shadow-lg shadow-purple-100"
+                                            className="flex-1 px-6 py-4 bg-coral-terra text-white rounded-[12px] font-bold text-sm hover:bg-terracota-profundo transition-all shadow-lg shadow-purple-100"
                                         >
                                             Atualizar
                                         </button>
@@ -847,18 +847,18 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                 {/* SETTINGS (ZONA DE PERIGO) */}
                 {activeTab === 'settings' && (
                     <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl">
-                        <div className="bg-white p-8 rounded-3xl border border-red-100 shadow-sm">
+                        <div className="bg-cream-surface p-8 rounded-3xl border border-red-100 shadow-sm">
                             <div className="flex items-start gap-4 mb-8">
-                                <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500">
+                                <div className="w-12 h-12 rounded-[12px] bg-red-50 flex items-center justify-center text-red-500">
                                     <ShieldAlert className="w-6 h-6" />
                                 </div>
                                 <div className="space-y-1">
                                     <h3 className="text-lg font-bold text-red-600">Zona de Perigo</h3>
-                                    <p className="text-sm text-gray-500">Estas ações são permanentes e não podem ser desfeitas.</p>
+                                    <p className="text-sm text-cafe-cinza-quente">Estas ações são permanentes e não podem ser desfeitas.</p>
                                 </div>
                             </div>
 
-                            <div className="p-6 bg-red-50 rounded-2xl border border-red-100 mb-8 flex items-center gap-4 text-left">
+                            <div className="p-6 bg-red-50 rounded-[12px] border border-red-100 mb-8 flex items-center gap-4 text-left">
                                 <Trash2 className="w-5 h-5 text-red-500 flex-shrink-0" />
                                 <p className="text-xs text-red-800 font-bold leading-relaxed">
                                     Ao excluir o site, removeremos o repositório no GitHub, o projeto na Vercel e o registro no banco de dados.
@@ -873,12 +873,12 @@ export default function SiteDetails({ site, onBack }: SiteDetailsProps) {
                                     placeholder={`Digite "${siteName}" para confirmar`}
                                     value={deleteInput}
                                     onChange={e => setDeleteInput(e.target.value)}
-                                    className="w-full px-4 py-4 bg-gray-50 border border-red-100 rounded-2xl text-sm focus:ring-2 focus:ring-red-500 outline-none font-bold"
+                                    className="w-full px-4 py-4 bg-cream-elevated border border-red-100 rounded-[12px] text-sm focus:ring-2 focus:ring-red-500 outline-none font-bold"
                                 />
                                 <button
                                     onClick={handleDeleteSite}
                                     disabled={loading || deleteInput !== siteName}
-                                    className="w-full py-5 bg-red-600 text-white rounded-[24px] font-black hover:bg-red-700 transition-all shadow-2xl shadow-red-100 active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-30"
+                                    className="w-full py-5 bg-red-600 text-white rounded-[24px] font-semibold hover:bg-red-700 transition-all shadow-2xl shadow-red-100 active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-30"
                                 >
                                     {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <Trash2 className="w-6 h-6" />}
                                     Excluir Site Permanentemente

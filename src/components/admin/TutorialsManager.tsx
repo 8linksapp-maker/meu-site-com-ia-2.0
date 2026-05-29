@@ -37,16 +37,16 @@ function StepRow({
         <div className="flex gap-2 items-start">
             <div className="flex flex-col gap-1 mt-2 shrink-0">
                 <button type="button" onClick={onMoveUp} disabled={index === 0}
-                    className="p-0.5 text-gray-400 hover:text-gray-700 disabled:opacity-20 transition">
+                    className="p-0.5 text-cafe-cinza-quente hover:text-cafe-medio disabled:opacity-20 transition">
                     <ChevronUp className="w-3.5 h-3.5" />
                 </button>
-                <GripVertical className="w-3.5 h-3.5 text-gray-300" />
+                <GripVertical className="w-3.5 h-3.5 text-borda-cafe" />
                 <button type="button" onClick={onMoveDown} disabled={index === total - 1}
-                    className="p-0.5 text-gray-400 hover:text-gray-700 disabled:opacity-20 transition">
+                    className="p-0.5 text-cafe-cinza-quente hover:text-cafe-medio disabled:opacity-20 transition">
                     <ChevronDown className="w-3.5 h-3.5" />
                 </button>
             </div>
-            <span className="w-5 h-5 rounded-full bg-[#7c3aed]/10 text-[#7c3aed] text-[10px] font-black flex items-center justify-center shrink-0 mt-2.5">
+            <span className="w-5 h-5 rounded-full bg-coral-wash text-coral-terra text-[10px] font-semibold flex items-center justify-center shrink-0 mt-2.5">
                 {index + 1}
             </span>
             <textarea
@@ -54,10 +54,10 @@ function StepRow({
                 onChange={e => onChange(e.target.value)}
                 rows={2}
                 placeholder={`Passo ${index + 1}...`}
-                className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed] resize-none"
+                className="flex-1 px-3 py-2 bg-cream-surface border border-borda-cafe rounded-[8px] text-sm focus:outline-none focus:ring-2 focus:ring-coral-terra/20 focus:border-coral-terra resize-none"
             />
             <button type="button" onClick={onRemove}
-                className="mt-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition shrink-0">
+                className="mt-2 p-1.5 text-cafe-cinza-quente hover:text-vermelho-tijolo hover:bg-[oklch(94%_0.025_28)] rounded-[8px] transition shrink-0">
                 <Trash2 className="w-3.5 h-3.5" />
             </button>
         </div>
@@ -74,14 +74,14 @@ function ImageRow({
     onRemove: () => void;
 }) {
     return (
-        <div className="flex gap-3 items-start p-3 bg-gray-50 rounded-xl border border-gray-100">
+        <div className="flex gap-3 items-start p-3 bg-cream-elevated rounded-[10px] border border-borda-cafe">
             {/* Preview thumbnail */}
-            <div className="w-20 h-14 rounded-lg overflow-hidden bg-gray-200 shrink-0 border border-gray-200">
+            <div className="w-20 h-14 rounded-[8px] overflow-hidden bg-gray-200 shrink-0 border border-borda-cafe">
                 {value.src ? (
                     <img src={value.src} alt="" className="w-full h-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                        <Image className="w-5 h-5 text-gray-300" />
+                        <Image className="w-5 h-5 text-borda-cafe" />
                     </div>
                 )}
             </div>
@@ -92,19 +92,19 @@ function ImageRow({
                     value={value.src}
                     onChange={e => onChange({ ...value, src: e.target.value })}
                     placeholder="URL da imagem (https://...)"
-                    className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed]"
+                    className="w-full px-3 py-1.5 bg-cream-surface border border-borda-cafe rounded-[8px] text-xs font-mono focus:outline-none focus:ring-2 focus:ring-coral-terra/20 focus:border-coral-terra"
                 />
                 <input
                     type="text"
                     value={value.caption}
                     onChange={e => onChange({ ...value, caption: e.target.value })}
                     placeholder="Legenda (ex: Clique em Settings)"
-                    className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed]"
+                    className="w-full px-3 py-1.5 bg-cream-surface border border-borda-cafe rounded-[8px] text-xs focus:outline-none focus:ring-2 focus:ring-coral-terra/20 focus:border-coral-terra"
                 />
             </div>
 
             <button type="button" onClick={onRemove}
-                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition shrink-0">
+                className="p-1.5 text-cafe-cinza-quente hover:text-vermelho-tijolo hover:bg-[oklch(94%_0.025_28)] rounded-[8px] transition shrink-0">
                 <Trash2 className="w-3.5 h-3.5" />
             </button>
         </div>
@@ -165,13 +165,13 @@ function EditPanel({
     const isNew = !block.id;
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
+        <div className="bg-cream-surface rounded-[12px] border border-borda-cafe shadow-xl overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
-                <h3 className="font-black text-gray-900 text-sm">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-borda-cafe bg-cream-elevated">
+                <h3 className="font-semibold text-carvao-quente text-sm">
                     {isNew ? 'Novo Tutorial Block' : `Editando: ${block.title}`}
                 </h3>
-                <button onClick={onCancel} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition">
+                <button onClick={onCancel} className="p-2 text-cafe-cinza-quente hover:text-cafe-medio hover:bg-gray-200 rounded-[8px] transition">
                     <X className="w-4 h-4" />
                 </button>
             </div>
@@ -181,25 +181,25 @@ function EditPanel({
                 {/* Identificação */}
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-gray-600 uppercase tracking-wide">Slug <span className="text-red-500">*</span></label>
+                        <label className="text-xs font-bold text-cafe-medio uppercase tracking-wide">Slug <span className="text-vermelho-tijolo">*</span></label>
                         <input
                             type="text"
                             value={form.slug}
                             onChange={e => setField('slug', e.target.value.toLowerCase().replace(/\s+/g, '-'))}
                             readOnly={!isNew}
                             placeholder="ex: github-token"
-                            className={`w-full px-3 py-2 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed] ${!isNew ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white border-gray-200'}`}
+                            className={`w-full px-3 py-2 border rounded-[8px] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-coral-terra/20 focus:border-coral-terra ${!isNew ? 'bg-cream-elevated text-cafe-cinza-quente cursor-not-allowed' : 'bg-cream-surface border-borda-cafe'}`}
                         />
-                        <p className="text-[10px] text-gray-400">Identificador único — não pode mudar após criado</p>
+                        <p className="text-[10px] text-cafe-cinza-quente">Identificador único — não pode mudar após criado</p>
                     </div>
                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-gray-600 uppercase tracking-wide">Título <span className="text-red-500">*</span></label>
+                        <label className="text-xs font-bold text-cafe-medio uppercase tracking-wide">Título <span className="text-vermelho-tijolo">*</span></label>
                         <input
                             type="text"
                             value={form.title}
                             onChange={e => setField('title', e.target.value)}
                             placeholder="ex: Como criar token do GitHub"
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed]"
+                            className="w-full px-3 py-2 border border-borda-cafe rounded-[8px] text-sm bg-cream-surface focus:outline-none focus:ring-2 focus:ring-coral-terra/20 focus:border-coral-terra"
                         />
                     </div>
                 </div>
@@ -207,32 +207,32 @@ function EditPanel({
                 {/* Vídeo */}
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                        <Video className="w-4 h-4 text-[#7c3aed]" />
-                        <h4 className="font-black text-gray-800 text-sm">Vídeo</h4>
+                        <Video className="w-4 h-4 text-coral-terra" />
+                        <h4 className="font-semibold text-carvao-quente text-sm">Vídeo</h4>
                     </div>
                     <div className="grid grid-cols-1 gap-3">
                         <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-gray-600">URL do Vídeo</label>
+                            <label className="text-xs font-bold text-cafe-medio">URL do Vídeo</label>
                             <input
                                 type="url"
                                 value={form.video_url}
                                 onChange={e => setField('video_url', e.target.value)}
                                 placeholder="https://youtube.com/embed/... ou URL direta do .mp4"
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed]"
+                                className="w-full px-3 py-2 border border-borda-cafe rounded-[8px] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-coral-terra/20 focus:border-coral-terra"
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-gray-600">URL do Thumbnail (poster)</label>
+                            <label className="text-xs font-bold text-cafe-medio">URL do Thumbnail (poster)</label>
                             <input
                                 type="url"
                                 value={form.video_poster}
                                 onChange={e => setField('video_poster', e.target.value)}
                                 placeholder="https://... (opcional, exibido antes do play)"
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed]"
+                                className="w-full px-3 py-2 border border-borda-cafe rounded-[8px] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-coral-terra/20 focus:border-coral-terra"
                             />
                         </div>
                         {form.video_url && (
-                            <div className="rounded-xl overflow-hidden border border-gray-200 aspect-video">
+                            <div className="rounded-[10px] overflow-hidden border border-borda-cafe aspect-video">
                                 {form.video_url.includes('youtube') || form.video_url.includes('youtu.be') ? (
                                     <iframe src={form.video_url} className="w-full h-full" allowFullScreen />
                                 ) : (
@@ -247,16 +247,16 @@ function EditPanel({
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <BookOpen className="w-4 h-4 text-[#7c3aed]" />
-                            <h4 className="font-black text-gray-800 text-sm">Passos em texto</h4>
-                            <span className="px-2 py-0.5 bg-[#7c3aed]/10 text-[#7c3aed] text-[10px] font-black rounded-full">
+                            <BookOpen className="w-4 h-4 text-coral-terra" />
+                            <h4 className="font-semibold text-carvao-quente text-sm">Passos em texto</h4>
+                            <span className="px-2 py-0.5 bg-coral-wash text-coral-terra text-[10px] font-semibold rounded-full">
                                 {form.steps.filter(Boolean).length}
                             </span>
                         </div>
                         <button
                             type="button"
                             onClick={addStep}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#7c3aed] text-white rounded-lg text-xs font-bold hover:bg-[#6d28d9] transition"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-coral-terra text-papel-craft rounded-[8px] text-xs font-bold hover:bg-terracota-profundo transition"
                         >
                             <Plus className="w-3.5 h-3.5" />
                             Adicionar passo
@@ -276,8 +276,8 @@ function EditPanel({
                             />
                         ))}
                     </div>
-                    <p className="text-[10px] text-gray-400">
-                        Suporte a HTML básico: <code className="bg-gray-100 px-1 rounded">&lt;strong&gt;</code>, <code className="bg-gray-100 px-1 rounded">&lt;a href="..."&gt;</code>, <code className="bg-gray-100 px-1 rounded">&lt;code&gt;</code>
+                    <p className="text-[10px] text-cafe-cinza-quente">
+                        Suporte a HTML básico: <code className="bg-cream-elevated px-1 rounded">&lt;strong&gt;</code>, <code className="bg-cream-elevated px-1 rounded">&lt;a href="..."&gt;</code>, <code className="bg-cream-elevated px-1 rounded">&lt;code&gt;</code>
                     </p>
                 </div>
 
@@ -285,16 +285,16 @@ function EditPanel({
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <Image className="w-4 h-4 text-[#7c3aed]" />
-                            <h4 className="font-black text-gray-800 text-sm">Capturas de tela</h4>
-                            <span className="px-2 py-0.5 bg-[#7c3aed]/10 text-[#7c3aed] text-[10px] font-black rounded-full">
+                            <Image className="w-4 h-4 text-coral-terra" />
+                            <h4 className="font-semibold text-carvao-quente text-sm">Capturas de tela</h4>
+                            <span className="px-2 py-0.5 bg-coral-wash text-coral-terra text-[10px] font-semibold rounded-full">
                                 {form.images.length}
                             </span>
                         </div>
                         <button
                             type="button"
                             onClick={addImage}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#7c3aed] text-white rounded-lg text-xs font-bold hover:bg-[#6d28d9] transition"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-coral-terra text-papel-craft rounded-[8px] text-xs font-bold hover:bg-terracota-profundo transition"
                         >
                             <Plus className="w-3.5 h-3.5" />
                             Adicionar imagem
@@ -302,9 +302,9 @@ function EditPanel({
                     </div>
                     <div className="space-y-2">
                         {form.images.length === 0 && (
-                            <div className="py-8 text-center border-2 border-dashed border-gray-200 rounded-xl">
-                                <Image className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                                <p className="text-xs text-gray-400">Nenhuma imagem adicionada ainda</p>
+                            <div className="py-8 text-center border-2 border-dashed border-borda-cafe rounded-[10px]">
+                                <Image className="w-8 h-8 text-borda-cafe mx-auto mb-2" />
+                                <p className="text-xs text-cafe-cinza-quente">Nenhuma imagem adicionada ainda</p>
                             </div>
                         )}
                         {form.images.map((img, i) => (
@@ -322,7 +322,7 @@ function EditPanel({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+            <div className="flex items-center justify-between px-6 py-4 border-t border-borda-cafe bg-cream-elevated">
                 {error && (
                     <div className="flex items-center gap-2 text-red-600 text-xs">
                         <AlertCircle className="w-4 h-4" />
@@ -332,14 +332,14 @@ function EditPanel({
                 <div className="flex gap-2 ml-auto">
                     <button
                         onClick={onCancel}
-                        className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 rounded-xl transition"
+                        className="px-4 py-2 text-sm font-bold text-cafe-medio hover:bg-gray-200 rounded-[10px] transition"
                     >
                         Cancelar
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex items-center gap-2 px-5 py-2 bg-[#7c3aed] text-white rounded-xl font-bold text-sm hover:bg-[#6d28d9] transition disabled:opacity-50"
+                        className="flex items-center gap-2 px-5 py-2 bg-coral-terra text-papel-craft rounded-[10px] font-bold text-sm hover:bg-terracota-profundo transition disabled:opacity-50"
                     >
                         {saving ? (
                             <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -363,6 +363,7 @@ export default function TutorialsManager() {
     const [loading, setLoading] = useState(true);
     const [editing, setEditing] = useState<(Omit<TutorialBlock, 'updated_at'> & { id?: string }) | null>(null);
     const [saved, setSaved] = useState<string | null>(null);
+    const [tab, setTab] = useState<'tutorials' | 'coverage'>('tutorials');
 
     useEffect(() => { fetchBlocks(); }, []);
 
@@ -414,17 +415,42 @@ export default function TutorialsManager() {
     return (
         <div className="space-y-6">
 
+            {/* Tabs */}
+            <div className="flex items-center gap-1 border-b border-borda-cafe">
+                {([
+                    { id: 'tutorials', label: 'Blocos de tutorial' },
+                    { id: 'coverage', label: 'Cobertura' },
+                ] as const).map(t => (
+                    <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setTab(t.id)}
+                        className={`px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px ${
+                            tab === t.id
+                                ? 'border-coral-terra text-coral-terra'
+                                : 'border-transparent text-cafe-medio hover:text-coral-terra'
+                        }`}
+                    >
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
+            {tab === 'coverage' && <CoverageTab blocks={blocks} loading={loading} onRefresh={fetchBlocks} />}
+
+            {tab === 'tutorials' && <>
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-xl font-black text-gray-900">Tutorial Blocks</h2>
-                    <p className="text-sm text-gray-500 mt-0.5">
+                    <h2 className="text-xl font-semibold text-carvao-quente">Tutorial Blocks</h2>
+                    <p className="text-sm text-cafe-cinza-quente mt-0.5">
                         Gerencie o conteúdo educativo inline da plataforma — vídeo, passos e imagens.
                     </p>
                 </div>
                 <button
                     onClick={() => setEditing({ ...EMPTY_BLOCK })}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-[#7c3aed] text-white rounded-xl font-bold text-sm hover:bg-[#6d28d9] transition shadow-lg shadow-purple-500/20"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-coral-terra text-papel-craft rounded-[10px] font-bold text-sm hover:bg-terracota-profundo transition shadow-lg shadow-[0_4px_12px_-3px_rgba(80,40,20,0.10)]"
                 >
                     <Plus className="w-4 h-4" />
                     Novo Block
@@ -432,7 +458,7 @@ export default function TutorialsManager() {
             </div>
 
             {saved && (
-                <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">
+                <div className="flex items-center gap-2 p-3 bg-[oklch(94%_0.020_145)] border border-verde-oliva/40 rounded-[10px] text-sm text-[oklch(40%_0.060_145)]">
                     <Check className="w-4 h-4" />
                     Block <code className="font-mono font-bold">{saved}</code> salvo com sucesso!
                 </div>
@@ -451,43 +477,43 @@ export default function TutorialsManager() {
             {loading ? (
                 <div className="space-y-3">
                     {[...Array(3)].map((_, i) => (
-                        <div key={i} className="h-20 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+                        <div key={i} className="h-20 bg-cream-surface rounded-[12px] border border-borda-cafe animate-pulse" />
                     ))}
                 </div>
             ) : blocks.length === 0 ? (
-                <div className="py-16 text-center bg-white rounded-2xl border border-gray-100">
-                    <BookOpen className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                    <p className="font-bold text-gray-400">Nenhum tutorial block criado ainda</p>
-                    <p className="text-sm text-gray-400 mt-1">Clique em "Novo Block" para começar</p>
+                <div className="py-16 text-center bg-cream-surface rounded-[12px] border border-borda-cafe">
+                    <BookOpen className="w-10 h-10 text-borda-cafe mx-auto mb-3" />
+                    <p className="font-bold text-cafe-cinza-quente">Nenhum tutorial block criado ainda</p>
+                    <p className="text-sm text-cafe-cinza-quente mt-1">Clique em "Novo Block" para começar</p>
                 </div>
             ) : (
                 <div className="space-y-3">
                     {blocks.map(block => (
                         <div
                             key={block.id}
-                            className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 hover:border-[#7c3aed]/20 hover:shadow-md transition-all group"
+                            className="flex items-center gap-4 p-4 bg-cream-surface rounded-[12px] border border-borda-cafe hover:border-coral-terra/20 hover:shadow-md transition-all group"
                         >
                             {/* Status icons */}
                             <div className="flex gap-2 shrink-0">
-                                <span title="Vídeo" className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs ${block.video_url ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-300'}`}>
+                                <span title="Vídeo" className={`w-7 h-7 rounded-[8px] flex items-center justify-center text-xs ${block.video_url ? 'bg-emerald-100 text-emerald-600' : 'bg-cream-elevated text-borda-cafe'}`}>
                                     <Play className="w-3.5 h-3.5" />
                                 </span>
-                                <span title="Passos" className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs ${block.steps?.length > 0 ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-300'}`}>
+                                <span title="Passos" className={`w-7 h-7 rounded-[8px] flex items-center justify-center text-xs ${block.steps?.length > 0 ? 'bg-blue-100 text-blue-600' : 'bg-cream-elevated text-borda-cafe'}`}>
                                     <BookOpen className="w-3.5 h-3.5" />
                                 </span>
-                                <span title="Imagens" className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs ${block.images?.length > 0 ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-300'}`}>
+                                <span title="Imagens" className={`w-7 h-7 rounded-[8px] flex items-center justify-center text-xs ${block.images?.length > 0 ? 'bg-amber-100 text-amber-600' : 'bg-cream-elevated text-borda-cafe'}`}>
                                     <Image className="w-3.5 h-3.5" />
                                 </span>
                             </div>
 
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <p className="font-black text-gray-900 text-sm">{block.title}</p>
-                                    <code className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded font-mono">
+                                    <p className="font-semibold text-carvao-quente text-sm">{block.title}</p>
+                                    <code className="px-1.5 py-0.5 bg-cream-elevated text-cafe-cinza-quente text-[10px] rounded font-mono">
                                         {block.slug}
                                     </code>
                                 </div>
-                                <p className="text-xs text-gray-400 mt-0.5">
+                                <p className="text-xs text-cafe-cinza-quente mt-0.5">
                                     {block.steps?.length || 0} passos
                                     {block.images?.length > 0 && ` · ${block.images.length} imagens`}
                                     {block.video_url && ' · vídeo'}
@@ -497,20 +523,204 @@ export default function TutorialsManager() {
                             <div className="flex gap-2 shrink-0">
                                 <button
                                     onClick={() => setEditing(block)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#7c3aed]/10 text-[#7c3aed] rounded-lg text-xs font-bold hover:bg-[#7c3aed]/20 transition"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-coral-wash text-coral-terra rounded-[8px] text-xs font-bold hover:bg-coral-terra/20 transition"
                                 >
                                     <Edit2 className="w-3.5 h-3.5" />
                                     Editar
                                 </button>
                                 <button
                                     onClick={() => handleDelete(block.id)}
-                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                                    className="p-1.5 text-cafe-cinza-quente hover:text-vermelho-tijolo hover:bg-[oklch(94%_0.025_28)] rounded-[8px] transition"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            </>}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// COVERAGE TAB — absorvido de ProductionChecklist.tsx (deletado)
+// ─────────────────────────────────────────────────────────────────────────
+
+// Slugs do sistema (fonte da verdade). Adicione aqui sempre que um novo
+// TutorialBlock for usado em algum lugar da plataforma.
+const SYSTEM_SLUGS: { slug: string; location: string; description: string }[] = [
+    { slug: 'github-token', location: 'TokenGate + Configurações', description: 'Como criar token do GitHub' },
+    { slug: 'vercel-token', location: 'TokenGate + Configurações', description: 'Como criar token da Vercel' },
+];
+
+function CoverageTab({
+    blocks, loading, onRefresh,
+}: {
+    blocks: TutorialBlock[];
+    loading: boolean;
+    onRefresh: () => void;
+}) {
+    const systemItems = SYSTEM_SLUGS.map(s => ({
+        ...s,
+        block: blocks.find(b => b.slug === s.slug) || null,
+    }));
+    const extraBlocks = blocks.filter(b => !SYSTEM_SLUGS.find(s => s.slug === b.slug));
+    const allItems = [...systemItems.map(s => s.block), ...extraBlocks].filter(Boolean) as TutorialBlock[];
+    const withVideo = allItems.filter(b => !!b.video_url).length;
+    const withSteps = allItems.filter(b => b.steps?.length > 0).length;
+    const withImages = allItems.filter(b => b.images?.length > 0).length;
+    const total = systemItems.length + extraBlocks.length;
+
+    if (loading) {
+        return (
+            <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-20 bg-cream-surface border border-borda-cafe rounded-[12px] animate-pulse" />
+                ))}
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-5">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h3 className="font-display text-xl font-normal text-carvao-quente tracking-tight">
+                        Cobertura de tutoriais
+                    </h3>
+                    <p className="text-sm text-cafe-medio mt-0.5">
+                        Status de cada bloco esperado pelo código — o que falta gravar ou completar.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={onRefresh}
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-cafe-medio hover:text-coral-terra hover:bg-coral-wash rounded-[8px] transition-colors min-h-[36px]"
+                >
+                    <Video className="w-4 h-4" />
+                    Atualizar
+                </button>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[
+                    { label: 'Com vídeo', value: withVideo, total },
+                    { label: 'Com passos', value: withSteps, total },
+                    { label: 'Com imagens', value: withImages, total },
+                ].map(stat => {
+                    const pct = total === 0 ? 0 : Math.round((stat.value / total) * 100);
+                    return (
+                        <div key={stat.label} className="bg-cream-surface border border-borda-cafe rounded-[12px] p-4">
+                            <p className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-wide">{stat.label}</p>
+                            <p className="font-display text-2xl font-normal text-carvao-quente tabular-nums tracking-tight mt-1">
+                                {stat.value}
+                                <span className="text-cafe-cinza-quente text-base">/{stat.total}</span>
+                            </p>
+                            <div className="mt-3 h-1 bg-borda-cafe rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full transition-all ${pct === 100 ? 'bg-verde-oliva' : 'bg-coral-terra'}`}
+                                    style={{ width: `${pct}%` }}
+                                />
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Slugs do sistema */}
+            <div className="bg-cream-surface border border-borda-cafe rounded-[12px] overflow-hidden">
+                <div className="px-5 py-3 border-b border-borda-cafe bg-cream-elevated/50">
+                    <p className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-[0.12em]">
+                        Esperado pelo código
+                    </p>
+                </div>
+                <div className="divide-y divide-borda-cafe">
+                    {systemItems.map(item => {
+                        const b = item.block;
+                        const hasVideo = !!b?.video_url;
+                        const hasSteps = (b?.steps?.length ?? 0) > 0;
+                        const isComplete = hasVideo && hasSteps;
+                        const status = !b ? 'missing' : isComplete ? 'complete' : 'partial';
+
+                        return (
+                            <div key={item.slug} className="px-5 py-4 flex items-start gap-3">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                                    status === 'complete' ? 'bg-verde-oliva text-papel-craft'
+                                    : status === 'missing' ? 'bg-[oklch(94%_0.025_28)] text-vermelho-tijolo'
+                                    : 'bg-mostarda-amber text-carvao-quente'
+                                }`}>
+                                    {status === 'complete'
+                                        ? <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                                        : <AlertCircle className="w-3.5 h-3.5" />
+                                    }
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="font-semibold text-carvao-quente text-sm">{item.description}</p>
+                                        <code className="font-mono bg-cream-elevated text-cafe-cinza-quente text-xs px-1.5 py-0.5 rounded">
+                                            {item.slug}
+                                        </code>
+                                    </div>
+                                    <p className="text-xs text-cafe-cinza-quente mt-0.5">
+                                        Aparece em: <strong className="text-cafe-medio">{item.location}</strong>
+                                    </p>
+                                    {!b ? (
+                                        <p className="text-xs text-vermelho-tijolo font-semibold mt-2">
+                                            Não existe no banco — crie na aba Blocos.
+                                        </p>
+                                    ) : (
+                                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                                            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                                hasVideo ? 'bg-[oklch(94%_0.020_145)] text-[oklch(40%_0.060_145)]' : 'bg-cream-elevated text-cafe-cinza-quente'
+                                            }`}>
+                                                {hasVideo ? 'Vídeo ✓' : 'Sem vídeo'}
+                                            </span>
+                                            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                                hasSteps ? 'bg-[oklch(94%_0.020_145)] text-[oklch(40%_0.060_145)]' : 'bg-cream-elevated text-cafe-cinza-quente'
+                                            }`}>
+                                                {b.steps?.length ?? 0} {b.steps?.length === 1 ? 'passo' : 'passos'}
+                                            </span>
+                                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 bg-cream-elevated text-cafe-medio rounded-full">
+                                                {b.images?.length ?? 0} {b.images?.length === 1 ? 'imagem' : 'imagens'}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Blocos extras (criados no admin mas não esperados pelo código) */}
+            {extraBlocks.length > 0 && (
+                <div className="bg-cream-surface border border-borda-cafe rounded-[12px] overflow-hidden">
+                    <div className="px-5 py-3 border-b border-borda-cafe bg-cream-elevated/50">
+                        <p className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-[0.12em]">
+                            Outros blocos no banco (não mapeados pelo código)
+                        </p>
+                    </div>
+                    <div className="divide-y divide-borda-cafe">
+                        {extraBlocks.map(b => (
+                            <div key={b.id} className="px-5 py-3 flex items-center gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="font-semibold text-carvao-quente text-sm">{b.title}</p>
+                                        <code className="font-mono bg-cream-elevated text-cafe-cinza-quente text-xs px-1.5 py-0.5 rounded">{b.slug}</code>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    {b.video_url && (
+                                        <span className="text-xs font-semibold text-[oklch(40%_0.060_145)]">Vídeo ✓</span>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

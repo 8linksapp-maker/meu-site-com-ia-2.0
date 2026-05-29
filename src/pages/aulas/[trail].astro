@@ -1,0 +1,10 @@
+---
+const { trail } = Astro.params;
+const slug = trail?.trim();
+
+if (!slug) {
+  return Astro.redirect('/aulas', 301);
+}
+
+return Astro.redirect(`/aulas#${slug}`, 301);
+---

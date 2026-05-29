@@ -1,9 +1,8 @@
 ---
 import '../styles/global.css';
-import { LogOut, LayoutDashboard, Settings, Shield, Heart, Menu, X, GraduationCap, Plus, Globe, MessageSquare, Rocket, LayoutGrid, Radio, LifeBuoy, Lightbulb, Vote, ShoppingBag, Store } from 'lucide-react';
+import { LogOut, LayoutDashboard, Settings, Shield, Menu, X, GraduationCap, Globe, LifeBuoy, Vote, DollarSign, HelpCircle } from 'lucide-react';
 import GroupWizard from '../components/GroupWizard';
 import TokenGate from '../components/TokenGate';
-import SpotlightTour from '../components/ui/SpotlightTour';
 
 interface Props {
 	title: string;
@@ -23,255 +22,193 @@ const pathname = new URL(Astro.request.url).pathname;
 		<title>{title} | Meu Site Com IA</title>
         
 	</head>
-	<body class="bg-gray-50 text-gray-900 flex h-screen overflow-hidden">
+	<body class="bg-papel-craft text-carvao-quente flex h-screen overflow-hidden">
     <!-- Overlay Mobile -->
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 lg:hidden opacity-0 invisible transition-all duration-300"></div>
+    <div id="sidebar-overlay" class="fixed inset-0 bg-carvao-quente/40 z-40 lg:hidden opacity-0 invisible transition-all duration-300"></div>
 
     <!-- Sidebar -->
-    <aside id="sidebar" aria-hidden="true" class="fixed lg:static inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex flex-col h-full z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
-      <div class="h-16 flex items-center justify-between px-6 border-b border-gray-200 shrink-0">
-        <h1 class="text-xl font-bold text-[#7c3aed]">Meu Site Com IA</h1>
-        <button id="close-sidebar" aria-label="Fechar menu" class="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-md">
+    <aside id="sidebar" aria-hidden="true" class="fixed lg:static inset-y-0 left-0 w-64 bg-cream-elevated border-r border-borda-cafe flex flex-col h-full z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+      <div class="h-16 flex items-center justify-between px-6 border-b border-borda-cafe shrink-0">
+        <h1 class="font-display text-xl font-medium tracking-tight text-coral-terra">Meu Site Com IA</h1>
+        <button id="close-sidebar" aria-label="Fechar menu" class="lg:hidden p-2 text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo rounded-md">
           <X className="w-5 h-5" />
         </button>
       </div>
       
-      <nav class="flex-1 p-4 overflow-y-auto space-y-0.5">
+      <nav class="flex-1 p-4 overflow-y-auto space-y-1">
 
-        {/* Visão Geral */}
+        {/* ── 3 itens core (Jobs to be Done identificados) ── */}
+
+        {/* Visão Geral — home do dashboard */}
         <a
           href="/dashboard"
-          data-tour="dashboard"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+          class={`flex items-center gap-3 px-3 py-2.5 rounded-[8px] transition-colors ${
             pathname === '/dashboard'
-              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+              ? 'bg-cream-surface text-coral-terra font-semibold'
+              : 'text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo'
           }`}
         >
           <LayoutDashboard className="w-4 h-4 shrink-0" />
           <span class="text-sm">Visão Geral</span>
         </a>
 
-        {/* ── MEUS SITES ── */}
-        <div class="pt-4 pb-1 px-3">
-          <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.12em]">Meus Sites</p>
-        </div>
-
-        <a
-          href="/sites"
-          data-tour="criar-site"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-            pathname === '/sites'
-              ? 'bg-[#7c3aed] text-white font-semibold shadow-md shadow-purple-500/20'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-          }`}
-        >
-          <Plus className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Criar Novo Site</span>
-        </a>
-
+        {/* Meus sites — carteira (job principal: gerir/expandir carteira) */}
         <a
           href="/meus-sites"
-          data-tour="meus-sites"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-            pathname.includes('/meus-sites')
-              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+          class={`flex items-center gap-3 px-3 py-2.5 rounded-[8px] transition-colors ${
+            pathname.includes('/meus-sites') || pathname === '/sites'
+              ? 'bg-cream-surface text-coral-terra font-semibold'
+              : 'text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo'
           }`}
         >
           <Globe className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Meus Sites</span>
+          <span class="text-sm">Meus sites</span>
         </a>
 
-        {/* ── EXPLORAR ── */}
-        <div class="pt-4 pb-1 px-3">
-          <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.12em]">Explorar</p>
-        </div>
-
-        <a
-          href="/favoritos"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-            pathname.includes('/favoritos')
-              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-          }`}
-        >
-          <Heart className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Favoritos</span>
-        </a>
-
+        {/* Academy — curso (job secundário #1) */}
         <a
           href="/aulas"
-          data-tour="academy"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-            pathname === '/aulas'
-              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+          class={`flex items-center gap-3 px-3 py-2.5 rounded-[8px] transition-colors ${
+            pathname === '/aulas' || pathname.includes('/aulas-ao-vivo')
+              ? 'bg-cream-surface text-coral-terra font-semibold'
+              : 'text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo'
           }`}
         >
           <GraduationCap className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Aulas</span>
+          <span class="text-sm">Academy</span>
         </a>
 
+        {/* Afiliados — programa de comissões 50% */}
         <a
-          href="/aulas-ao-vivo"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-            pathname.includes('/aulas-ao-vivo')
-              ? 'bg-red-50 text-red-600 font-semibold'
-              : 'text-gray-500 hover:bg-red-50 hover:text-red-500'
+          href="/afiliados"
+          class={`flex items-center gap-3 px-3 py-2.5 rounded-[8px] transition-colors ${
+            pathname.includes('/afiliados')
+              ? 'bg-cream-surface text-coral-terra font-semibold'
+              : 'text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo'
           }`}
         >
-          <Radio className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Academy Ao Vivo</span>
-          <span class="ml-auto flex items-center gap-1 text-[9px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wide">
-            <span class="w-1 h-1 rounded-full bg-white animate-pulse" />
-            Live
-          </span>
+          <DollarSign className="w-4 h-4 shrink-0" />
+          <span class="text-sm">Afiliados</span>
         </a>
 
-        {/* Marketplace + Painel do Vendedor: teaser "Em breve" enquanto rola redesign. Click leva pro ComingSoon. */}
+        {/* Ajuda — FAQ self-service */}
         <a
-          href="/marketplace"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors opacity-70 hover:opacity-100 ${
-            pathname.startsWith('/marketplace')
-              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+          href="/ajuda"
+          class={`flex items-center gap-3 px-3 py-2.5 rounded-[8px] transition-colors ${
+            pathname.includes('/ajuda')
+              ? 'bg-cream-surface text-coral-terra font-semibold'
+              : 'text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo'
           }`}
         >
-          <ShoppingBag className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Marketplace</span>
-          <span class="ml-auto text-[9px] font-black bg-[#7c3aed]/10 text-[#7c3aed] px-1.5 py-0.5 rounded-full uppercase tracking-wide">
-            Em breve
-          </span>
-        </a>
-
-        <a
-          href="/seller/dashboard"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors opacity-70 hover:opacity-100 ${
-            pathname.startsWith('/seller')
-              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-          }`}
-        >
-          <Store className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Painel do Vendedor</span>
-          <span class="ml-auto text-[9px] font-black bg-[#7c3aed]/10 text-[#7c3aed] px-1.5 py-0.5 rounded-full uppercase tracking-wide">
-            Em breve
-          </span>
-        </a>
-
-        {/* ── CONTRIBUIR ── */}
-        <div class="pt-4 pb-1 px-3">
-          <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.12em]">Contribuir</p>
-        </div>
-
-        <a
-          href="/solicitar-template"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-            pathname.includes('/solicitar-template')
-              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-          }`}
-        >
-          <Vote className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Templates Comunidade</span>
-          <span class="ml-auto text-[9px] font-black bg-emerald-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wide">
-            Novo
-          </span>
-        </a>
-
-        {/* ── DIVIDER ── */}
-        <div class="pt-4 pb-3 px-3">
-          <div class="h-px bg-gray-100 w-full"></div>
-        </div>
-
-        {/* WhatsApp Group */}
-        <button
-          id="open-wizard-sidebar"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-500 hover:bg-[#25D366]/8 hover:text-[#128C7E] transition-all group w-full text-left"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="text-gray-400 group-hover:text-[#25D366] transition-colors shrink-0">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413" />
-          </svg>
-          <span class="text-sm font-semibold">Entrar no Grupo</span>
-        </button>
-
-        {/* Configurações */}
-        <a
-          href="/configuracoes"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-            pathname.includes('/configuracoes')
-              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-          }`}
-        >
-          <Settings className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Configurações</span>
-        </a>
-
-        {/* Juvenal Suporte */}
-        <a
-          href="/suporte"
-          class={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-            pathname.includes('/suporte')
-              ? 'bg-[#7c3aed]/10 text-[#7c3aed] font-semibold'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-          }`}
-        >
-          <LifeBuoy className="w-4 h-4 shrink-0" />
-          <span class="text-sm">Suporte</span>
+          <HelpCircle className="w-4 h-4 shrink-0" />
+          <span class="text-sm">Ajuda</span>
         </a>
 
       </nav>
+
+      {/* Footer da sidebar — utilitários minimalistas (não compete com itens core) */}
+      <div class="px-4 py-3 border-t border-borda-cafe space-y-0.5 shrink-0">
+        <a
+          href="/configuracoes"
+          class={`flex items-center gap-3 px-3 py-1.5 rounded-[8px] text-xs transition-colors ${
+            pathname.includes('/configuracoes')
+              ? 'text-coral-terra font-semibold'
+              : 'text-cafe-cinza-quente hover:text-terracota-profundo'
+          }`}
+        >
+          <Settings className="w-3.5 h-3.5 shrink-0" />
+          <span>Configurações</span>
+        </a>
+      </div>
     </aside>
 
     <main class="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-      <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 shrink-0">
+      <header class="h-16 bg-papel-craft border-b border-borda-cafe flex items-center justify-between px-4 lg:px-8 shrink-0">
         <div class="flex items-center gap-4">
-          <button id="open-sidebar" aria-label="Abrir menu de navegacao" class="lg:hidden w-11 h-11 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-md">
+          <button id="open-sidebar" aria-label="Abrir menu de navegacao" class="lg:hidden w-11 h-11 flex items-center justify-center text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo rounded-md">
             <Menu className="w-6 h-6" />
           </button>
-          <h2 class="text-lg font-semibold text-gray-800 truncate">{title}</h2>
+          <h2 class="font-display text-2xl font-normal text-carvao-quente tracking-tight truncate">{title}</h2>
         </div>
-        
+
+        {/* Lado direito: chip de votação (condicional) + avatar */}
+        <div class="flex items-center gap-3">
+
+          {/* Chip de votação — começa hidden, script ativa se votação aberta */}
+          <a
+            id="voting-chip"
+            href="/comunidade"
+            hidden
+            aria-label="Votação aberta — votar no próximo template"
+            title="Votação aberta — clique pra votar"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-coral-wash text-coral-terra rounded-full text-xs font-semibold hover:bg-coral-terra hover:text-papel-craft transition-colors min-h-[36px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra"
+          >
+            <Vote className="w-3.5 h-3.5" />
+            <span class="hidden sm:inline">Votação aberta</span>
+          </a>
+
         {/* DROPDOWN MENU */}
         <div id="header-menu-wrapper" class="relative h-full flex items-center">
-          <button id="header-menu-btn" type="button" aria-label="Menu da conta" aria-expanded="false" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed] focus-visible:ring-offset-2">
-            <Settings className="w-5 h-5" />
+          <button
+            id="header-menu-btn"
+            type="button"
+            aria-label="Menu da conta"
+            aria-expanded="false"
+            class="flex items-center justify-center w-10 h-10 rounded-full bg-coral-terra hover:bg-terracota-profundo transition-colors text-papel-craft text-sm font-semibold tracking-wide focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra"
+          >
+            <span id="user-initials">—</span>
           </button>
 
           {/* MENU FLUTUANTE */}
           <div id="header-menu-panel" class="absolute right-0 top-full pt-1 w-56 opacity-0 invisible transition-all duration-200 z-50">
-            <div class="bg-white border border-gray-100 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-2 flex flex-col gap-1 transform origin-top-right scale-95 transition-transform duration-200">
-              <div class="px-3 py-2 border-b border-gray-50 mb-1">
-                <p class="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Sua Conta</p>
+            <div class="bg-cream-surface border border-borda-cafe rounded-[12px] shadow-[0_12px_32px_-12px_rgba(80,40,20,0.12)] p-2 flex flex-col gap-1 transform origin-top-right scale-95 transition-transform duration-200">
+              <div class="px-3 py-2 border-b border-borda-cafe mb-1">
+                <p class="text-xs font-bold tracking-widest text-cafe-cinza-quente uppercase">Sua Conta</p>
               </div>
-              <a href="/configuracoes" class="px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#7c3aed] rounded-xl transition-colors text-left flex items-center gap-2">
+              <a href="/configuracoes" class="px-3 py-2.5 text-sm font-semibold text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo rounded-[8px] transition-colors text-left flex items-center gap-2">
                 Conta
               </a>
-              <a href="/configuracoes?tab=integracao" class="px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#7c3aed] rounded-xl transition-colors text-left flex items-center gap-2">
+              <a href="/configuracoes?tab=integracao" class="px-3 py-2.5 text-sm font-semibold text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo rounded-[8px] transition-colors text-left flex items-center gap-2">
                 Integrações
               </a>
               <a
                 id="admin-link-header"
                 href="/admin"
                 style="display: none;"
-                class="px-3 py-2.5 text-sm font-extrabold text-[#7c3aed] hover:bg-[#7c3aed]/10 rounded-xl transition-colors text-left items-center gap-2"
+                class="px-3 py-2.5 text-sm font-extrabold text-coral-terra hover:bg-coral-wash hover:text-terracota-profundo rounded-[8px] transition-colors text-left items-center gap-2"
               >
                 <Shield className="w-4 h-4" />
                 Área Admin
               </a>
-              <div class="h-px bg-gray-100 my-1 mx-1"></div>
-              <button id="logout-btn" class="px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors text-left flex items-center gap-2 w-full">
+              <div class="h-px bg-borda-cafe my-1 mx-1"></div>
+              <button id="logout-btn" class="px-3 py-2.5 text-sm font-semibold text-vermelho-tijolo hover:bg-coral-wash rounded-[8px] transition-colors text-left flex items-center gap-2 w-full">
                 <LogOut className="w-4 h-4" />
                 Sair da Plataforma
               </button>
             </div>
           </div>
         </div>
+        </div>
       </header>
 
       <script is:inline>
+        // Mostra chip "Votação aberta" no header durante o ciclo (Dom 00h → Sáb 12h BRT).
+        (() => {
+            function isVotingOpen() {
+                const now = new Date();
+                const dow = now.getUTCDay();
+                if (dow === 6) return now.getUTCHours() < 15;  // sábado: aberta até 12h BRT (15h UTC)
+                const daysToSat = (6 - dow + 7) % 7;
+                const close = new Date(now);
+                close.setUTCDate(now.getUTCDate() + daysToSat);
+                close.setUTCHours(15, 0, 0, 0);
+                if (close.getTime() <= now.getTime()) close.setUTCDate(close.getUTCDate() + 7);
+                return close.getTime() > now.getTime();
+            }
+            const chip = document.getElementById('voting-chip');
+            if (chip && isVotingOpen()) chip.removeAttribute('hidden');
+        })();
+
         (() => {
             const btn = document.getElementById('header-menu-btn');
             const panel = document.getElementById('header-menu-panel');
@@ -310,68 +247,18 @@ const pathname = new URL(Astro.request.url).pathname;
 
       <GroupWizard client:load />
       <TokenGate client:load />
-      <SpotlightTour
-        client:load
-        storageKey="onboarding-spotlight-v5"
-        steps={[
-          {
-            target: '[data-tour="dashboard"]',
-            title: 'Bem-vindo ao seu Painel!',
-            description: 'Aqui você acompanha seus sites, templates e progresso nas aulas. Vamos te guiar para criar seu primeiro site!',
-            placement: 'right',
-          },
-          {
-            target: '[data-tour="academy"]',
-            title: 'Academy — Suas Aulas',
-            description: 'Aqui ficam as aulas do curso. Depois de criar seu site, volte aqui para aprender a usar o editor de conteúdo.',
-            placement: 'right',
-          },
-          {
-            target: '[data-tour="criar-site"]',
-            title: 'Vamos criar seu site!',
-            description: 'Vamos para a vitrine de templates onde você escolhe o visual do seu site.',
-            placement: 'right',
-            ctaText: 'Ir para Templates',
-            navigateTo: '/sites',
-          },
-          {
-            target: '[data-tour="template-walker"]',
-            title: 'Template Walker — Recomendado!',
-            description: 'Este é o nosso template principal: blog completo com editor visual, SEO, plugins e muito mais. Vamos abrir ele.',
-            placement: 'bottom',
-            ctaText: 'Abrir Walker',
-            clickTarget: true,
-          },
-          {
-            target: '[data-tour="template-preview"]',
-            title: 'Preview do Template',
-            description: 'Aqui você vê como o site vai ficar. Pode navegar pelas imagens para ver todas as páginas. Bonito, né?',
-            placement: 'bottom',
-          },
-          {
-            target: '[data-tour="btn-previa"]',
-            title: 'Prévia ao Vivo',
-            description: 'Clique aqui para abrir uma demonstração real do site funcionando. Assim você vê exatamente o que vai receber.',
-            placement: 'left',
-          },
-          {
-            target: '[data-tour="btn-criar-site"]',
-            title: 'Criar Seu Site',
-            description: 'Este é o botão principal! Ao clicar, você vai dar um nome pro site e criar uma senha pro editor de conteúdo.',
-            placement: 'left',
-            ctaText: 'Criar agora!',
-            clickTarget: true,
-          },
-          {
-            target: '[data-tour="deploy-form"]',
-            title: 'Preencha e Publique!',
-            description: 'Digite um nome para seu site (ex: meu-blog-2026), crie uma senha segura e clique em "Fazer Deploy Agora". Em ~1 minuto seu site estará no ar!',
-            placement: 'top',
-            ctaText: 'Concluir Tour',
-          },
-        ]}
-      />
     </main>
+
+    {/* ── FAB Ajuda (Job #3: tirar dúvida rápida quando trava) ── */}
+    <a
+      href="/ajuda"
+      aria-label="Abrir ajuda"
+      class="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 bg-carvao-quente hover:bg-coral-terra text-papel-craft pl-4 pr-5 py-3 rounded-full font-semibold text-sm transition-all hover:-translate-y-0.5 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra min-h-[48px]"
+      style="box-shadow: 0 10px 25px -5px rgba(80, 40, 20, 0.25), 0 4px 6px -2px rgba(80, 40, 20, 0.10);"
+    >
+      <HelpCircle className="w-4 h-4" />
+      <span class="hidden sm:inline">Ajuda</span>
+    </a>
 
     <script>
       import { supabase } from '../lib/supabase';
@@ -401,16 +288,26 @@ const pathname = new URL(Astro.request.url).pathname;
 
       document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
 
-      // Event trigger for Group Wizard
-      document.getElementById('open-wizard-sidebar')?.addEventListener('click', () => {
-        window.dispatchEvent(new CustomEvent('open-group-wizard'));
-      });
-      
-      // Checa sessão
+
+      // Checa sessão + popula iniciais do avatar (Café-da-Tarde)
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) {
           window.location.href = '/';
         } else {
+          const fullName = (session.user.user_metadata as Record<string, unknown> | null)?.full_name as string | undefined;
+          const email = session.user.email;
+          let initials = '—';
+          if (fullName && fullName.trim()) {
+            const parts = fullName.trim().split(/\s+/);
+            initials = parts.length >= 2
+              ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+              : parts[0].slice(0, 2).toUpperCase();
+          } else if (email) {
+            initials = email.slice(0, 2).toUpperCase();
+          }
+          const initialsEl = document.getElementById('user-initials');
+          if (initialsEl) initialsEl.textContent = initials;
+
           supabase.from('profiles').select('role').eq('id', session.user.id)
             .then(({ data }) => {
               if (data && data.some(p => p.role === 'admin')) {

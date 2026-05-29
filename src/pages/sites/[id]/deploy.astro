@@ -1,0 +1,14 @@
+---
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+import DeployWizard from '../../../components/sites/DeployWizard';
+
+const { id } = Astro.params;
+
+if (!id) {
+  return Astro.redirect('/sites');
+}
+---
+
+<DashboardLayout title="Publicar template">
+  <DeployWizard client:load templateId={id} />
+</DashboardLayout>

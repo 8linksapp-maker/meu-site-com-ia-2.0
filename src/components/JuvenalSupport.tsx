@@ -236,13 +236,13 @@ export default function JuvenalSupport() {
     return (
         <div className="max-w-3xl mx-auto">
             {/* Juvenal Header */}
-            <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 rounded-2xl p-6 mb-6 text-white shadow-lg shadow-purple-500/20">
+            <div className="bg-coral-terra rounded-2xl p-6 mb-6 text-white shadow-lg">
                 <div className="flex items-center gap-4">
-                    <img src={JUVENAL_AVATAR} alt="Juvenal Amâncio" className="w-16 h-16 rounded-2xl shrink-0 shadow-lg object-cover" />
+                    <img src={JUVENAL_AVATAR} alt="Juvenal Amâncio" className="w-16 h-16 rounded-2xl shrink-0 shadow-lg object-cover ring-2 ring-white/20" />
                     <div className="min-w-0">
                         <h1 className="text-xl font-black tracking-tight">Juvenal Amancio</h1>
-                        <p className="text-violet-200 text-sm font-medium">Suporte Tecnico</p>
-                        <p className="text-white/80 text-sm mt-1 italic">"{greeting}"</p>
+                        <p className="text-coral-wash text-sm font-medium">Suporte Tecnico</p>
+                        <p className="text-white/85 text-sm mt-1 italic">"{greeting}"</p>
                     </div>
                 </div>
             </div>
@@ -253,8 +253,8 @@ export default function JuvenalSupport() {
                     onClick={() => { setTab('novo'); setSubmitSuccess(''); }}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-all ${
                         tab === 'novo'
-                            ? 'bg-white text-[#7c3aed] shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                            ? 'bg-white text-terracota-profundo shadow-sm'
+                            : 'text-cafe-medio hover:text-carvao-quente'
                     }`}
                 >
                     <Send className="w-4 h-4" />
@@ -264,14 +264,14 @@ export default function JuvenalSupport() {
                     onClick={() => { setTab('lista'); setSubmitSuccess(''); loadTickets(); }}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-all ${
                         tab === 'lista'
-                            ? 'bg-white text-[#7c3aed] shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                            ? 'bg-white text-terracota-profundo shadow-sm'
+                            : 'text-cafe-medio hover:text-carvao-quente'
                     }`}
                 >
                     <Ticket className="w-4 h-4" />
                     Meus Chamados
                     {tickets.length > 0 && (
-                        <span className="bg-[#7c3aed]/10 text-[#7c3aed] text-xs font-black px-1.5 py-0.5 rounded-full">
+                        <span className="bg-coral-wash text-terracota-profundo text-xs font-black px-1.5 py-0.5 rounded-full">
                             {tickets.length}
                         </span>
                     )}
@@ -285,13 +285,13 @@ export default function JuvenalSupport() {
                         <div className="p-8 text-center">
                             <img src={JUVENAL_AVATAR} alt="Juvenal" className="w-20 h-20 mx-auto mb-4 rounded-2xl shadow-lg object-cover" />
                             <p className="text-lg font-bold text-gray-800 mb-2">Chamado enviado!</p>
-                            <p className="text-violet-600 font-medium italic">"{submitSuccess}"</p>
+                            <p className="text-terracota-profundo font-medium italic">"{submitSuccess}"</p>
                             <p className="text-gray-500 text-sm mt-4">
                                 Acompanhe o status na aba "Meus Chamados".
                             </p>
                             <button
                                 onClick={() => setSubmitSuccess('')}
-                                className="mt-6 px-6 py-2.5 bg-[#7c3aed] text-white rounded-xl text-sm font-bold hover:bg-[#6d28d9] transition-colors"
+                                className="mt-6 px-6 py-2.5 bg-coral-terra text-white rounded-xl text-sm font-bold hover:bg-terracota-profundo transition-colors"
                             >
                                 Abrir outro chamado
                             </button>
@@ -307,7 +307,7 @@ export default function JuvenalSupport() {
                                     <select
                                         value={siteRepo}
                                         onChange={e => setSiteRepo(e.target.value)}
-                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 focus:border-[#7c3aed] bg-white"
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-coral-terra/30 focus:border-coral-terra bg-white"
                                     >
                                         <option value="">Selecione o site</option>
                                         {sites.map(s => (
@@ -322,7 +322,7 @@ export default function JuvenalSupport() {
                                         value={siteRepo}
                                         onChange={e => setSiteRepo(e.target.value)}
                                         placeholder="Nome ou URL do site"
-                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 focus:border-[#7c3aed]"
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-coral-terra/30 focus:border-coral-terra"
                                     />
                                 )}
                             </div>
@@ -335,7 +335,7 @@ export default function JuvenalSupport() {
                                 <select
                                     value={category}
                                     onChange={e => setCategory(e.target.value)}
-                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 focus:border-[#7c3aed] bg-white"
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-coral-terra/30 focus:border-coral-terra bg-white"
                                 >
                                     {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
                                         <option key={val} value={val}>{label}</option>
@@ -354,7 +354,7 @@ export default function JuvenalSupport() {
                                     onChange={e => setSubject(e.target.value)}
                                     required
                                     placeholder="Ex: Erro ao publicar post no blog"
-                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 focus:border-[#7c3aed]"
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-coral-terra/30 focus:border-coral-terra"
                                 />
                             </div>
 
@@ -369,7 +369,7 @@ export default function JuvenalSupport() {
                                     required
                                     rows={5}
                                     placeholder="Descreva o que aconteceu, o que voce esperava e os passos pra reproduzir..."
-                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 focus:border-[#7c3aed] resize-none"
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-coral-terra/30 focus:border-coral-terra resize-none"
                                 />
                             </div>
 
@@ -390,7 +390,7 @@ export default function JuvenalSupport() {
                                         </button>
                                     </div>
                                 ) : (
-                                    <label className="group flex flex-col items-center justify-center py-6 border-2 border-dashed border-gray-300 hover:border-[#7c3aed] rounded-xl cursor-pointer transition-all hover:bg-purple-50/50">
+                                    <label className="group flex flex-col items-center justify-center py-6 border-2 border-dashed border-gray-300 hover:border-coral-terra rounded-xl cursor-pointer transition-all hover:bg-coral-wash/30">
                                         <input
                                             type="file"
                                             accept="image/*"
@@ -422,11 +422,11 @@ export default function JuvenalSupport() {
                                             }}
                                         />
                                         {uploading ? (
-                                            <Loader2 className="w-8 h-8 animate-spin text-[#7c3aed] mb-2" />
+                                            <Loader2 className="w-8 h-8 animate-spin text-coral-terra mb-2" />
                                         ) : (
-                                            <Upload className="w-8 h-8 text-gray-400 group-hover:text-[#7c3aed] mb-2 transition-colors" />
+                                            <Upload className="w-8 h-8 text-gray-400 group-hover:text-coral-terra mb-2 transition-colors" />
                                         )}
-                                        <span className="text-sm text-gray-500 group-hover:text-[#7c3aed] font-medium transition-colors">
+                                        <span className="text-sm text-cafe-medio group-hover:text-terracota-profundo font-medium transition-colors">
                                             {uploading ? 'Enviando...' : 'Clique pra enviar o print'}
                                         </span>
                                         <span className="text-xs text-gray-400 mt-1">PNG, JPG, WebP — max 5MB</span>
@@ -443,7 +443,7 @@ export default function JuvenalSupport() {
                             <button
                                 type="submit"
                                 disabled={loading || !subject.trim() || !description.trim()}
-                                className="w-full py-3 bg-[#7c3aed] text-white rounded-xl text-sm font-black hover:bg-[#6d28d9] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30"
+                                className="w-full py-3 bg-coral-terra text-white rounded-xl text-sm font-black hover:bg-terracota-profundo disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
                             >
                                 {loading ? 'Enviando...' : 'Enviar pro Juvenal'}
                             </button>
@@ -543,7 +543,7 @@ export default function JuvenalSupport() {
                                                             key={msg.id}
                                                             className={`p-3 rounded-xl text-sm ${
                                                                 msg.author_type === 'juvenal'
-                                                                    ? 'bg-violet-50 border border-violet-100'
+                                                                    ? 'bg-coral-wash/40 border border-coral-wash'
                                                                     : 'bg-gray-50 border border-gray-100'
                                                             }`}
                                                         >
@@ -575,7 +575,7 @@ export default function JuvenalSupport() {
                                                             value={replyText[ticket.id] || ''}
                                                             onChange={e => setReplyText(prev => ({ ...prev, [ticket.id]: e.target.value }))}
                                                             placeholder="Escreva uma resposta..."
-                                                            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 focus:border-[#7c3aed]"
+                                                            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-coral-terra/30 focus:border-coral-terra"
                                                             onKeyDown={e => {
                                                                 if (e.key === 'Enter' && !e.shiftKey) {
                                                                     e.preventDefault();
@@ -586,7 +586,7 @@ export default function JuvenalSupport() {
                                                         <button
                                                             onClick={() => sendReply(ticket.id)}
                                                             disabled={sendingReply || !replyText[ticket.id]?.trim()}
-                                                            className="px-4 py-2.5 bg-[#7c3aed] text-white rounded-xl text-sm font-bold hover:bg-[#6d28d9] disabled:opacity-50 transition-colors shrink-0"
+                                                            className="px-4 py-2.5 bg-coral-terra text-white rounded-xl text-sm font-bold hover:bg-terracota-profundo disabled:opacity-50 transition-colors shrink-0"
                                                         >
                                                             <MessageCircle className="w-4 h-4" />
                                                         </button>

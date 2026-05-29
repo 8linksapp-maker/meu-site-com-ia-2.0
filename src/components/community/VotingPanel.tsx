@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import {
-    ThumbsUp, Trophy, Calendar, Clock, Loader2, Sparkles, ExternalLink,
+    ThumbsUp, Trophy, Loader2, Sparkles, Video,
     Store, FileText, Megaphone, Building2, Briefcase, UtensilsCrossed,
     UserCircle2, GraduationCap, Link2, Users, Calendar as CalendarIcon,
-    Home as HomeIcon, Cog, HelpCircle, ChevronRight, Flame, Video, Lock,
-    Hammer,
+    Home as HomeIcon, Cog, HelpCircle, Flame, Hammer, AlertCircle,
 } from 'lucide-react';
+import { Card, Banner } from '../ui';
 
 const BUSINESS_ICONS: Record<string, React.ElementType> = {
     ecommerce: Store, blog: FileText, landing: Megaphone, institucional: Building2,
@@ -41,14 +41,14 @@ interface RequestWithVotes {
     user_voted: boolean;
 }
 
-// Ciclo: Domingo 00:00 BRT → Sábado 12:00 BRT (votação aberta).
-// Launch da semana = Sexta seguinte 20:00 BRT (live YouTube).
-// BRT = UTC-3 (sem DST no Brasil atualmente).
+// ── Ciclo semanal ───────────────────────────────────────────────────────
+// Votação: Domingo 00:00 BRT → Sábado 12:00 BRT.
+// Launch: Sexta seguinte 19:00 BRT (YouTube).
+// BRT = UTC-3.
 
-// Sunday-based week
 function getCurrentWeekStart(): string {
     const now = new Date();
-    const dow = now.getUTCDay(); // 0 = Sunday
+    const dow = now.getUTCDay();
     const sunday = new Date(now);
     sunday.setUTCDate(now.getUTCDate() - dow);
     sunday.setUTCHours(0, 0, 0, 0);
@@ -59,7 +59,6 @@ function getPreviousWeekStart(): string {
     cur.setUTCDate(cur.getUTCDate() - 7);
     return cur.toISOString().slice(0, 10);
 }
-// Próximo sábado às 12:00 BRT (= 15:00 UTC).
 function getCloseAt(): Date {
     const now = new Date();
     const dow = now.getUTCDay();
@@ -70,8 +69,6 @@ function getCloseAt(): Date {
     if (close.getTime() <= now.getTime()) close.setUTCDate(close.getUTCDate() + 7);
     return close;
 }
-// Próximo domingo 00:00 BRT (= 03:00 UTC) — quando uma nova votação inicia
-// se a atual já fechou.
 function getNextOpenAt(): Date {
     const now = new Date();
     const dow = now.getUTCDay();
@@ -81,27 +78,22 @@ function getNextOpenAt(): Date {
     open.setUTCHours(3, 0, 0, 0);
     return open;
 }
-// Próxima sexta 20:00 BRT (= 23:00 UTC) — live launch.
 function getNextLaunchAt(): Date {
     const now = new Date();
     const dow = now.getUTCDay();
     const daysToFriday = (5 - dow + 7) % 7;
     const friday = new Date(now);
     friday.setUTCDate(now.getUTCDate() + daysToFriday);
-    friday.setUTCHours(23, 0, 0, 0);
+    friday.setUTCHours(22, 0, 0, 0); // 22h UTC = 19h BRT
     if (friday.getTime() <= now.getTime()) friday.setUTCDate(friday.getUTCDate() + 7);
     return friday;
 }
 function isVotingOpen(): boolean {
-    // Votação aberta entre Dom 00:00 e Sáb 12:00 BRT.
     const now = new Date();
     const dow = now.getUTCDay();
     if (dow === 6) {
-        // sábado: aberta se antes das 15:00 UTC
         return now.getUTCHours() < 15;
     }
-    // demais dias da semana exceto domingo madrugada — sempre aberta.
-    // (Detalhe: o "limbo" entre Sáb 12h e Dom 00h é tratado pelo close > now check.)
     return getCloseAt().getTime() > now.getTime();
 }
 
@@ -126,6 +118,12 @@ export default function VotingPanel() {
     const [winner, setWinner] = useState<RequestWithVotes | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [filter, setFilter] = useState<'all' | string>('all');
+    const [inProduction, setInProduction] = useState<RequestWithVotes | null>(null);
+
+    const myVotesCount = useMemo(
+        () => requests.reduce((n, r) => n + (r.user_voted ? 1 : 0), 0),
+        [requests],
+    );
 
     const weekStart = getCurrentWeekStart();
     const closeAt = getCloseAt();
@@ -133,7 +131,6 @@ export default function VotingPanel() {
     const launchAt = getNextLaunchAt();
     const votingOpen = isVotingOpen();
     const countdown = useCountdown(votingOpen ? closeAt : nextOpenAt);
-    const [inProduction, setInProduction] = useState<RequestWithVotes | null>(null);
 
     useEffect(() => { load(); }, []);
 
@@ -162,7 +159,7 @@ export default function VotingPanel() {
                 : { data: [] };
 
             const votesByReq: Record<string, { count: number; mine: boolean }> = {};
-            (votes || []).forEach((v: any) => {
+            (votes || []).forEach((v: { request_id: string; user_id: string }) => {
                 if (!votesByReq[v.request_id]) votesByReq[v.request_id] = { count: 0, mine: false };
                 votesByReq[v.request_id].count++;
                 if (uid && v.user_id === uid) votesByReq[v.request_id].mine = true;
@@ -179,7 +176,6 @@ export default function VotingPanel() {
 
             setRequests(ranked);
 
-            // Busca campeão da semana anterior (publicado na quarta atual)
             const prevWeek = getPreviousWeekStart();
             const { data: winnerData } = await supabase
                 .from('template_requests')
@@ -189,7 +185,6 @@ export default function VotingPanel() {
                 .maybeSingle();
             if (winnerData) setWinner({ ...winnerData, votes_count: 0, user_voted: false });
 
-            // Template atualmente "em construção" — status in_progress mais recente
             const { data: prodData } = await supabase
                 .from('template_requests')
                 .select('*')
@@ -199,8 +194,8 @@ export default function VotingPanel() {
                 .limit(1)
                 .maybeSingle();
             if (prodData) setInProduction({ ...prodData, votes_count: 0, user_voted: false });
-        } catch (e: any) {
-            setError(e?.message || 'Erro ao carregar.');
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : 'Erro ao carregar.');
         } finally {
             setLoading(false);
         }
@@ -208,33 +203,33 @@ export default function VotingPanel() {
 
     async function toggleVote(req: RequestWithVotes) {
         if (!currentUserId) {
-            alert('Você precisa estar logado para votar.');
+            alert('Você precisa estar logado pra votar.');
             return;
         }
         setVoting(prev => ({ ...prev, [req.id]: true }));
         try {
             if (req.user_voted) {
-                const { error } = await supabase
+                const { error: delErr } = await supabase
                     .from('template_request_votes')
                     .delete()
                     .eq('request_id', req.id)
                     .eq('user_id', currentUserId)
                     .eq('week_start', weekStart);
-                if (error) throw error;
+                if (delErr) throw delErr;
                 setRequests(prev => recompute(prev.map(r => r.id === req.id
                     ? { ...r, votes_count: Math.max(0, r.votes_count - 1), user_voted: false }
                     : r)));
             } else {
-                const { error } = await supabase
+                const { error: insErr } = await supabase
                     .from('template_request_votes')
                     .insert({ request_id: req.id, user_id: currentUserId, week_start: weekStart });
-                if (error) throw error;
+                if (insErr) throw insErr;
                 setRequests(prev => recompute(prev.map(r => r.id === req.id
                     ? { ...r, votes_count: r.votes_count + 1, user_voted: true }
                     : r)));
             }
-        } catch (e: any) {
-            alert('Erro: ' + (e?.message || 'falha ao votar'));
+        } catch (e: unknown) {
+            alert('Erro: ' + (e instanceof Error ? e.message : 'falha ao votar'));
         } finally {
             setVoting(prev => ({ ...prev, [req.id]: false }));
         }
@@ -262,145 +257,183 @@ export default function VotingPanel() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-24">
-                <Loader2 className="w-8 h-8 animate-spin text-[#7c3aed]" />
+            <div className="flex flex-col items-center justify-center py-24 gap-3">
+                <Loader2 className="w-7 h-7 animate-spin text-coral-terra" />
+                <p className="text-cafe-medio text-sm">Carregando solicitações…</p>
             </div>
         );
     }
 
     return (
         <div className="space-y-6">
-            {/* Hero: ciclo semanal */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 rounded-2xl p-6 text-white">
-                <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
-                <div className="relative">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Trophy className="w-5 h-5" />
-                        <h2 className="text-xl font-bold">
-                            {votingOpen ? 'Mais votado vira template ao vivo' : 'Votação encerrada — próxima começa em breve'}
-                        </h2>
+            {/* Hero ciclo semanal */}
+            <Card padding="lg" className="!border-coral-terra/30">
+                <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-coral-wash flex items-center justify-center shrink-0">
+                            <Trophy className="w-5 h-5 text-coral-terra" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-coral-terra uppercase tracking-[0.12em]">
+                                Votação da semana
+                            </p>
+                            <h2 className="font-display text-xl md:text-2xl font-normal text-carvao-quente tracking-tight mt-0.5">
+                                {votingOpen ? 'O mais votado vira template ao vivo' : 'Votação encerrada · próxima rodada em breve'}
+                            </h2>
+                            <p className="text-sm text-cafe-medio mt-1 leading-relaxed">
+                                {votingOpen ? (
+                                    <>Vota fecha <strong className="text-carvao-quente">sábado às 12h BRT</strong> · O campeão é entregue <strong className="text-carvao-quente">sexta seguinte às 19h ao vivo no YouTube</strong> · Nova rodada inicia domingo de manhã.</>
+                                ) : (
+                                    <>Resultado dessa semana já fechou. Próxima rodada começa <strong className="text-carvao-quente">domingo 00h BRT</strong>.</>
+                                )}
+                            </p>
+                        </div>
                     </div>
-                    <p className="text-purple-100 text-sm mb-5 max-w-2xl">
-                        {votingOpen ? (
-                            <>
-                                Votação fecha <strong>sábado 12:00 BRT</strong> · O campeão é entregue <strong>sexta seguinte às 20h ao vivo no YouTube</strong> · Nova votação inicia no domingo de manhã.
-                            </>
-                        ) : (
-                            <>
-                                Resultado dessa semana já fechou. Próxima rodada começa <strong>domingo 00:00 BRT</strong> com as solicitações abertas.
-                            </>
-                        )}
-                    </p>
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <CountdownBlock value={countdown.days} label="d" sub={votingOpen ? 'pra fechar' : 'pra abrir'} />
+                        <CountdownBlock value={countdown.days} label="dias" sub={votingOpen ? 'pra fechar' : 'pra abrir'} />
                         <CountdownBlock value={countdown.hours} label="h" sub={votingOpen ? 'pra fechar' : 'pra abrir'} />
                         <CountdownBlock value={countdown.minutes} label="min" sub={votingOpen ? 'pra fechar' : 'pra abrir'} />
-                        <div className="bg-white/15 backdrop-blur rounded-xl p-3 col-span-2 md:col-span-1 flex flex-col">
-                            <p className="text-[10px] uppercase font-bold tracking-widest text-purple-100 flex items-center gap-1">
+                        <div className="bg-cream-elevated border border-borda-cafe rounded-[10px] p-3 col-span-2 md:col-span-1 flex flex-col justify-center">
+                            <p className="text-xs font-bold text-coral-terra uppercase tracking-[0.12em] flex items-center gap-1.5">
                                 <Video className="w-3 h-3" /> Live launch
                             </p>
-                            <p className="text-sm font-bold mt-1 leading-tight">
+                            <p className="font-display text-base font-normal text-carvao-quente tracking-tight mt-1 leading-tight">
                                 Sex {launchAt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                             </p>
-                            <p className="text-[11px] text-purple-100 font-semibold">20:00 BRT no YouTube</p>
+                            <p className="text-xs text-cafe-medio tabular-nums">19h BRT no YouTube</p>
                         </div>
                     </div>
                 </div>
-            </div>
+            </Card>
 
-            {/* Bloco "Em construção" — destaque sempre visível com autor */}
+            {/* Em construção */}
             {inProduction && (
-                <div className="relative overflow-hidden bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-5">
-                    <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 bg-amber-500 text-white rounded-full">
-                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-wider">Em construção</span>
-                    </div>
+                <Card padding="lg" className="!border-mostarda-amber/40 !bg-[oklch(96%_0.025_80)]">
                     <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center shrink-0 shadow-md">
-                            <Hammer className="w-7 h-7 text-white" />
+                        <div className="w-12 h-12 rounded-full bg-mostarda-amber flex items-center justify-center shrink-0">
+                            <Hammer className="w-5 h-5 text-carvao-quente" />
                         </div>
-                        <div className="flex-1 min-w-0 pr-20">
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-amber-700 mb-0.5">Template sendo construído agora</p>
-                            <p className="text-xl font-black text-gray-900 truncate leading-tight">{inProduction.niche}</p>
-                            <p className="text-sm text-gray-700 mt-1">
-                                {BUSINESS_LABELS[inProduction.business_type] || inProduction.business_type} ·
-                                <span className="text-amber-700 font-bold ml-1">Ideia de {inProduction.user_name}</span>
+                        <div className="flex-1 min-w-0">
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-mostarda-amber text-carvao-quente text-xs font-semibold rounded-full uppercase tracking-wide mb-2">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-carvao-quente opacity-50" />
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-carvao-quente" />
+                                </span>
+                                Em construção
+                            </div>
+                            <p className="font-display text-xl font-normal text-carvao-quente tracking-tight truncate">
+                                {inProduction.niche}
+                            </p>
+                            <p className="text-sm text-cafe-medio mt-1">
+                                {BUSINESS_LABELS[inProduction.business_type] || inProduction.business_type}
+                                {' · '}
+                                <span className="text-coral-terra font-semibold">Ideia de {inProduction.user_name}</span>
                             </p>
                             {inProduction.production_target_date && (
-                                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-amber-200 rounded-lg">
-                                    <Video className="w-4 h-4 text-red-600" />
-                                    <span className="text-sm font-bold text-gray-800">
+                                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-cream-surface border border-borda-cafe rounded-[8px]">
+                                    <Video className="w-4 h-4 text-vermelho-tijolo" />
+                                    <span className="text-sm font-semibold text-carvao-quente tabular-nums">
                                         Live launch: {new Date(inProduction.production_target_date + 'T00:00:00Z')
                                             .toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
-                                        <span className="text-amber-700"> · 20:00 BRT</span>
+                                        {' · '}
+                                        <span className="text-coral-terra">19h BRT</span>
                                     </span>
                                 </div>
                             )}
                         </div>
                     </div>
-                </div>
+                </Card>
             )}
 
-            {/* Campeão semana passada — caso seja diferente do em-produção */}
+            {/* Campeão semana passada (se diferente do em-construção) */}
             {winner && winner.id !== inProduction?.id && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
-                    <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center shrink-0">
-                            <Trophy className="w-6 h-6 text-white" />
+                <Card padding="md" className="!border-verde-oliva/30 !bg-[oklch(96%_0.020_145)]">
+                    <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-verde-oliva flex items-center justify-center shrink-0">
+                            <Trophy className="w-5 h-5 text-papel-craft" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">Campeão da semana passada</p>
-                            <p className="text-lg font-bold text-gray-900 truncate">{winner.niche}</p>
-                            <p className="text-sm text-gray-600 mt-0.5">
-                                {BUSINESS_LABELS[winner.business_type] || winner.business_type} · Ideia de <strong>{winner.user_name}</strong>
+                            <p className="text-xs font-bold text-[oklch(40%_0.060_145)] uppercase tracking-[0.12em]">
+                                Campeão da semana passada
+                            </p>
+                            <p className="font-display text-lg font-normal text-carvao-quente tracking-tight truncate mt-0.5">
+                                {winner.niche}
+                            </p>
+                            <p className="text-sm text-cafe-medio mt-0.5">
+                                {BUSINESS_LABELS[winner.business_type] || winner.business_type}
+                                {' · Ideia de '}
+                                <strong className="text-carvao-quente">{winner.user_name}</strong>
                             </p>
                         </div>
                     </div>
-                </div>
+                </Card>
             )}
 
             {/* Filtro por tipo */}
             {businessTypes.length > 1 && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                    <button
+                    <FilterChip
+                        label="Todos"
+                        count={requests.length}
+                        active={filter === 'all'}
                         onClick={() => setFilter('all')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                            filter === 'all' ? 'bg-[#7c3aed] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                    >
-                        Todos ({requests.length})
-                    </button>
+                    />
                     {businessTypes.map(t => {
                         const count = requests.filter(r => r.business_type === t).length;
                         return (
-                            <button
+                            <FilterChip
                                 key={t}
+                                label={BUSINESS_LABELS[t] || t}
+                                count={count}
+                                active={filter === t}
                                 onClick={() => setFilter(t)}
-                                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                                    filter === t ? 'bg-[#7c3aed] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                            >
-                                {BUSINESS_LABELS[t] || t} ({count})
-                            </button>
+                            />
                         );
                     })}
                 </div>
             )}
 
+            {/* Indicador pessoal de votos da semana */}
+            {votingOpen && requests.length > 0 && currentUserId && (
+                <div className="flex items-center justify-between gap-3 px-1">
+                    {myVotesCount === 0 ? (
+                        <p className="text-sm text-cafe-medio leading-snug">
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-coral-wash text-coral-terra text-xs font-bold mr-2 align-middle">!</span>
+                            Você ainda não apoiou nenhuma ideia. <strong className="text-carvao-quente">Vote em quantas quiser</strong> — mais apoio, mais chance de virar template.
+                        </p>
+                    ) : (
+                        <p className="text-sm text-cafe-medio leading-snug">
+                            <ThumbsUp className="w-4 h-4 inline mr-2 text-coral-terra fill-coral-terra align-text-bottom" />
+                            Você apoiou <strong className="text-carvao-quente tabular-nums">{myVotesCount}</strong>{' '}
+                            {myVotesCount === 1 ? 'ideia' : 'ideias'} essa semana.
+                        </p>
+                    )}
+                </div>
+            )}
+
             {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{error}</div>
+                <Banner tone="error" icon={<AlertCircle className="w-5 h-5" />}>
+                    {error}
+                </Banner>
             )}
 
             {/* Lista ranqueada */}
             {visible.length === 0 ? (
-                <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center">
-                    <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-700 font-semibold">Nenhuma solicitação pra votar ainda</p>
-                    <p className="text-sm text-gray-500 mt-1">Seja o primeiro — vai na aba "Solicitar".</p>
-                </div>
+                <Card padding="lg">
+                    <div className="text-center py-6">
+                        <Sparkles className="w-10 h-10 text-cafe-cinza-quente mx-auto mb-3" />
+                        <p className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                            Nenhuma solicitação pra votar ainda.
+                        </p>
+                        <p className="text-sm text-cafe-medio mt-1">
+                            Seja o primeiro, vai na aba "Solicitar".
+                        </p>
+                    </div>
+                </Card>
             ) : (
-                <div className="space-y-2">
-                    {visible.map((r, idx) => (
+                <div className="space-y-2.5">
+                    {visible.map(r => (
                         <VoteCard
                             key={r.id}
                             request={r}
@@ -416,89 +449,139 @@ export default function VotingPanel() {
     );
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+
 function CountdownBlock({ value, label, sub }: { value: number; label: string; sub: string }) {
     return (
-        <div className="bg-white/15 backdrop-blur rounded-xl p-3">
-            <p className="text-3xl font-black tabular-nums leading-none">{String(value).padStart(2, '0')}<span className="text-base font-bold ml-1 opacity-70">{label}</span></p>
-            <p className="text-[10px] uppercase font-bold tracking-widest text-purple-100 mt-1.5">{sub}</p>
+        <div className="bg-cream-elevated border border-borda-cafe rounded-[10px] p-3 flex flex-col justify-center">
+            <p className="font-display text-2xl md:text-3xl font-normal text-carvao-quente tabular-nums leading-none tracking-tight">
+                {String(value).padStart(2, '0')}
+                <span className="text-base font-semibold ml-1 text-cafe-medio">{label}</span>
+            </p>
+            <p className="text-xs uppercase font-semibold tracking-wide text-cafe-cinza-quente mt-1.5">{sub}</p>
         </div>
     );
 }
 
-function VoteCard({ request, position, isLeader, onVote, voting }: {
-    request: RequestWithVotes; position: number; isLeader: boolean; onVote: () => void; voting: boolean;
+function FilterChip({
+    label, count, active, onClick,
+}: {
+    label: string;
+    count: number;
+    active: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors min-h-[36px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra ${
+                active
+                    ? 'bg-coral-terra text-papel-craft'
+                    : 'bg-cream-elevated text-cafe-medio hover:bg-coral-wash hover:text-terracota-profundo border border-borda-cafe'
+            }`}
+        >
+            {label}
+            <span className={`tabular-nums px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                active ? 'bg-papel-craft/20 text-papel-craft' : 'bg-cream-surface text-cafe-cinza-quente'
+            }`}>
+                {count}
+            </span>
+        </button>
+    );
+}
+
+function VoteCard({
+    request, position, isLeader, onVote, voting,
+}: {
+    request: RequestWithVotes;
+    position: number;
+    isLeader: boolean;
+    onVote: () => void;
+    voting: boolean;
 }) {
     const Icon = BUSINESS_ICONS[request.business_type] || HelpCircle;
-    const podium = position <= 3 && request.votes_count > 0;
-    const positionColor = position === 1 ? 'bg-amber-100 text-amber-700 ring-2 ring-amber-300'
-        : position === 2 ? 'bg-slate-100 text-slate-700 ring-2 ring-slate-300'
-            : position === 3 ? 'bg-orange-100 text-orange-700 ring-2 ring-orange-300'
-                : 'bg-gray-50 text-gray-500';
+    const isPodium = position <= 3 && request.votes_count > 0;
+    const podiumEmoji = position === 1 ? '🥇' : position === 2 ? '🥈' : '🥉';
 
     return (
-        <div className={`bg-white border-2 rounded-2xl p-4 transition-all ${
-            isLeader ? 'border-amber-300 shadow-md shadow-amber-100' : 'border-gray-200 hover:border-gray-300'
-        }`}>
-            <div className="flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${positionColor}`}>
-                    {podium ? (position === 1 ? '🥇' : position === 2 ? '🥈' : '🥉') : `#${position}`}
+        <div
+            className={`bg-cream-surface border rounded-[12px] p-4 transition-shadow duration-200 ${
+                isLeader ? '!border-coral-terra/40' : 'border-borda-cafe'
+            }`}
+            style={{ boxShadow: isLeader ? '0 6px 16px -4px rgba(80, 40, 20, 0.08)' : '0 1px 2px 0 rgba(80, 40, 20, 0.04)' }}
+        >
+            <div className="flex items-start gap-3">
+                <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center font-semibold text-sm shrink-0 ${
+                    position === 1 ? 'bg-mostarda-amber text-carvao-quente'
+                    : position === 2 ? 'bg-cream-elevated text-cafe-medio border border-borda-cafe'
+                    : position === 3 ? 'bg-coral-wash text-terracota-profundo'
+                    : 'bg-cream-elevated text-cafe-cinza-quente'
+                }`}>
+                    {isPodium ? <span className="text-base">{podiumEmoji}</span> : <span className="tabular-nums">#{position}</span>}
                 </div>
+
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 bg-gray-100 text-gray-700 rounded-md">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 bg-cream-elevated text-cafe-medio rounded-full">
                             <Icon className="w-3 h-3" />
                             {BUSINESS_LABELS[request.business_type] || request.business_type}
                         </span>
                         {isLeader && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-amber-100 text-amber-700 rounded-md">
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 bg-coral-terra text-papel-craft rounded-full uppercase tracking-wide">
                                 <Flame className="w-3 h-3" /> Líder
                             </span>
                         )}
                     </div>
-                    <p className="font-bold text-gray-900 leading-snug">{request.niche}</p>
+                    <p className="font-semibold text-carvao-quente leading-snug">{request.niche}</p>
                     {request.extra_notes && (
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{request.extra_notes}</p>
+                        <p className="text-sm text-cafe-medio mt-1 line-clamp-2 leading-relaxed">
+                            {request.extra_notes}
+                        </p>
                     )}
                     {request.features && request.features.length > 0 && (
                         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                             {request.features.slice(0, 4).map(f => (
-                                <span key={f} className="text-[10px] font-semibold px-1.5 py-0.5 bg-violet-50 text-violet-700 rounded">
+                                <span key={f} className="text-xs font-semibold px-1.5 py-0.5 bg-coral-wash text-terracota-profundo rounded">
                                     {f.replace(/-/g, ' ')}
                                 </span>
                             ))}
                             {request.features.length > 4 && (
-                                <span className="text-[10px] text-gray-400">+{request.features.length - 4}</span>
+                                <span className="text-xs text-cafe-cinza-quente">+{request.features.length - 4}</span>
                             )}
                         </div>
                     )}
-                    <p className="text-xs text-gray-400 mt-2 flex items-center gap-2">
-                        <span>Pedido por <strong className="text-gray-600">{request.user_name}</strong></span>
+                    <p className="text-xs text-cafe-cinza-quente mt-2 inline-flex items-center gap-2 tabular-nums">
+                        <span>Pedido por <strong className="text-cafe-medio">{request.user_name}</strong></span>
                         <span>·</span>
                         <span>{new Date(request.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
                     </p>
                 </div>
+
                 <button
+                    type="button"
                     onClick={onVote}
                     disabled={voting}
-                    aria-label={request.user_voted ? 'Você já votou neste template' : 'Votar neste template'}
-                    title={request.user_voted ? 'Você já votou neste template' : undefined}
-                    className={`shrink-0 flex flex-col items-center justify-center gap-1 px-4 py-3 rounded-xl border-2 transition-all min-w-[72px] ${
+                    aria-label={request.user_voted ? 'Remover seu voto' : 'Votar nesta solicitação'}
+                    className={`shrink-0 flex flex-col items-center justify-center gap-1 px-4 py-3 rounded-[12px] border transition-colors min-w-[72px] min-h-[68px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra disabled:opacity-50 ${
                         request.user_voted
-                            ? 'border-[#7c3aed] bg-[#7c3aed] text-white shadow-md shadow-purple-500/30'
-                            : 'border-gray-200 hover:border-[#7c3aed] hover:bg-violet-50 text-gray-700'
-                    } disabled:opacity-50`}
+                            ? 'bg-coral-terra text-papel-craft border-coral-terra hover:bg-terracota-profundo'
+                            : 'bg-cream-elevated text-carvao-quente border-borda-cafe hover:bg-coral-wash hover:text-terracota-profundo hover:border-coral-terra/30'
+                    }`}
                 >
                     {voting ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                     ) : request.user_voted ? (
                         <>
                             <ThumbsUp className="w-5 h-5 fill-current" />
-                            <span className="text-[10px] font-bold leading-none">Votado</span>
+                            <span className="text-xs font-semibold leading-none">Votado</span>
                         </>
                     ) : (
                         <>
                             <ThumbsUp className="w-5 h-5" />
-                            <span className="text-lg font-black tabular-nums leading-none">{request.votes_count}</span>
+                            <span className="font-display text-lg font-normal tabular-nums leading-none">
+                                {request.votes_count}
+                            </span>
                         </>
                     )}
                 </button>

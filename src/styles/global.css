@@ -1,8 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
+
+/* ────────────────────────────────────────────────────────────────
+   MSIA · Direção Padaria — Tokens
+   Editorial brasileiro warm. Paleta cream/coral-terra/verde-oliva.
+   Cobertura PRODUCT.md + DESIGN.md (Out 2026).
+   ──────────────────────────────────────────────────────────────── */
+
+@theme {
+  /* ── Cores Café-da-Tarde (V1) — paleta sóbria, cream off-white neutro, terracota seco discreto ── */
+  --color-papel-craft: oklch(98% 0.005 80);          /* off-white quase neutro, mal-amarelado */
+  --color-cream-surface: oklch(99% 0.003 80);        /* white com leve warmth */
+  --color-cream-elevated: oklch(96% 0.008 70);       /* off-white médio (sidebar/header) */
+  --color-carvao-quente: oklch(20% 0.015 50);        /* carvão warm profundo */
+  --color-cafe-medio: oklch(45% 0.020 60);
+  --color-cafe-cinza-quente: oklch(60% 0.020 70);
+  --color-borda-cafe: oklch(92% 0.010 70);           /* borda hairline mais neutra */
+  --color-coral-terra: oklch(45% 0.080 35);          /* terracota SECO profundo (V1, menos saturado que Padaria) */
+  --color-terracota-profundo: oklch(35% 0.085 30);
+  --color-coral-wash: oklch(88% 0.025 35);
+  --color-verde-oliva: oklch(50% 0.060 145);         /* verde-musgo (V1, menos saturado) */
+  --color-mostarda-amber: oklch(68% 0.110 80);
+  --color-vermelho-tijolo: oklch(48% 0.130 28);
+
+  /* ── Tipografia Padaria ── */
+  --font-display: "Fraunces", "DM Serif Display", Georgia, serif;
+  --font-sans: "Karla", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+
+  /* ── Radii Padaria ── */
+  --radius-pequeno: 6px;
+  --radius-medio: 12px;
+  --radius-grande: 20px;
+
+  /* ── Shadows Padaria (cor-terra warm, nunca preto neutro) ── */
+  --shadow-sutil-quente: 0 1px 2px 0 rgba(80, 40, 20, 0.04);
+  --shadow-hover-quente: 0 6px 16px -4px rgba(80, 40, 20, 0.10);
+  --shadow-hero-quente: 0 12px 32px -12px rgba(80, 40, 20, 0.12);
+}
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    background: var(--color-papel-craft);
+    color: var(--color-carvao-quente);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "ss02";
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    color: var(--color-carvao-quente);
+    letter-spacing: -0.01em;
   }
 }
 
@@ -30,8 +78,8 @@
 }
 
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.35); }
-  50%       { box-shadow: 0 0 0 8px rgba(124, 58, 237, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 95, 63, 0.35); }
+  50%       { box-shadow: 0 0 0 8px rgba(201, 95, 63, 0); }
 }
 
 .dashboard-section {
@@ -42,4 +90,23 @@
 .stat-card {
   opacity: 0;
   animation: scalePop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* WCAG 2.3.3 — respeita preferência de movimento reduzido.
+   Desativa animações decorativas (auroraFloat, pulseGlow, shimmerSlide, scalePop, fadeInUp)
+   pra usuários com sensibilidade vestibular ou preferência declarada do sistema. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .dashboard-section,
+  .stat-card {
+    opacity: 1;
+  }
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { MessageSquare, Send, Loader2, RefreshCw, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import Pagination from '../ui/admin/Pagination';
 
 interface Comment {
     id: string;
@@ -14,7 +15,7 @@ interface Comment {
 interface LessonGroup {
     lesson_id: string;
     lesson_title: string;
-    module_title: string;
+    trail_title: string;
     comments: Comment[];
 }
 
@@ -25,37 +26,49 @@ export default function LessonQuestions() {
     const [replyText, setReplyText] = useState<Record<string, string>>({});
     const [posting, setPosting] = useState<Record<string, boolean>>({});
     const [filter, setFilter] = useState<'all' | 'unanswered'>('all');
+    const [page, setPage] = useState(1);
+    const QUESTIONS_PAGE_SIZE = 15;
+    useEffect(() => { setPage(1); }, [filter]);
 
     useEffect(() => { fetchAll(); }, []);
 
     const fetchAll = async () => {
         setLoading(true);
 
-        const [{ data: comments }, { data: lessons }, { data: modules }] = await Promise.all([
+        const [{ data: comments }, { data: lessons }, { data: trailLessons }, { data: trails }] = await Promise.all([
             supabase
                 .from('lesson_comments')
                 .select('id, user_id, content, created_at, lesson_id, profiles(full_name, email, role)')
                 .order('created_at', { ascending: true }),
-            supabase.from('lessons').select('id, title, module_id'),
-            supabase.from('modules').select('id, title'),
+            supabase.from('lessons').select('id, title'),
+            supabase.from('trail_lessons').select('lesson_id, trail_id, display_order').order('display_order'),
+            supabase.from('trails').select('id, title'),
         ]);
 
-        if (!comments || !lessons || !modules) { setLoading(false); return; }
+        if (!comments || !lessons || !trailLessons || !trails) { setLoading(false); return; }
 
-        // Group by lesson
+        // Group by lesson — schema novo: lesson → trail_lessons (M:N) → trail
         const lessonMap = new Map(lessons.map(l => [l.id, l]));
-        const moduleMap = new Map(modules.map(m => [m.id, m]));
-        const grouped = new Map<string, LessonGroup>();
+        const trailMap = new Map(trails.map(t => [t.id, t]));
+        // Pra cada lesson, pega o primeiro trail que a contém (ordenado por display_order)
+        const lessonToTrail = new Map<string, string>();
+        for (const tl of trailLessons) {
+            if (!lessonToTrail.has(tl.lesson_id)) {
+                lessonToTrail.set(tl.lesson_id, tl.trail_id);
+            }
+        }
 
+        const grouped = new Map<string, LessonGroup>();
         for (const c of comments as Comment[]) {
             const lesson = lessonMap.get(c.lesson_id);
             if (!lesson) continue;
-            const mod = moduleMap.get(lesson.module_id);
+            const trailId = lessonToTrail.get(c.lesson_id);
+            const trail = trailId ? trailMap.get(trailId) : null;
             if (!grouped.has(c.lesson_id)) {
                 grouped.set(c.lesson_id, {
                     lesson_id: c.lesson_id,
                     lesson_title: lesson.title,
-                    module_title: mod?.title || 'Módulo',
+                    trail_title: trail?.title || 'Trilha',
                     comments: [],
                 });
             }
@@ -116,27 +129,30 @@ export default function LessonQuestions() {
 
     if (loading) return (
         <div className="space-y-4">
-            {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}
+            {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-cream-surface rounded-[12px] border border-borda-cafe animate-pulse" />)}
         </div>
     );
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-8">
 
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-xl font-black text-gray-900">Perguntas dos Alunos</h2>
-                    <p className="text-sm text-gray-500 mt-0.5">
+            <div className="flex items-center justify-between flex-wrap gap-3 border-b border-borda-cafe pb-4">
+                <div className="min-w-0">
+                    <h1 className="font-display text-2xl md:text-[1.625rem] font-normal text-carvao-quente tracking-tight leading-tight">
+                        Perguntas dos alunos
+                    </h1>
+                    <p className="text-sm text-cafe-medio mt-1 tabular-nums">
                         {totalComments} {totalComments === 1 ? 'mensagem' : 'mensagens'} em {groups.length} {groups.length === 1 ? 'aula' : 'aulas'}
                         {unansweredCount > 0 && (
-                            <span className="ml-2 text-amber-600 font-bold">· {unansweredCount} sem resposta</span>
+                            <span className="ml-2 text-[oklch(40%_0.110_80)] font-semibold">· {unansweredCount} sem resposta</span>
                         )}
                     </p>
                 </div>
                 <button
+                    type="button"
                     onClick={fetchAll}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-cafe-medio hover:text-coral-terra hover:bg-coral-wash rounded-[8px] transition-colors min-h-[36px]"
                 >
                     <RefreshCw className="w-4 h-4" />
                     Atualizar
@@ -144,15 +160,20 @@ export default function LessonQuestions() {
             </div>
 
             {/* Filter tabs */}
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+            <div className="inline-flex gap-1 bg-cream-elevated p-1 rounded-[10px] border border-borda-cafe">
                 {([
                     { key: 'all', label: 'Todas' },
                     { key: 'unanswered', label: `Sem resposta (${unansweredCount})` },
                 ] as const).map(tab => (
                     <button
                         key={tab.key}
+                        type="button"
                         onClick={() => setFilter(tab.key)}
-                        className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${filter === tab.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`px-4 py-1.5 text-xs font-semibold rounded-[8px] transition-colors ${
+                            filter === tab.key
+                                ? 'bg-cream-surface text-carvao-quente shadow-[0_1px_2px_rgba(80,40,20,0.04)]'
+                                : 'text-cafe-medio hover:text-coral-terra'
+                        }`}
                     >
                         {tab.label}
                     </button>
@@ -161,71 +182,84 @@ export default function LessonQuestions() {
 
             {/* Groups */}
             {filteredGroups.length === 0 ? (
-                <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
-                    <MessageSquare className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-                    <h3 className="font-black text-gray-700">Nenhuma pergunta ainda</h3>
-                    <p className="text-gray-400 text-sm mt-1">Quando os alunos comentarem nas aulas, aparecerão aqui.</p>
+                <div className="text-center py-20 bg-cream-surface rounded-[12px] border border-borda-cafe">
+                    <MessageSquare className="w-10 h-10 text-cafe-cinza-quente mx-auto mb-3" />
+                    <h3 className="font-display text-lg font-normal text-carvao-quente tracking-tight">Nenhuma pergunta ainda</h3>
+                    <p className="text-cafe-cinza-quente text-sm mt-1">Quando os alunos comentarem nas aulas, aparecerão aqui.</p>
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {filteredGroups.map(group => {
+                    {filteredGroups.slice((page - 1) * QUESTIONS_PAGE_SIZE, page * QUESTIONS_PAGE_SIZE).map(group => {
                         const isOpen = openGroups.has(group.lesson_id);
                         const hasAdminReply = group.comments.some(c => c.profiles?.role === 'admin');
                         const studentCount = group.comments.filter(c => c.profiles?.role !== 'admin').length;
 
                         return (
-                            <div key={group.lesson_id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                            <div key={group.lesson_id} className="bg-cream-surface rounded-[12px] border border-borda-cafe overflow-hidden">
                                 {/* Group header */}
                                 <button
                                     type="button"
                                     onClick={() => toggleGroup(group.lesson_id)}
-                                    className="w-full px-5 py-4 flex items-center gap-3 hover:bg-gray-50 transition text-left"
+                                    className="w-full px-5 py-4 flex items-center gap-3 hover:bg-cream-elevated transition-colors text-left"
                                 >
-                                    <div className={`w-2 h-2 rounded-full shrink-0 ${hasAdminReply ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                                    <div className={`w-2 h-2 rounded-full shrink-0 ${hasAdminReply ? 'bg-verde-oliva' : 'bg-mostarda-amber'}`} />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{group.module_title}</p>
-                                        <p className="font-black text-gray-900 text-sm truncate">{group.lesson_title}</p>
+                                        <p className="text-[10px] font-bold text-cafe-cinza-quente uppercase tracking-[0.12em] mb-0.5">{group.trail_title}</p>
+                                        <p className="font-semibold text-carvao-quente text-sm truncate">{group.lesson_title}</p>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
-                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${hasAdminReply ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                        <span className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${
+                                            hasAdminReply
+                                                ? 'bg-[oklch(94%_0.020_145)] text-[oklch(40%_0.060_145)]'
+                                                : 'bg-[oklch(94%_0.035_80)] text-[oklch(40%_0.110_80)]'
+                                        }`}>
                                             {hasAdminReply ? 'Respondida' : 'Sem resposta'}
                                         </span>
-                                        <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                                        <span className="inline-flex items-center text-[10px] font-semibold text-cafe-medio bg-cream-elevated px-2 py-0.5 rounded-full">
                                             {studentCount} {studentCount === 1 ? 'pergunta' : 'perguntas'}
                                         </span>
-                                        {isOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                                        {isOpen ? <ChevronUp className="w-4 h-4 text-cafe-cinza-quente" /> : <ChevronDown className="w-4 h-4 text-cafe-cinza-quente" />}
                                     </div>
                                 </button>
 
                                 {/* Thread */}
                                 {isOpen && (
-                                    <div className="border-t border-gray-100">
+                                    <div className="border-t border-borda-cafe">
                                         <div className="px-5 py-4 space-y-3">
                                             {group.comments.map(c => {
                                                 const isAdmin = c.profiles?.role === 'admin';
                                                 return (
                                                     <div key={c.id} className={`flex gap-3 group/comment ${isAdmin ? 'flex-row-reverse' : ''}`}>
-                                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[10px] font-black ${isAdmin ? 'bg-[#7c3aed] text-white' : 'bg-gray-200 text-gray-600'}`}>
+                                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[10px] font-semibold ${
+                                                            isAdmin
+                                                                ? 'bg-coral-terra text-papel-craft'
+                                                                : 'bg-cream-elevated text-cafe-medio border border-borda-cafe'
+                                                        }`}>
                                                             {(c.profiles?.full_name || c.profiles?.email || 'U').charAt(0).toUpperCase()}
                                                         </div>
-                                                        <div className={`flex-1 rounded-xl px-4 py-3 relative ${isAdmin ? 'bg-[#7c3aed]/5 border border-[#7c3aed]/15' : 'bg-gray-50'}`}>
+                                                        <div className={`flex-1 rounded-[10px] px-4 py-3 relative ${
+                                                            isAdmin
+                                                                ? 'bg-coral-wash border border-coral-terra/20'
+                                                                : 'bg-cream-elevated border border-borda-cafe'
+                                                        }`}>
                                                             <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                                                <span className={`text-xs font-bold ${isAdmin ? 'text-[#7c3aed]' : 'text-gray-700'}`}>
+                                                                <span className={`text-xs font-semibold ${isAdmin ? 'text-coral-terra' : 'text-cafe-medio'}`}>
                                                                     {c.profiles?.full_name || c.profiles?.email || 'Aluno'}
                                                                 </span>
                                                                 {isAdmin && (
-                                                                    <span className="text-[9px] font-black bg-[#7c3aed] text-white px-1.5 py-0.5 rounded-full">Admin</span>
+                                                                    <span className="text-[9px] font-semibold bg-coral-terra text-papel-craft px-1.5 py-0.5 rounded-full uppercase tracking-wide">Admin</span>
                                                                 )}
-                                                                <span className="text-[10px] text-gray-400">
+                                                                <span className="text-[10px] text-cafe-cinza-quente tabular-nums">
                                                                     {new Date(c.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                                                 </span>
                                                             </div>
-                                                            <p className="text-sm text-gray-700 leading-relaxed">{c.content}</p>
+                                                            <p className="text-sm text-carvao-quente leading-relaxed whitespace-pre-wrap">{c.content}</p>
 
                                                             <button
                                                                 type="button"
                                                                 onClick={() => deleteComment(c.id)}
-                                                                className="absolute top-2 right-2 opacity-0 group-hover/comment:opacity-100 p-1 hover:bg-red-50 hover:text-red-500 text-gray-300 rounded transition"
+                                                                className="absolute top-2 right-2 opacity-0 group-hover/comment:opacity-100 p-1 hover:bg-[oklch(94%_0.025_28)] hover:text-vermelho-tijolo text-cafe-cinza-quente rounded transition-colors"
+                                                                aria-label="Excluir comentário"
                                                             >
                                                                 <Trash2 className="w-3.5 h-3.5" />
                                                             </button>
@@ -242,16 +276,17 @@ export default function LessonQuestions() {
                                                     value={replyText[group.lesson_id] || ''}
                                                     onChange={(e) => setReplyText(r => ({ ...r, [group.lesson_id]: e.target.value }))}
                                                     onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) postReply(group.lesson_id); }}
-                                                    placeholder="Responder como admin... (Ctrl+Enter para enviar)"
+                                                    placeholder="Responder como admin… (Ctrl+Enter pra enviar)"
                                                     rows={2}
-                                                    className="w-full px-4 py-3 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/20 focus:border-[#7c3aed]/50 transition placeholder-gray-300"
+                                                    className="w-full px-4 py-3 text-sm text-carvao-quente bg-cream-elevated border border-borda-cafe rounded-[10px] resize-none focus:outline-none focus:border-coral-terra transition-colors placeholder:text-cafe-cinza-quente"
                                                 />
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={() => postReply(group.lesson_id)}
                                                 disabled={posting[group.lesson_id] || !replyText[group.lesson_id]?.trim()}
-                                                className="shrink-0 w-10 h-10 bg-[#7c3aed] text-white rounded-xl flex items-center justify-center hover:bg-[#6d28d9] disabled:opacity-40 transition"
+                                                className="shrink-0 w-10 h-10 bg-coral-terra hover:bg-terracota-profundo text-papel-craft rounded-[10px] flex items-center justify-center disabled:opacity-40 transition-colors"
+                                                aria-label="Enviar resposta"
                                             >
                                                 {posting[group.lesson_id] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                             </button>
@@ -261,6 +296,13 @@ export default function LessonQuestions() {
                             </div>
                         );
                     })}
+                    <Pagination
+                        page={page}
+                        pageSize={QUESTIONS_PAGE_SIZE}
+                        total={filteredGroups.length}
+                        onPageChange={setPage}
+                        label="threads"
+                    />
                 </div>
             )}
         </div>

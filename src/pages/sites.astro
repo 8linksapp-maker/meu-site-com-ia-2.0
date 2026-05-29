@@ -1,12 +1,8 @@
 ---
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import SitesGrid from '../components/SitesGrid';
+import SitesShowcase from '../components/sites/SitesShowcase';
 ---
 
-<DashboardLayout title="Sites">
-  <div class="mb-6">
-    <p class="text-gray-600">Escolha um template abaixo para iniciar a criação do seu site na Vercel.</p>
-  </div>
-  
-  <SitesGrid client:load />
+<DashboardLayout title="Vitrine de templates">
+  <SitesShowcase client:load />
 </DashboardLayout>

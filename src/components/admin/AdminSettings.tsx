@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { DEFAULT_LESSON_PROMPT } from '../../lib/lessonPromptDefault';
+import { CreditCard, HardDrive, Brain, Eye, EyeOff } from 'lucide-react';
+import { PageHeader } from '../ui/admin';
+import { Card, Banner, Field, Input, Textarea } from '../ui';
 
 export default function AdminSettings() {
     const [checkoutUrl, setCheckoutUrl] = useState('');
@@ -17,12 +20,11 @@ export default function AdminSettings() {
     const [lessonPrompt, setLessonPrompt] = useState('');
     const [showGeminiKey, setShowGeminiKey] = useState(false);
     const [showOpenaiKey, setShowOpenaiKey] = useState(false);
+    const [showB2AppKey, setShowB2AppKey] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [status, setStatus] = useState('');
+    const [status, setStatus] = useState<{ tone: 'success' | 'error'; msg: string } | null>(null);
 
-    useEffect(() => {
-        loadSettings();
-    }, []);
+    useEffect(() => { loadSettings(); }, []);
 
     const loadSettings = async () => {
         const { data, error } = await supabase.from('platform_settings').select('*').limit(1).single();
@@ -47,7 +49,7 @@ export default function AdminSettings() {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setStatus('Salvando...');
+        setStatus(null);
 
         try {
             const { error } = await supabase
@@ -69,231 +71,259 @@ export default function AdminSettings() {
                 });
 
             if (error) throw error;
-            setStatus('Configurações salvas com sucesso!');
-        } catch (err: any) {
-            setStatus(`Erro do Supabase: ${err.message || 'Falha ao salvar'}`);
-            console.error(err);
+            setStatus({ tone: 'success', msg: 'Configurações salvas.' });
+        } catch (err: unknown) {
+            setStatus({ tone: 'error', msg: err instanceof Error ? err.message : 'Falha ao salvar.' });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="flex flex-col gap-6 max-w-2xl">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-                <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">🔗 Checkout Global</h3>
-                <p className="text-sm text-gray-500 mb-6">
-                    Todos os usuários inativos ou visitantes que clicarem no botão "Ativar Plano Agora" na vitrine serão redirecionados para este link de venda.
-                </p>
-                <form onSubmit={handleSave} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1">URL da Página de Vendas (Kiwify, Stripe, etc)</label>
-                        <input
+        <div className="space-y-6 max-w-3xl pb-8">
+            <PageHeader
+                title="Configurações"
+                tagline="Variáveis globais da plataforma: checkout, vídeos, IA."
+            />
+
+            <form onSubmit={handleSave} className="space-y-5">
+
+                {/* Checkout */}
+                <Card padding="lg" className="space-y-4">
+                    <div className="flex items-start gap-3 pb-3 border-b border-borda-cafe">
+                        <div className="w-10 h-10 rounded-full bg-coral-wash flex items-center justify-center shrink-0">
+                            <CreditCard className="w-5 h-5 text-coral-terra" />
+                        </div>
+                        <div>
+                            <h2 className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                                Checkout global
+                            </h2>
+                            <p className="text-sm text-cafe-medio mt-0.5">
+                                URL pra onde alunos sem assinatura são mandados ao clicar em "Ativar plano".
+                            </p>
+                        </div>
+                    </div>
+
+                    <Field label="URL da página de vendas" htmlFor="checkout-url" helper="Kiwify, Stripe Checkout, Hotmart, etc.">
+                        <Input
+                            id="checkout-url"
                             type="url"
                             value={checkoutUrl}
-                            onChange={(e) => setCheckoutUrl(e.target.value)}
+                            onChange={e => setCheckoutUrl(e.target.value)}
                             placeholder="https://pay.kiwify.com.br/..."
-                            className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed]"
                             required
                         />
-                    </div>
+                    </Field>
+                </Card>
 
-                    <div className="pt-8 border-t border-gray-100">
-                        <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">📹 Backblaze B2 (Vídeos)</h3>
-                        <p className="text-sm text-gray-500 mb-6">
-                            Credenciais necessárias para acessar e servir os vídeos das aulas hospedados no Backblaze.
-                        </p>
-
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">B2 Key ID</label>
-                                    <input
-                                        type="text"
-                                        value={b2KeyId}
-                                        onChange={(e) => setB2KeyId(e.target.value)}
-                                        placeholder="Ex: 0058b7..."
-                                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed]"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">B2 Application Key</label>
-                                    <input
-                                        type="password"
-                                        value={b2AppKey}
-                                        onChange={(e) => setB2AppKey(e.target.value)}
-                                        placeholder="Sua Application Key secreta"
-                                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed]"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">B2 Bucket Name</label>
-                                    <input
-                                        type="text"
-                                        value={b2BucketName}
-                                        onChange={(e) => setB2BucketName(e.target.value)}
-                                        placeholder="Ex: curso-videos"
-                                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed]"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">B2 Bucket ID</label>
-                                    <input
-                                        type="text"
-                                        value={b2BucketId}
-                                        onChange={(e) => setB2BucketId(e.target.value)}
-                                        placeholder="ID do balde (31 dígitos)"
-                                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed]"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">B2 Region</label>
-                                    <input
-                                        type="text"
-                                        value={b2Region}
-                                        onChange={(e) => setB2Region(e.target.value)}
-                                        placeholder="Ex: us-west-004"
-                                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed]"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">B2 Endpoint</label>
-                                    <input
-                                        type="text"
-                                        value={b2Endpoint}
-                                        onChange={(e) => setB2Endpoint(e.target.value)}
-                                        placeholder="Ex: s3.us-west-004.backblazeb2.com"
-                                        className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed]"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">B2 Public URL Base</label>
-                                <input
-                                    type="text"
-                                    value={b2PublicUrlBase}
-                                    onChange={(e) => setB2PublicUrlBase(e.target.value)}
-                                    placeholder="Ex: https://f004.backblazeb2.com/file"
-                                    className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed]"
-                                />
-                            </div>
+                {/* Backblaze B2 */}
+                <Card padding="lg" className="space-y-4">
+                    <div className="flex items-start gap-3 pb-3 border-b border-borda-cafe">
+                        <div className="w-10 h-10 rounded-full bg-coral-wash flex items-center justify-center shrink-0">
+                            <HardDrive className="w-5 h-5 text-coral-terra" />
+                        </div>
+                        <div>
+                            <h2 className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                                Backblaze B2 · vídeos
+                            </h2>
+                            <p className="text-sm text-cafe-medio mt-0.5">
+                                Credenciais pra acessar/servir vídeos das aulas hospedados no Backblaze.
+                            </p>
                         </div>
                     </div>
 
-                    <div className="pt-8 border-t border-gray-100">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">🧠 IA — Análise de aulas</h3>
-                        <p className="text-sm text-gray-500 mb-6">
-                            Usado pra gerar título, descrição e highlights automaticamente quando uma aula é adicionada/upada. Recomendo <strong>Gemini 2.0 Flash</strong> (free tier 1500 req/dia, vídeo inteiro até 2GB).
-                        </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Field label="Key ID" htmlFor="b2-key">
+                            <Input id="b2-key" type="text" value={b2KeyId} onChange={e => setB2KeyId(e.target.value)} placeholder="0058b7..." className="font-mono" />
+                        </Field>
+                        <Field label="Application Key" htmlFor="b2-app">
+                            <Input
+                                id="b2-app"
+                                type={showB2AppKey ? 'text' : 'password'}
+                                value={b2AppKey}
+                                onChange={e => setB2AppKey(e.target.value)}
+                                placeholder="Sua Application Key secreta"
+                                className="font-mono"
+                                rightAddon={
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowB2AppKey(s => !s)}
+                                        aria-label={showB2AppKey ? 'Ocultar' : 'Mostrar'}
+                                        className="px-2 text-cafe-cinza-quente hover:text-coral-terra transition-colors"
+                                    >
+                                        {showB2AppKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                }
+                            />
+                        </Field>
+                    </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Provider</label>
-                                <div className="flex gap-2">
-                                    {([
-                                        { value: 'gemini', label: 'Google Gemini', desc: 'Free tier · vídeo nativo' },
-                                        { value: 'openai', label: 'OpenAI Whisper', desc: 'Pago · só primeiros 24MB' },
-                                    ] as const).map(opt => (
-                                        <label key={opt.value} className={`flex-1 p-3 border rounded-lg cursor-pointer transition-all text-center ${aiProvider === opt.value ? 'border-[#7c3aed] bg-[#7c3aed]/5' : 'border-gray-200 hover:border-gray-300'}`}>
-                                            <input type="radio" name="aiProvider" value={opt.value} checked={aiProvider === opt.value} onChange={() => setAiProvider(opt.value)} className="hidden" />
-                                            <p className="text-sm font-bold text-gray-800">{opt.label}</p>
-                                            <p className="text-xs text-gray-500">{opt.desc}</p>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Field label="Bucket Name" htmlFor="b2-bucket-name">
+                            <Input id="b2-bucket-name" type="text" value={b2BucketName} onChange={e => setB2BucketName(e.target.value)} placeholder="curso-videos" className="font-mono" />
+                        </Field>
+                        <Field label="Bucket ID" htmlFor="b2-bucket-id">
+                            <Input id="b2-bucket-id" type="text" value={b2BucketId} onChange={e => setB2BucketId(e.target.value)} placeholder="ID 31 dígitos" className="font-mono" />
+                        </Field>
+                    </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Gemini API Key</label>
-                                <div className="relative">
-                                    <input
-                                        type={showGeminiKey ? 'text' : 'password'}
-                                        value={geminiKey}
-                                        onChange={(e) => setGeminiKey(e.target.value)}
-                                        placeholder="AIza..."
-                                        className="block w-full px-4 py-3 pr-20 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed] font-mono"
-                                    />
-                                    <button type="button" onClick={() => setShowGeminiKey(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500 hover:text-gray-800">{showGeminiKey ? 'OCULTAR' : 'VER'}</button>
-                                </div>
-                                <p className="text-[11px] text-gray-400 mt-1">Pegue em <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" className="text-[#7c3aed] underline">aistudio.google.com/apikey</a> (free tier)</p>
-                            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Field label="Region" htmlFor="b2-region">
+                            <Input id="b2-region" type="text" value={b2Region} onChange={e => setB2Region(e.target.value)} placeholder="us-west-004" className="font-mono" />
+                        </Field>
+                        <Field label="Endpoint" htmlFor="b2-endpoint">
+                            <Input id="b2-endpoint" type="text" value={b2Endpoint} onChange={e => setB2Endpoint(e.target.value)} placeholder="s3.us-west-004.backblazeb2.com" className="font-mono" />
+                        </Field>
+                    </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">OpenAI API Key</label>
-                                <div className="relative">
-                                    <input
-                                        type={showOpenaiKey ? 'text' : 'password'}
-                                        value={openaiKey}
-                                        onChange={(e) => setOpenaiKey(e.target.value)}
-                                        placeholder="sk-..."
-                                        className="block w-full px-4 py-3 pr-20 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed] font-mono"
-                                    />
-                                    <button type="button" onClick={() => setShowOpenaiKey(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500 hover:text-gray-800">{showOpenaiKey ? 'OCULTAR' : 'VER'}</button>
-                                </div>
-                                <p className="text-[11px] text-gray-400 mt-1">Só preencher se for usar OpenAI como provider</p>
-                            </div>
+                    <Field label="Public URL Base" htmlFor="b2-public" optional>
+                        <Input id="b2-public" type="text" value={b2PublicUrlBase} onChange={e => setB2PublicUrlBase(e.target.value)} placeholder="https://f004.backblazeb2.com/file" className="font-mono" />
+                    </Field>
+                </Card>
 
-                            <div>
-                                <div className="flex items-center justify-between mb-1">
-                                    <label className="block text-sm font-semibold text-gray-700">System prompt — geração de título/descrição/highlights</label>
-                                    <div className="flex gap-3 text-xs">
-                                        <button
-                                            type="button"
-                                            onClick={() => setLessonPrompt(DEFAULT_LESSON_PROMPT)}
-                                            className="font-bold text-[#7c3aed] hover:underline"
-                                        >
-                                            Usar padrão
-                                        </button>
-                                        {lessonPrompt && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setLessonPrompt('')}
-                                                className="font-bold text-gray-500 hover:text-gray-800 hover:underline"
-                                            >
-                                                Limpar (volta pro padrão automático)
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                                <textarea
-                                    value={lessonPrompt}
-                                    onChange={(e) => setLessonPrompt(e.target.value)}
-                                    placeholder={DEFAULT_LESSON_PROMPT}
-                                    rows={14}
-                                    className="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed] font-mono text-xs leading-relaxed resize-y"
-                                />
-                                <p className="text-[11px] text-gray-400 mt-1">
-                                    {lessonPrompt
-                                        ? <>Custom · {lessonPrompt.length} chars</>
-                                        : <>Vazio = usa o padrão acima ({DEFAULT_LESSON_PROMPT.length} chars). Edite pra ajustar tom, exemplos, regras.</>
-                                    }
-                                </p>
-                            </div>
+                {/* IA */}
+                <Card padding="lg" className="space-y-4">
+                    <div className="flex items-start gap-3 pb-3 border-b border-borda-cafe">
+                        <div className="w-10 h-10 rounded-full bg-coral-wash flex items-center justify-center shrink-0">
+                            <Brain className="w-5 h-5 text-coral-terra" />
+                        </div>
+                        <div>
+                            <h2 className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                                IA · análise de aulas
+                            </h2>
+                            <p className="text-sm text-cafe-medio mt-0.5">
+                                Gera título, descrição e highlights automaticamente quando aula é adicionada. Recomendo <strong className="text-carvao-quente">Gemini 2.0 Flash</strong> (free tier 1500 req/dia, vídeo até 2GB).
+                            </p>
                         </div>
                     </div>
 
-                    {status && (
-                        <div className={`p-4 rounded-lg text-sm font-medium ${status.includes('Erro') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-                            {status}
+                    <Field label="Provider" htmlFor="ai-provider">
+                        <div className="flex gap-2">
+                            {([
+                                { value: 'gemini', label: 'Google Gemini', desc: 'Free tier · vídeo nativo' },
+                                { value: 'openai', label: 'OpenAI Whisper', desc: 'Pago · só primeiros 24MB' },
+                            ] as const).map(opt => (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => setAiProvider(opt.value)}
+                                    className={`flex-1 p-3 border rounded-[10px] cursor-pointer transition-colors text-center ${
+                                        aiProvider === opt.value
+                                            ? 'border-coral-terra bg-coral-wash'
+                                            : 'border-borda-cafe bg-cream-elevated hover:bg-coral-wash/50 hover:border-coral-terra/30'
+                                    }`}
+                                >
+                                    <p className={`text-sm font-semibold ${aiProvider === opt.value ? 'text-terracota-profundo' : 'text-carvao-quente'}`}>{opt.label}</p>
+                                    <p className="text-xs text-cafe-medio mt-0.5">{opt.desc}</p>
+                                </button>
+                            ))}
                         </div>
-                    )}
+                    </Field>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="mt-6 py-3 px-6 rounded-lg text-sm font-bold text-white bg-[#7c3aed] hover:bg-[#6d28d9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7c3aed] disabled:opacity-50 transition w-full"
+                    <Field
+                        label="Gemini API Key"
+                        htmlFor="gemini-key"
+                        helper="Pegue em aistudio.google.com/apikey (free tier)."
                     >
-                        {loading ? 'Salvando...' : 'Salvar Todas as Alterações'}
-                    </button>
-                </form>
-            </div>
+                        <Input
+                            id="gemini-key"
+                            type={showGeminiKey ? 'text' : 'password'}
+                            value={geminiKey}
+                            onChange={e => setGeminiKey(e.target.value)}
+                            placeholder="AIza..."
+                            className="font-mono"
+                            rightAddon={
+                                <button
+                                    type="button"
+                                    onClick={() => setShowGeminiKey(s => !s)}
+                                    aria-label={showGeminiKey ? 'Ocultar' : 'Mostrar'}
+                                    className="px-2 text-cafe-cinza-quente hover:text-coral-terra transition-colors"
+                                >
+                                    {showGeminiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            }
+                        />
+                    </Field>
+
+                    <Field
+                        label="OpenAI API Key"
+                        htmlFor="openai-key"
+                        helper="Só preencher se for usar OpenAI como provider."
+                        optional
+                    >
+                        <Input
+                            id="openai-key"
+                            type={showOpenaiKey ? 'text' : 'password'}
+                            value={openaiKey}
+                            onChange={e => setOpenaiKey(e.target.value)}
+                            placeholder="sk-..."
+                            className="font-mono"
+                            rightAddon={
+                                <button
+                                    type="button"
+                                    onClick={() => setShowOpenaiKey(s => !s)}
+                                    aria-label={showOpenaiKey ? 'Ocultar' : 'Mostrar'}
+                                    className="px-2 text-cafe-cinza-quente hover:text-coral-terra transition-colors"
+                                >
+                                    {showOpenaiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            }
+                        />
+                    </Field>
+
+                    <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label htmlFor="lesson-prompt" className="text-sm font-semibold text-carvao-quente">
+                                System prompt — geração de título/descrição/highlights
+                            </label>
+                            <div className="flex gap-3 text-xs">
+                                <button
+                                    type="button"
+                                    onClick={() => setLessonPrompt(DEFAULT_LESSON_PROMPT)}
+                                    className="font-semibold text-coral-terra hover:text-terracota-profundo transition-colors"
+                                >
+                                    Usar padrão
+                                </button>
+                                {lessonPrompt && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setLessonPrompt('')}
+                                        className="font-semibold text-cafe-cinza-quente hover:text-cafe-medio transition-colors"
+                                    >
+                                        Limpar
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <Textarea
+                            id="lesson-prompt"
+                            value={lessonPrompt}
+                            onChange={e => setLessonPrompt(e.target.value)}
+                            placeholder={DEFAULT_LESSON_PROMPT}
+                            rows={12}
+                            className="font-mono text-xs leading-relaxed"
+                        />
+                        <p className="text-xs text-cafe-cinza-quente mt-1.5 tabular-nums">
+                            {lessonPrompt
+                                ? <>Custom · {lessonPrompt.length} chars</>
+                                : <>Vazio = usa o padrão ({DEFAULT_LESSON_PROMPT.length} chars). Edite pra ajustar tom, exemplos, regras.</>
+                            }
+                        </p>
+                    </div>
+                </Card>
+
+                {status && (
+                    <Banner tone={status.tone}>{status.msg}</Banner>
+                )}
+
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full inline-flex items-center justify-center gap-2 bg-coral-terra hover:bg-terracota-profundo text-papel-craft px-6 py-3 rounded-[12px] font-semibold text-base transition-colors active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed min-h-[48px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra"
+                >
+                    {loading ? 'Salvando…' : 'Salvar todas as alterações'}
+                </button>
+            </form>
         </div>
     );
 }

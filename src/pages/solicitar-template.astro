@@ -1,9 +1,5 @@
 ---
-export const prerender = false;
-import DashboardLayout from '../layouts/DashboardLayout.astro';
-import TemplateCommunityPage from '../components/community/TemplateCommunityPage';
+// Rota renomeada pra /comunidade (mais leigo, cobre votação+solicitação).
+// Redirect 301 preserva links antigos / bookmarks / SEO.
+return Astro.redirect('/comunidade', 301);
 ---
-
-<DashboardLayout title="Templates da Comunidade">
-    <TemplateCommunityPage client:load />
-</DashboardLayout>

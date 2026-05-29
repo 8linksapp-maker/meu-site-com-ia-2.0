@@ -1,59 +1,80 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { supabase } from '../../lib/supabase';
+import { Plus, Edit2, Trash2, Tags } from 'lucide-react';
+import { PageHeader, DataTable, FormModal } from '../ui/admin';
+import type { Column } from '../ui/admin';
+import { Field, Input } from '../ui';
+
+interface Category {
+    id: string;
+    name: string;
+    slug?: string | null;
+    description?: string | null;
+    icon?: string | null;
+    display_order?: number | null;
+    created_at?: string;
+}
 
 export default function CategoriesManager() {
-    const [categories, setCategories] = useState<any[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editId, setEditId] = useState<string | null>(null);
-
     const [name, setName] = useState('');
 
     useEffect(() => {
         fetchCategories();
     }, []);
 
-    const fetchCategories = async () => {
+    async function fetchCategories() {
         setLoading(true);
-        const { data, error } = await supabase.from('template_categories').select('*').order('created_at', { ascending: false });
-        if (data) setCategories(data);
+        const { data } = await supabase
+            .from('template_categories')
+            .select('*')
+            .order('display_order', { ascending: true });
+        if (data) setCategories(data as Category[]);
         setLoading(false);
-    };
+    }
 
-    const handleSave = async (e: FormEvent) => {
+    async function handleSave(e: FormEvent) {
         e.preventDefault();
-        setLoading(true);
-
-        if (editId) {
-            const { error } = await supabase
-                .from('template_categories')
-                .update({ name })
-                .eq('id', editId);
-            if (error) alert(error.message);
-        } else {
-            const { error } = await supabase
-                .from('template_categories')
-                .insert([{ name }]);
-            if (error) alert(error.message);
+        setSaving(true);
+        try {
+            if (editId) {
+                const { error } = await supabase
+                    .from('template_categories')
+                    .update({ name })
+                    .eq('id', editId);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from('template_categories')
+                    .insert([{ name }]);
+                if (error) throw error;
+            }
+            closeModal();
+            await fetchCategories();
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : 'Erro ao salvar.');
+        } finally {
+            setSaving(false);
         }
+    }
 
-        closeModal();
-        fetchCategories();
-    };
-
-    const handleDelete = async (id: string) => {
-        if (!confirm('Deseja realmente excluir esta categoria? Templates vinculados não poderão mais exibi-la.')) return;
-        const { error } = await supabase.from('template_categories').delete().eq('id', id);
-        if (!error) {
-            fetchCategories();
-        } else {
+    async function handleDelete(category: Category) {
+        if (!confirm(`Excluir categoria "${category.name}"? Templates vinculados perdem essa classificação.`)) return;
+        const { error } = await supabase.from('template_categories').delete().eq('id', category.id);
+        if (error) {
             alert('Erro ao deletar: ' + error.message);
+        } else {
+            fetchCategories();
         }
-    };
+    }
 
-    const openModal = (category?: any) => {
+    function openModal(category?: Category) {
         if (category) {
             setEditId(category.id);
             setName(category.name);
@@ -62,91 +83,122 @@ export default function CategoriesManager() {
             setName('');
         }
         setIsModalOpen(true);
-    };
+    }
 
-    const closeModal = () => {
+    function closeModal() {
         setIsModalOpen(false);
-    };
+        setEditId(null);
+        setName('');
+    }
+
+    const columns: Column<Category>[] = [
+        {
+            key: 'name',
+            header: 'Nome',
+            cell: (row) => (
+                <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-coral-wash flex items-center justify-center shrink-0">
+                        <Tags className="w-3.5 h-3.5 text-coral-terra" />
+                    </div>
+                    <span className="font-semibold text-carvao-quente">{row.name}</span>
+                </div>
+            ),
+        },
+        {
+            key: 'slug',
+            header: 'Slug',
+            cell: (row) => row.slug
+                ? <span className="font-mono text-xs text-cafe-cinza-quente">{row.slug}</span>
+                : <span className="text-cafe-cinza-quente italic text-xs">—</span>,
+        },
+        {
+            key: 'actions',
+            header: '',
+            align: 'right',
+            cell: (row) => (
+                <div className="inline-flex items-center gap-1 justify-end">
+                    <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); openModal(row); }}
+                        aria-label={`Editar ${row.name}`}
+                        className="p-2 text-cafe-cinza-quente hover:text-coral-terra hover:bg-coral-wash rounded-md transition-colors"
+                    >
+                        <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleDelete(row); }}
+                        aria-label={`Excluir ${row.name}`}
+                        className="p-2 text-cafe-cinza-quente hover:text-vermelho-tijolo hover:bg-[oklch(94%_0.025_28)] rounded-md transition-colors"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            ),
+        },
+    ];
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900">Gerenciar Categorias</h3>
-                <button
-                    onClick={() => openModal()}
-                    className="px-4 py-2 bg-[#7c3aed] text-white text-sm font-medium rounded-md hover:bg-[#6d28d9] transition"
-                >
-                    Nova Categoria
-                </button>
-            </div>
+        <div className="space-y-6">
+            <PageHeader
+                title="Categorias"
+                tagline="Organizar templates por nicho/objetivo."
+                action={
+                    <button
+                        type="button"
+                        onClick={() => openModal()}
+                        className="inline-flex items-center gap-2 bg-coral-terra hover:bg-terracota-profundo text-papel-craft px-4 py-2.5 rounded-[10px] font-semibold text-sm transition-colors active:scale-[0.98] min-h-[40px]"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Nova categoria
+                    </button>
+                }
+            />
 
-            <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                    <thead className="bg-gray-50 text-gray-600">
-                        <tr>
-                            <th className="px-6 py-4 font-medium">Nome da Categoria</th>
-                            <th className="px-6 py-4 font-medium text-right">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {loading ? (
-                            <tr><td colSpan={2} className="px-6 py-4 text-center">Carregando...</td></tr>
-                        ) : categories.length === 0 ? (
-                            <tr><td colSpan={2} className="px-6 py-4 text-center">Nenhuma categoria cadastrada.</td></tr>
-                        ) : (
-                            categories.map(c => (
-                                <tr key={c.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-medium text-gray-900">{c.name}</td>
-                                    <td className="px-6 py-4 text-right space-x-3">
-                                        <button
-                                            onClick={() => openModal(c)}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            Editar
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(c.id)}
-                                            className="text-red-500 hover:underline"
-                                        >
-                                            Excluir
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">
-                            {editId ? 'Editar Categoria' : 'Cadastrar Categoria'}
-                        </h3>
-                        <form onSubmit={handleSave} className="space-y-4 text-left">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Nome da Categoria</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    placeholder="Ex: Landing Page, Blog, Site Institucional"
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#7c3aed] focus:border-[#7c3aed] sm:text-sm"
-                                />
-                            </div>
-
-                            <div className="flex gap-3 justify-end mt-6">
-                                <button type="button" onClick={closeModal} className="px-4 py-2 text-sm text-gray-600">Cancelar</button>
-                                <button type="submit" disabled={loading} className="px-4 py-2 text-sm bg-[#7c3aed] text-white rounded-md font-medium disabled:opacity-50">
-                                    {loading ? 'Salvando...' : 'Salvar Categoria'}
-                                </button>
-                            </div>
-                        </form>
+            <DataTable
+                columns={columns}
+                rows={categories}
+                rowKey={(row) => row.id}
+                loading={loading}
+                emptyState={
+                    <div className="text-center">
+                        <div className="w-12 h-12 rounded-full bg-coral-wash flex items-center justify-center mx-auto mb-3">
+                            <Tags className="w-5 h-5 text-coral-terra" />
+                        </div>
+                        <p className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                            Nenhuma categoria cadastrada.
+                        </p>
+                        <p className="text-sm text-cafe-medio mt-1">
+                            Comece criando "Blogs", "Negócios Locais", "Landing Pages", "Portfolio".
+                        </p>
                     </div>
-                </div>
-            )}
+                }
+            />
+
+            <FormModal
+                open={isModalOpen}
+                title={editId ? 'Editar categoria' : 'Nova categoria'}
+                onClose={closeModal}
+                onSubmit={handleSave}
+                submitting={saving}
+                submitLabel={editId ? 'Atualizar' : 'Criar categoria'}
+                submitDisabled={!name.trim()}
+            >
+                <Field
+                    label="Nome da categoria"
+                    htmlFor="cat-name"
+                    helper="Ex: Blogs, Negócios Locais, Landing Pages, Portfolio."
+                >
+                    <Input
+                        id="cat-name"
+                        type="text"
+                        required
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="Nome curto e claro"
+                    />
+                </Field>
+            </FormModal>
         </div>
     );
 }

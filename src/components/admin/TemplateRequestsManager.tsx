@@ -2,9 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import {
     Lightbulb, Loader2, Search, ChevronDown, ChevronUp, ExternalLink,
-    Calendar, User, Tag, Clock, Sparkles, BarChart3, Save, Check, X,
-    Trophy, ThumbsUp, Flame,
+    Calendar, User, Tag, Sparkles, BarChart3, Save, Check,
+    Trophy, ThumbsUp, Flame, Mail,
 } from 'lucide-react';
+import { PageHeader, StatusBadge } from '../ui/admin';
+import Pagination from '../ui/admin/Pagination';
+import type { StatusTone } from '../ui/admin';
+import { Card, Banner, Textarea } from '../ui';
 
 interface TemplateRequest {
     id: string;
@@ -29,7 +33,6 @@ interface TemplateRequest {
     votes_total?: number;
 }
 
-// Sunday-based week (matches frontend cycle)
 function getCurrentWeekStart(): string {
     const now = new Date();
     const dow = now.getUTCDay();
@@ -39,7 +42,6 @@ function getCurrentWeekStart(): string {
     return sunday.toISOString().slice(0, 10);
 }
 
-// Próxima sexta-feira (launch ao vivo às 20:00 BRT)
 function getNextFridayLaunch(): string {
     const now = new Date();
     const dow = now.getUTCDay();
@@ -51,41 +53,20 @@ function getNextFridayLaunch(): string {
 }
 
 const BUSINESS_LABELS: Record<string, string> = {
-    ecommerce: 'Loja Online',
-    blog: 'Blog / Portal',
-    landing: 'Landing Page',
-    institucional: 'Site Institucional',
-    'servicos-locais': 'Serviços Locais',
-    restaurante: 'Restaurante / Café',
-    portfolio: 'Portfólio',
-    curso: 'Curso / Infoproduto',
-    afiliados: 'Reviews / Afiliados',
-    comunidade: 'Comunidade / Fórum',
-    eventos: 'Eventos / Agendamento',
-    imobiliaria: 'Imobiliária',
-    saas: 'SaaS / Startup',
+    ecommerce: 'Loja Online', blog: 'Blog / Portal', landing: 'Landing Page',
+    institucional: 'Site Institucional', 'servicos-locais': 'Serviços Locais',
+    restaurante: 'Restaurante / Café', portfolio: 'Portfólio', curso: 'Curso / Infoproduto',
+    afiliados: 'Reviews / Afiliados', comunidade: 'Comunidade / Fórum',
+    eventos: 'Eventos / Agendamento', imobiliaria: 'Imobiliária', saas: 'SaaS / Startup',
     outro: 'Outro',
 };
 
 const FEATURE_LABELS: Record<string, string> = {
-    blog: 'Blog',
-    loja: 'Loja',
-    catalogo: 'Catálogo',
-    'portfolio-galeria': 'Galeria',
-    agendamento: 'Agendamento',
-    'contato-avancado': 'Contato avançado',
-    newsletter: 'Newsletter',
-    whatsapp: 'WhatsApp',
-    mapa: 'Mapa',
-    'multi-idioma': 'Multi-idioma',
-    'area-membros': 'Área membros',
-    calculadora: 'Calculadora',
-    depoimentos: 'Depoimentos',
-    faq: 'FAQ',
-    equipe: 'Equipe',
-    'afiliados-ecommerce': 'Afiliados',
-    pix: 'PIX',
-    'pdf-download': 'PDF',
+    blog: 'Blog', loja: 'Loja', catalogo: 'Catálogo', 'portfolio-galeria': 'Galeria',
+    agendamento: 'Agendamento', 'contato-avancado': 'Contato avançado', newsletter: 'Newsletter',
+    whatsapp: 'WhatsApp', mapa: 'Mapa', 'multi-idioma': 'Multi-idioma',
+    'area-membros': 'Área membros', calculadora: 'Calculadora', depoimentos: 'Depoimentos',
+    faq: 'FAQ', equipe: 'Equipe', 'afiliados-ecommerce': 'Afiliados', pix: 'PIX', 'pdf-download': 'PDF',
 };
 
 const STYLE_LABELS: Record<string, string> = {
@@ -99,27 +80,17 @@ const STYLE_LABELS: Record<string, string> = {
     'nao-sei': 'Sem preferência',
 };
 
-const URGENCY_LABELS: Record<string, { label: string; color: string }> = {
-    agora: { label: 'Agora', color: 'bg-red-100 text-red-700' },
-    '30d': { label: '30 dias', color: 'bg-amber-100 text-amber-700' },
-    '90d': { label: '90 dias', color: 'bg-blue-100 text-blue-700' },
-    'sem-pressa': { label: 'Sem pressa', color: 'bg-slate-100 text-slate-700' },
-};
-
 const SCALE_LABELS: Record<string, string> = {
-    '1-5': '1-5 páginas',
-    '6-20': '6-20 páginas',
-    '21-50': '21-50 páginas',
-    '50+': '50+ páginas',
+    '1-5': '1-5 páginas', '6-20': '6-20 páginas', '21-50': '21-50 páginas', '50+': '50+ páginas',
 };
 
-const STATUSES = [
-    { value: 'new', label: 'Nova', color: 'bg-blue-100 text-blue-700' },
-    { value: 'in_review', label: 'Em análise', color: 'bg-amber-100 text-amber-700' },
-    { value: 'planned', label: 'Aprovada', color: 'bg-emerald-100 text-emerald-700' },
-    { value: 'in_progress', label: 'Em produção', color: 'bg-violet-100 text-violet-700' },
-    { value: 'delivered', label: 'Entregue', color: 'bg-emerald-100 text-emerald-700' },
-    { value: 'declined', label: 'Não viável', color: 'bg-gray-100 text-gray-600' },
+const STATUSES: { value: string; label: string; tone: StatusTone }[] = [
+    { value: 'new',         label: 'Nova',         tone: 'info' },
+    { value: 'in_review',   label: 'Em análise',   tone: 'pending' },
+    { value: 'planned',     label: 'Aprovada',     tone: 'success' },
+    { value: 'in_progress', label: 'Em produção',  tone: 'active' },
+    { value: 'delivered',   label: 'Entregue',     tone: 'success' },
+    { value: 'declined',    label: 'Não viável',   tone: 'neutral' },
 ];
 
 export default function TemplateRequestsManager() {
@@ -129,22 +100,23 @@ export default function TemplateRequestsManager() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
+    const [page, setPage] = useState(1);
+    const REQUESTS_PAGE_SIZE = 15;
+    useEffect(() => { setPage(1); }, [search, statusFilter, typeFilter]);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [savingId, setSavingId] = useState<string | null>(null);
 
-    useEffect(() => {
-        load();
-    }, []);
+    useEffect(() => { load(); }, []);
 
     async function load() {
         setLoading(true);
         setError('');
         try {
-            const { data, error } = await supabase
+            const { data, error: e } = await supabase
                 .from('template_requests')
                 .select('*')
                 .order('created_at', { ascending: false });
-            if (error) throw error;
+            if (e) throw e;
             const list = (data as TemplateRequest[]) || [];
             const ids = list.map(r => r.id);
             const weekStart = getCurrentWeekStart();
@@ -155,24 +127,24 @@ export default function TemplateRequestsManager() {
                     .from('template_request_votes')
                     .select('request_id, week_start')
                     .in('request_id', ids);
-                (votes || []).forEach((v: any) => {
+                (votes || []).forEach((v: { request_id: string; week_start: string }) => {
                     totalMap[v.request_id] = (totalMap[v.request_id] || 0) + 1;
                     if (v.week_start === weekStart) weekMap[v.request_id] = (weekMap[v.request_id] || 0) + 1;
                 });
             }
             setRequests(list.map(r => ({ ...r, votes_week: weekMap[r.id] || 0, votes_total: totalMap[r.id] || 0 })));
-        } catch (e: any) {
-            setError(e?.message || 'Erro ao carregar solicitações.');
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : 'Erro ao carregar.');
         } finally {
             setLoading(false);
         }
     }
 
     async function markAsWeekChampion(id: string) {
-        if (!confirm('Marcar essa solicitação como campeã da semana? Vai setar production_target_date pra próxima sexta (launch ao vivo às 20:00 BRT) e status pra "in_progress".')) return;
+        if (!confirm('Marcar como campeã da semana? Vai setar status pra "Em produção" + data de launch pra próxima sexta 19h BRT.')) return;
         setSavingId(id);
         try {
-            const { error } = await supabase
+            const { error: e } = await supabase
                 .from('template_requests')
                 .update({
                     status: 'in_progress',
@@ -181,10 +153,10 @@ export default function TemplateRequestsManager() {
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', id);
-            if (error) throw error;
+            if (e) throw e;
             await load();
-        } catch (e: any) {
-            alert('Erro: ' + (e?.message || 'falha ao marcar'));
+        } catch (e: unknown) {
+            alert('Erro: ' + (e instanceof Error ? e.message : 'falha'));
         } finally {
             setSavingId(null);
         }
@@ -193,14 +165,14 @@ export default function TemplateRequestsManager() {
     async function updateStatus(id: string, status: string) {
         setSavingId(id);
         try {
-            const { error } = await supabase
+            const { error: e } = await supabase
                 .from('template_requests')
                 .update({ status, updated_at: new Date().toISOString() })
                 .eq('id', id);
-            if (error) throw error;
-            setRequests(prev => prev.map(r => (r.id === id ? { ...r, status } : r)));
-        } catch (e: any) {
-            alert('Erro: ' + (e?.message || 'falha ao salvar'));
+            if (e) throw e;
+            setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+        } catch (e: unknown) {
+            alert('Erro: ' + (e instanceof Error ? e.message : 'falha'));
         } finally {
             setSavingId(null);
         }
@@ -209,14 +181,14 @@ export default function TemplateRequestsManager() {
     async function saveNote(id: string, note: string) {
         setSavingId(id);
         try {
-            const { error } = await supabase
+            const { error: e } = await supabase
                 .from('template_requests')
                 .update({ admin_note: note, updated_at: new Date().toISOString() })
                 .eq('id', id);
-            if (error) throw error;
-            setRequests(prev => prev.map(r => (r.id === id ? { ...r, admin_note: note } : r)));
-        } catch (e: any) {
-            alert('Erro: ' + (e?.message || 'falha ao salvar'));
+            if (e) throw e;
+            setRequests(prev => prev.map(r => r.id === id ? { ...r, admin_note: note } : r));
+        } catch (e: unknown) {
+            alert('Erro: ' + (e instanceof Error ? e.message : 'falha'));
         } finally {
             setSavingId(null);
         }
@@ -259,176 +231,217 @@ export default function TemplateRequestsManager() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-24">
-                <Loader2 className="w-8 h-8 animate-spin text-[#7c3aed]" />
+            <div className="flex flex-col items-center justify-center py-24 gap-3">
+                <Loader2 className="w-7 h-7 animate-spin text-coral-terra" />
+                <p className="text-cafe-medio text-sm">Carregando sugestões…</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="p-6 bg-red-50 border border-red-100 rounded-xl text-red-700">
-                <p className="font-semibold mb-1">Erro ao carregar</p>
-                <p className="text-sm">{error}</p>
-                <p className="text-xs mt-3 text-red-600">
-                    Possível causa: a tabela <code>template_requests</code> ainda não foi criada.
-                    Rode o SQL em <code>supabase/migrations/20260515_template_requests.sql</code> no Supabase Studio.
-                </p>
-            </div>
+            <Banner tone="error" title="Erro ao carregar">
+                {error}
+                <span className="block mt-1 text-xs">
+                    Possível causa: tabela <code className="font-mono">template_requests</code> não criada.
+                    Rode <code className="font-mono">supabase/migrations/20260515_template_requests.sql</code>.
+                </span>
+            </Banner>
         );
     }
 
     return (
-        <div className="space-y-6">
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <StatCard icon={Lightbulb} label="Total" value={stats.total} color="violet" />
-                <StatCard icon={ThumbsUp} label="Votos esta semana" value={stats.totalVotesThisWeek} color="violet" />
-                <StatCard icon={Sparkles} label="Novas" value={stats.byStatus.new || 0} color="blue" />
-                <StatCard icon={Check} label="Entregues" value={stats.byStatus.delivered || 0} color="emerald" />
+        <div className="space-y-6 pb-8">
+            <PageHeader
+                title="Sugestões de templates"
+                tagline="Solicitações dos alunos pra criar templates novos. Mais votada vira o template da semana."
+            />
+
+            {/* Stats em linha editorial */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-borda-cafe border-y border-borda-cafe py-5">
+                <StatItem icon={Lightbulb} label="Total" value={stats.total} />
+                <StatItem icon={ThumbsUp} label="Votos esta semana" value={stats.totalVotesThisWeek} highlight />
+                <StatItem icon={Sparkles} label="Novas" value={stats.byStatus.new || 0} />
+                <StatItem icon={Check} label="Entregues" value={stats.byStatus.delivered || 0} />
             </div>
 
             {/* Leader da semana */}
             {stats.leader && (stats.leader.votes_week || 0) > 0 && (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-5">
-                    <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center shrink-0">
-                            <Trophy className="w-6 h-6 text-white" />
+                <Card padding="lg" className="!border-mostarda-amber/40 !bg-[oklch(96%_0.025_80)]">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-mostarda-amber flex items-center justify-center shrink-0">
+                            <Trophy className="w-5 h-5 text-carvao-quente" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[11px] font-bold uppercase tracking-widest text-amber-700 flex items-center gap-1.5">
+                            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[oklch(40%_0.110_80)] flex items-center gap-1.5">
                                 <Flame className="w-3 h-3" /> Líder da semana
                             </p>
-                            <p className="text-lg font-bold text-gray-900 truncate">{stats.leader.niche}</p>
-                            <p className="text-sm text-gray-600 mt-0.5">
-                                {BUSINESS_LABELS[stats.leader.business_type] || stats.leader.business_type} ·
-                                Pedido por <strong>{stats.leader.user_name}</strong> ·
-                                <span className="text-amber-700 font-bold ml-1">{stats.leader.votes_week} votos</span>
+                            <p className="font-display text-xl font-normal text-carvao-quente tracking-tight truncate mt-0.5">
+                                {stats.leader.niche}
+                            </p>
+                            <p className="text-sm text-cafe-medio mt-0.5">
+                                {BUSINESS_LABELS[stats.leader.business_type] || stats.leader.business_type}
+                                {' · Pedido por '}
+                                <strong className="text-carvao-quente">{stats.leader.user_name}</strong>
+                                {' · '}
+                                <span className="text-coral-terra font-semibold">{stats.leader.votes_week} {stats.leader.votes_week === 1 ? 'voto' : 'votos'}</span>
                             </p>
                         </div>
                         {!stats.leader.won_week_start && (
                             <button
+                                type="button"
                                 onClick={() => markAsWeekChampion(stats.leader!.id)}
                                 disabled={savingId === stats.leader.id}
-                                className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white text-sm font-bold rounded-xl shadow-sm transition-colors"
+                                className="shrink-0 inline-flex items-center gap-2 bg-coral-terra hover:bg-terracota-profundo text-papel-craft px-4 py-2.5 rounded-[10px] font-semibold text-sm transition-colors disabled:opacity-60 min-h-[40px]"
                             >
                                 {savingId === stats.leader.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trophy className="w-4 h-4" />}
                                 Marcar como campeã
                             </button>
                         )}
                     </div>
-                </div>
+                </Card>
             )}
 
+            {/* Top types + features */}
             {(stats.top3Types.length > 0 || stats.top3Features.length > 0) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {stats.top3Types.length > 0 && (
-                        <div className="bg-white border border-gray-200 rounded-xl p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                                <BarChart3 className="w-4 h-4 text-gray-400" />
-                                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Tipos mais pedidos</p>
+                        <Card padding="md" className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <BarChart3 className="w-4 h-4 text-cafe-cinza-quente" />
+                                <p className="text-xs font-bold uppercase tracking-[0.12em] text-cafe-cinza-quente">
+                                    Tipos mais pedidos
+                                </p>
                             </div>
                             <div className="space-y-2">
                                 {stats.top3Types.map(([type, count]) => (
                                     <div key={type} className="flex items-center justify-between text-sm">
-                                        <span className="font-semibold text-gray-700">{BUSINESS_LABELS[type] || type}</span>
-                                        <span className="text-[#7c3aed] font-bold">{count}</span>
+                                        <span className="font-semibold text-carvao-quente">{BUSINESS_LABELS[type] || type}</span>
+                                        <span className="text-coral-terra font-semibold tabular-nums">{count}</span>
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </Card>
                     )}
                     {stats.top3Features.length > 0 && (
-                        <div className="bg-white border border-gray-200 rounded-xl p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Sparkles className="w-4 h-4 text-gray-400" />
-                                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Funcionalidades mais pedidas</p>
+                        <Card padding="md" className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-cafe-cinza-quente" />
+                                <p className="text-xs font-bold uppercase tracking-[0.12em] text-cafe-cinza-quente">
+                                    Funcionalidades mais pedidas
+                                </p>
                             </div>
                             <div className="space-y-2">
                                 {stats.top3Features.map(([feature, count]) => (
                                     <div key={feature} className="flex items-center justify-between text-sm">
-                                        <span className="font-semibold text-gray-700">{FEATURE_LABELS[feature] || feature}</span>
-                                        <span className="text-[#7c3aed] font-bold">{count}</span>
+                                        <span className="font-semibold text-carvao-quente">{FEATURE_LABELS[feature] || feature}</span>
+                                        <span className="text-coral-terra font-semibold tabular-nums">{count}</span>
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </Card>
                     )}
                 </div>
             )}
 
             {/* Filtros */}
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <Card padding="md">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                    <div className="md:col-span-5 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <div className="md:col-span-6 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cafe-cinza-quente" />
                         <input
-                            type="text"
+                            type="search"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            placeholder="Buscar por nicho, email, audiência..."
-                            className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#7c3aed] focus:bg-white"
+                            placeholder="Buscar por nicho, email, aluno…"
+                            className="w-full pl-9 pr-4 py-2.5 bg-cream-surface border border-borda-cafe rounded-[10px] text-sm focus:outline-none focus:border-coral-terra min-h-[40px]"
                         />
                     </div>
-                    <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="md:col-span-3 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]">
-                        <option value="all">Todos os status</option>
+                    <select
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value)}
+                        className="md:col-span-3 px-3 py-2.5 bg-cream-surface border border-borda-cafe rounded-[10px] text-sm focus:outline-none focus:border-coral-terra min-h-[40px]"
+                    >
+                        <option value="all">Todos status</option>
                         {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label} ({stats.byStatus[s.value] || 0})</option>)}
                     </select>
-                    <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="md:col-span-4 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]">
-                        <option value="all">Todos os tipos</option>
+                    <select
+                        value={typeFilter}
+                        onChange={e => setTypeFilter(e.target.value)}
+                        className="md:col-span-3 px-3 py-2.5 bg-cream-surface border border-borda-cafe rounded-[10px] text-sm focus:outline-none focus:border-coral-terra min-h-[40px]"
+                    >
+                        <option value="all">Todos tipos</option>
                         {Object.entries(BUSINESS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
                 </div>
-            </div>
+            </Card>
 
             {/* Lista */}
             {filtered.length === 0 ? (
-                <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
-                    <Lightbulb className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-600 font-semibold">Nenhuma solicitação encontrada</p>
-                    <p className="text-sm text-gray-400 mt-1">Aguarde os alunos preencherem o formulário.</p>
-                </div>
+                <Card padding="lg">
+                    <div className="text-center py-6">
+                        <Lightbulb className="w-10 h-10 text-cafe-cinza-quente mx-auto mb-3" />
+                        <p className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                            Nenhuma sugestão encontrada.
+                        </p>
+                        <p className="text-sm text-cafe-medio mt-1">
+                            {search || statusFilter !== 'all' || typeFilter !== 'all'
+                                ? 'Tenta outro filtro.'
+                                : 'Aguarde alunos preencherem o formulário.'}
+                        </p>
+                    </div>
+                </Card>
             ) : (
-                <div className="space-y-3">
-                    {filtered.map(r => (
+                <div className="space-y-2.5">
+                    {filtered.slice((page - 1) * REQUESTS_PAGE_SIZE, page * REQUESTS_PAGE_SIZE).map(r => (
                         <RequestCard
                             key={r.id}
                             request={r}
                             expanded={expandedId === r.id}
-                            onToggle={() => setExpandedId(prev => (prev === r.id ? null : r.id))}
+                            onToggle={() => setExpandedId(prev => prev === r.id ? null : r.id)}
                             onStatusChange={status => updateStatus(r.id, status)}
                             onNoteSave={note => saveNote(r.id, note)}
                             onMarkChampion={() => markAsWeekChampion(r.id)}
                             saving={savingId === r.id}
                         />
                     ))}
+                    <Pagination
+                        page={page}
+                        pageSize={REQUESTS_PAGE_SIZE}
+                        total={filtered.length}
+                        onPageChange={setPage}
+                        label="sugestões"
+                    />
                 </div>
             )}
         </div>
     );
 }
 
-function StatCard({ icon: Icon, label, value, color }: {
-    icon: React.ElementType; label: string; value: number; color: 'violet' | 'red' | 'blue' | 'emerald';
+function StatItem({ icon: Icon, label, value, highlight = false }: {
+    icon: React.ElementType;
+    label: string;
+    value: number;
+    highlight?: boolean;
 }) {
-    const colors = {
-        violet: 'from-violet-500 to-violet-600',
-        red: 'from-red-500 to-red-600',
-        blue: 'from-blue-500 to-blue-600',
-        emerald: 'from-emerald-500 to-emerald-600',
-    };
     return (
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${colors[color]} flex items-center justify-center mb-2`}>
-                <Icon className="w-4 h-4 text-white" />
+        <div className="flex flex-col items-start px-4 md:px-6">
+            <div className={`flex items-center gap-2 mb-2 ${highlight ? 'text-coral-terra' : 'text-cafe-cinza-quente'}`}>
+                <Icon className="w-3.5 h-3.5" />
+                <span className="text-xs font-semibold uppercase tracking-wide">{label}</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-500 font-medium">{label}</p>
+            <p className={`font-display text-3xl md:text-4xl font-normal tabular-nums tracking-tight leading-none ${
+                highlight ? 'text-coral-terra' : 'text-carvao-quente'
+            }`}>
+                {value}
+            </p>
         </div>
     );
 }
 
-function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, onMarkChampion, saving }: {
+function RequestCard({
+    request, expanded, onToggle, onStatusChange, onNoteSave, onMarkChampion, saving,
+}: {
     request: TemplateRequest;
     expanded: boolean;
     onToggle: () => void;
@@ -447,57 +460,75 @@ function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, 
     }, [request.id, request.admin_note]);
 
     return (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-colors">
-            <button onClick={onToggle} className="w-full flex items-center gap-4 p-4 text-left">
+        <Card padding="md" className="!p-0 overflow-hidden">
+            <button
+                type="button"
+                onClick={onToggle}
+                className="w-full flex items-center gap-4 p-4 text-left hover:bg-coral-wash/40 transition-colors"
+            >
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${statusCfg.color}`}>{statusCfg.label}</span>
+                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                        <StatusBadge tone={statusCfg.tone}>{statusCfg.label}</StatusBadge>
                         {request.won_week_start && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                                <Trophy className="w-3 h-3" /> Campeã
-                            </span>
+                            <StatusBadge tone="pending" icon={<Trophy className="w-3 h-3" />}>
+                                Campeã
+                            </StatusBadge>
                         )}
-                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-cream-elevated text-cafe-medio">
                             {BUSINESS_LABELS[request.business_type] || request.business_type}
                         </span>
                     </div>
-                    <p className="font-semibold text-gray-900 truncate">{request.niche}</p>
-                    <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-3 flex-wrap">
+                    <p className="font-semibold text-carvao-quente truncate">{request.niche}</p>
+                    <p className="text-xs text-cafe-cinza-quente mt-1 flex items-center gap-3 flex-wrap tabular-nums">
                         <span className="flex items-center gap-1"><User className="w-3 h-3" /> {request.user_email}</span>
-                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(request.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(request.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
                     </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                    <div className="flex flex-col items-center px-2.5 py-1.5 bg-violet-50 text-violet-700 rounded-lg">
-                        <div className="flex items-center gap-1 font-bold text-sm">
+                    <div className="flex flex-col items-center px-2.5 py-1.5 bg-coral-wash text-terracota-profundo rounded-[8px]">
+                        <div className="flex items-center gap-1 font-semibold text-sm tabular-nums">
                             <ThumbsUp className="w-3.5 h-3.5" />
                             {request.votes_week || 0}
                         </div>
-                        <p className="text-[9px] uppercase font-bold tracking-wider opacity-70">semana</p>
+                        <p className="text-xs uppercase font-semibold tracking-wide opacity-80">semana</p>
                     </div>
-                    {expanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                    {expanded
+                        ? <ChevronUp className="w-5 h-5 text-cafe-cinza-quente" />
+                        : <ChevronDown className="w-5 h-5 text-cafe-cinza-quente" />}
                 </div>
             </button>
 
             {expanded && (
-                <div className="px-4 pb-5 pt-2 border-t border-gray-100 space-y-4 bg-gray-50/50">
+                <div className="px-4 pb-5 pt-2 border-t border-borda-cafe space-y-4 bg-cream-elevated/40">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
-                        <Field label="Estilo">{STYLE_LABELS[request.style_preference] || request.style_preference}</Field>
-                        <Field label="Aluno">{request.user_name} <span className="text-gray-400">({request.user_email})</span></Field>
+                        <DetailField label="Estilo">
+                            {STYLE_LABELS[request.style_preference] || request.style_preference}
+                        </DetailField>
+                        <DetailField label="Aluno">
+                            {request.user_name}{' '}
+                            <span className="text-cafe-cinza-quente">({request.user_email})</span>
+                        </DetailField>
                         {request.target_audience && (
-                            <Field label="Público-alvo (legacy)">{request.target_audience}</Field>
+                            <DetailField label="Público-alvo (legacy)">{request.target_audience}</DetailField>
                         )}
                         {request.content_scale && (
-                            <Field label="Escala (legacy)">{SCALE_LABELS[request.content_scale] || request.content_scale}</Field>
+                            <DetailField label="Escala (legacy)">
+                                {SCALE_LABELS[request.content_scale] || request.content_scale}
+                            </DetailField>
                         )}
                     </div>
 
                     {request.features?.length > 0 && (
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 flex items-center gap-1.5"><Tag className="w-3 h-3" /> Funcionalidades</p>
+                            <p className="text-xs font-bold uppercase tracking-[0.12em] text-cafe-cinza-quente mb-2 flex items-center gap-1.5">
+                                <Tag className="w-3 h-3" /> Funcionalidades
+                            </p>
                             <div className="flex flex-wrap gap-1.5">
                                 {request.features.map(f => (
-                                    <span key={f} className="text-xs font-semibold px-2.5 py-1 bg-violet-50 text-violet-700 rounded-md">
+                                    <span key={f} className="text-xs font-semibold px-2 py-1 bg-coral-wash text-terracota-profundo rounded">
                                         {FEATURE_LABELS[f] || f}
                                     </span>
                                 ))}
@@ -507,12 +538,20 @@ function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, 
 
                     {request.reference_urls?.length > 0 && (
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">URLs de referência</p>
+                            <p className="text-xs font-bold uppercase tracking-[0.12em] text-cafe-cinza-quente mb-2">
+                                URLs de referência
+                            </p>
                             <div className="space-y-1">
                                 {request.reference_urls.map((u, i) => (
-                                    <a key={i} href={u} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                                    <a
+                                        key={i}
+                                        href={u}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 text-sm text-coral-terra hover:text-terracota-profundo transition-colors"
+                                    >
                                         <ExternalLink className="w-3 h-3 shrink-0" />
-                                        <span className="truncate">{u}</span>
+                                        <span className="truncate font-mono">{u}</span>
                                     </a>
                                 ))}
                             </div>
@@ -521,46 +560,53 @@ function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, 
 
                     {request.extra_notes && (
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Notas do aluno</p>
-                            <p className="text-sm text-gray-700 bg-white border border-gray-200 rounded-lg p-3 whitespace-pre-wrap">{request.extra_notes}</p>
+                            <p className="text-xs font-bold uppercase tracking-[0.12em] text-cafe-cinza-quente mb-2">
+                                Notas do aluno
+                            </p>
+                            <p className="text-sm text-carvao-quente bg-cream-surface border border-borda-cafe rounded-[8px] p-3 whitespace-pre-wrap leading-relaxed">
+                                {request.extra_notes}
+                            </p>
                         </div>
                     )}
 
-                    {/* Voting stats inline */}
+                    {/* Voting stats */}
                     <div className="flex items-center gap-3 flex-wrap text-xs">
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-violet-100 text-violet-700 rounded-md font-bold">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-coral-wash text-terracota-profundo rounded-md font-semibold tabular-nums">
                             <ThumbsUp className="w-3 h-3" />
                             {request.votes_week || 0} esta semana
-                        </div>
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md font-bold">
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cream-elevated text-cafe-medio rounded-md font-semibold tabular-nums">
                             <ThumbsUp className="w-3 h-3" />
                             {request.votes_total || 0} total
-                        </div>
+                        </span>
                         {request.production_target_date && (
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-md font-bold">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[oklch(94%_0.020_145)] text-[oklch(40%_0.060_145)] rounded-md font-semibold tabular-nums">
                                 <Sparkles className="w-3 h-3" />
                                 Sai em {new Date(request.production_target_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                            </div>
+                            </span>
                         )}
                     </div>
 
                     {/* Admin controls */}
-                    <div className="pt-2 border-t border-gray-200">
-                        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Ações do admin</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <div className="pt-3 border-t border-borda-cafe space-y-3">
+                        <p className="text-xs font-bold uppercase tracking-[0.12em] text-cafe-cinza-quente">
+                            Ações do admin
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <select
                                 value={request.status}
                                 onChange={e => onStatusChange(e.target.value)}
                                 disabled={saving}
-                                className="md:col-span-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-semibold focus:outline-none focus:border-[#7c3aed]"
+                                className="px-3 py-2 bg-cream-surface border border-borda-cafe rounded-[8px] text-sm font-semibold text-carvao-quente focus:outline-none focus:border-coral-terra min-h-[40px]"
                             >
                                 {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                             </select>
                             {!request.won_week_start && (
                                 <button
+                                    type="button"
                                     onClick={onMarkChampion}
                                     disabled={saving}
-                                    className="md:col-span-1 flex items-center justify-center gap-2 px-3 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white rounded-lg text-sm font-bold transition-colors"
+                                    className="inline-flex items-center justify-center gap-2 bg-coral-terra hover:bg-terracota-profundo text-papel-craft px-3 py-2 rounded-[8px] text-sm font-semibold transition-colors disabled:opacity-60 min-h-[40px]"
                                 >
                                     <Trophy className="w-4 h-4" />
                                     Marcar campeã
@@ -568,26 +614,32 @@ function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, 
                             )}
                             <a
                                 href={`mailto:${request.user_email}?subject=Sua sugestão de template — ${encodeURIComponent(request.niche)}`}
-                                className={`flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-semibold text-gray-700 transition-colors ${request.won_week_start ? 'md:col-span-2' : 'md:col-span-1'}`}
+                                className={`inline-flex items-center justify-center gap-2 bg-cream-elevated hover:bg-coral-wash text-cafe-medio hover:text-terracota-profundo border border-borda-cafe px-3 py-2 rounded-[8px] text-sm font-semibold transition-colors min-h-[40px] ${request.won_week_start ? 'md:col-span-2' : ''}`}
                             >
-                                <ExternalLink className="w-4 h-4" />
-                                Email
+                                <Mail className="w-4 h-4" />
+                                Responder por e-mail
                             </a>
                         </div>
                         <div>
-                            <label className="text-xs font-semibold text-gray-600 mb-1 block">Nota interna</label>
-                            <textarea
+                            <label htmlFor={`note-${request.id}`} className="text-xs font-semibold text-cafe-cinza-quente mb-1.5 block">
+                                Nota interna
+                            </label>
+                            <Textarea
+                                id={`note-${request.id}`}
                                 value={noteEdit}
-                                onChange={e => { setNoteEdit(e.target.value); setNoteDirty(e.target.value !== (request.admin_note || '')); }}
+                                onChange={e => {
+                                    setNoteEdit(e.target.value);
+                                    setNoteDirty(e.target.value !== (request.admin_note || ''));
+                                }}
                                 rows={2}
-                                placeholder="Notas internas — não visível pro aluno..."
-                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#7c3aed]"
+                                placeholder="Notas internas (não visível pro aluno)…"
                             />
                             {noteDirty && (
                                 <button
+                                    type="button"
                                     onClick={() => onNoteSave(noteEdit)}
                                     disabled={saving}
-                                    className="mt-2 flex items-center gap-2 px-3 py-1.5 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold rounded-lg disabled:opacity-60"
+                                    className="mt-2 inline-flex items-center gap-2 bg-coral-terra hover:bg-terracota-profundo text-papel-craft px-3 py-1.5 rounded-[8px] text-sm font-semibold transition-colors disabled:opacity-60"
                                 >
                                     {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                                     Salvar nota
@@ -597,15 +649,15 @@ function RequestCard({ request, expanded, onToggle, onStatusChange, onNoteSave, 
                     </div>
                 </div>
             )}
-        </div>
+        </Card>
     );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function DetailField({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">{label}</p>
-            <p className="text-sm text-gray-800">{children}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-cafe-cinza-quente mb-1">{label}</p>
+            <p className="text-sm text-carvao-quente">{children}</p>
         </div>
     );
 }

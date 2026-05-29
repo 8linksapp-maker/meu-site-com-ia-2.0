@@ -1,0 +1,14 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import SiteDetailsPage from '../../components/admin/SiteManager/SiteDetailsPage';
+
+const { id } = Astro.params;
+
+if (!id) {
+  return Astro.redirect('/meus-sites');
+}
+---
+
+<DashboardLayout title="Gerenciar site">
+  <SiteDetailsPage client:load siteId={id} />
+</DashboardLayout>

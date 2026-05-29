@@ -1,10 +1,37 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { supabase } from '../../lib/supabase';
+import { Plus, Edit2, Trash2, FileStack, Upload, Lock, Unlock, ImageIcon } from 'lucide-react';
+import { PageHeader, DataTable, FormModal, StatusBadge } from '../ui/admin';
+import Pagination from '../ui/admin/Pagination';
+import type { Column } from '../ui/admin';
+import { Field, Input, Textarea } from '../ui';
+
+interface Template {
+    id: string;
+    name: string;
+    description: string;
+    repo: string;
+    preview_url?: string;
+    image_url?: string;
+    images?: string[];
+    category_ids?: string[];
+    is_locked?: boolean;
+    release_date?: string;
+}
+
+interface CategoryLite {
+    id: string;
+    name: string;
+}
 
 export default function TemplatesManager() {
-    const [templates, setTemplates] = useState<any[]>([]);
+    const [templates, setTemplates] = useState<Template[]>([]);
+    const [categories, setCategories] = useState<CategoryLite[]>([]);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [page, setPage] = useState(1);
+    const TEMPLATES_PAGE_SIZE = 20;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editId, setEditId] = useState<string | null>(null);
@@ -19,7 +46,6 @@ export default function TemplatesManager() {
     const [existingImages, setExistingImages] = useState<string[]>([]);
     const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
 
-    const [categories, setCategories] = useState<any[]>([]);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
     useEffect(() => {
@@ -27,87 +53,80 @@ export default function TemplatesManager() {
         fetchCategories();
     }, []);
 
-    const fetchCategories = async () => {
-        const { data } = await supabase.from('template_categories').select('*').order('name');
-        if (data) setCategories(data);
-    };
+    async function fetchCategories() {
+        const { data } = await supabase.from('template_categories').select('id, name').order('name');
+        if (data) setCategories(data as CategoryLite[]);
+    }
 
-    const fetchTemplates = async () => {
+    async function fetchTemplates() {
         setLoading(true);
-        const { data, error } = await supabase.from('templates').select('*');
-        if (data) setTemplates(data);
+        const { data } = await supabase.from('templates').select('*').order('created_at', { ascending: false });
+        if (data) setTemplates(data as Template[]);
         setLoading(false);
-    };
+    }
 
-    const handleSave = async (e: FormEvent) => {
+    async function handleSave(e: FormEvent) {
         e.preventDefault();
-        setLoading(true);
+        setSaving(true);
 
-        const uploadedUrls: string[] = [];
+        try {
+            const uploadedUrls: string[] = [];
+            for (const file of newImageFiles) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Math.random()}.${fileExt}`;
+                const filePath = `covers/${fileName}`;
 
-        // Fazer upload sequencial das NOVAS imagens selecionadas
-        for (const file of newImageFiles) {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random()}.${fileExt}`;
-            const filePath = `covers/${fileName}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('templates')
+                    .upload(filePath, file);
 
-            const { error: uploadError } = await supabase.storage
-                .from('templates')
-                .upload(filePath, file);
+                if (uploadError) {
+                    alert(`Erro upload ${file.name}: ${uploadError.message}`);
+                    continue;
+                }
 
-            if (uploadError) {
-                alert(`Erro ao fazer upload da imagem ${file.name}: ` + uploadError.message);
-                continue;
+                const { data } = supabase.storage.from('templates').getPublicUrl(filePath);
+                uploadedUrls.push(data.publicUrl);
             }
 
-            const { data } = supabase.storage.from('templates').getPublicUrl(filePath);
-            uploadedUrls.push(data.publicUrl);
-        }
+            const finalImages = [...existingImages, ...uploadedUrls];
+            const payload = {
+                name,
+                description,
+                repo,
+                preview_url: previewUrl,
+                image_url: finalImages[0] || '',
+                images: finalImages,
+                category_ids: selectedCategories,
+                is_locked: isLocked,
+                release_date: releaseDate || null,
+            };
 
-        // Combinar Imagens já existentes (que não foram apagadas no preview) com as novas
-        const finalImagesArray = [...existingImages, ...uploadedUrls];
-        const primaryImageUrl = finalImagesArray.length > 0 ? finalImagesArray[0] : '';
+            if (editId) {
+                const { error } = await supabase.from('templates').update(payload).eq('id', editId);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('templates').insert([payload]);
+                if (error) throw error;
+            }
 
-        const payload = {
-            name,
-            description,
-            repo,
-            preview_url: previewUrl,
-            image_url: primaryImageUrl,
-            images: finalImagesArray,
-            category_ids: selectedCategories,
-            is_locked: isLocked,
-            release_date: releaseDate || null
-        };
-
-        if (editId) {
-            const { error } = await supabase
-                .from('templates')
-                .update(payload)
-                .eq('id', editId);
-            if (error) alert(error.message);
-        } else {
-            const { error } = await supabase
-                .from('templates')
-                .insert([payload]);
-            if (error) alert(error.message);
-        }
-
-        closeModal();
-        fetchTemplates();
-    };
-
-    const handleDelete = async (id: string) => {
-        if (!confirm('Deseja excluir este template?')) return;
-        const { error } = await supabase.from('templates').delete().eq('id', id);
-        if (!error) {
+            closeModal();
             fetchTemplates();
-        } else {
-            alert('Erro ao deletar: ' + error.message);
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : 'Erro ao salvar');
+        } finally {
+            setSaving(false);
         }
-    };
+    }
 
-    const openModal = (template?: any) => {
+    async function handleDelete(template: Template) {
+        if (!confirm(`Excluir template "${template.name}"?`)) return;
+        const { error } = await supabase.from('templates').delete().eq('id', template.id);
+        if (error) alert('Erro ao deletar: ' + error.message);
+        else fetchTemplates();
+    }
+
+    function openModal(template?: Template) {
         setNewImageFiles([]);
         if (template) {
             setEditId(template.id);
@@ -117,13 +136,10 @@ export default function TemplatesManager() {
             setPreviewUrl(template.preview_url || '');
             setIsLocked(template.is_locked || false);
             setReleaseDate(template.release_date ? new Date(template.release_date).toISOString().slice(0, 16) : '');
-
-            // Garantir que templates antigos que usavam field 'image_url' simples entrem pro state the array do carrosel
-            const dbImages = template.images?.length > 0
+            const dbImages = template.images?.length
                 ? template.images
                 : (template.image_url ? [template.image_url] : []);
             setExistingImages(dbImages);
-
             setSelectedCategories(template.category_ids || []);
         } else {
             setEditId(null);
@@ -137,248 +153,297 @@ export default function TemplatesManager() {
             setReleaseDate('');
         }
         setIsModalOpen(true);
-    };
+    }
 
-    const closeModal = () => {
+    function closeModal() {
         setIsModalOpen(false);
-    };
+    }
+
+    const columns: Column<Template>[] = [
+        {
+            key: 'preview',
+            header: '',
+            width: 'w-20',
+            cell: (t) => (
+                <div className="w-14 h-10 bg-cream-elevated rounded-[6px] overflow-hidden border border-borda-cafe">
+                    {t.image_url ? (
+                        <img src={t.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-cafe-cinza-quente">
+                            <ImageIcon className="w-4 h-4" />
+                        </div>
+                    )}
+                </div>
+            ),
+        },
+        {
+            key: 'name',
+            header: 'Nome',
+            cell: (t) => (
+                <div className="min-w-0">
+                    <p className="font-semibold text-carvao-quente truncate">{t.name}</p>
+                    {t.description && (
+                        <p className="text-xs text-cafe-cinza-quente truncate mt-0.5 max-w-xs">{t.description}</p>
+                    )}
+                </div>
+            ),
+        },
+        {
+            key: 'repo',
+            header: 'Repositório',
+            cell: (t) => (
+                <span className="font-mono text-xs text-cafe-medio">{t.repo}</span>
+            ),
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            cell: (t) => t.is_locked
+                ? <StatusBadge tone="pending" icon={<Lock className="w-3 h-3" />}>Travado</StatusBadge>
+                : <StatusBadge tone="success" icon={<Unlock className="w-3 h-3" />}>Disponível</StatusBadge>,
+        },
+        {
+            key: 'categories',
+            header: 'Categorias',
+            cell: (t) => {
+                const cats = (t.category_ids ?? []).map(id => categories.find(c => c.id === id)?.name).filter(Boolean);
+                if (cats.length === 0) return <span className="text-xs text-cafe-cinza-quente italic">—</span>;
+                return (
+                    <div className="flex flex-wrap gap-1">
+                        {cats.slice(0, 2).map((c, i) => (
+                            <span key={i} className="text-xs font-semibold px-2 py-0.5 bg-cream-elevated text-cafe-medio rounded-full">
+                                {c}
+                            </span>
+                        ))}
+                        {cats.length > 2 && (
+                            <span className="text-xs text-cafe-cinza-quente">+{cats.length - 2}</span>
+                        )}
+                    </div>
+                );
+            },
+        },
+        {
+            key: 'actions',
+            header: '',
+            align: 'right',
+            cell: (t) => (
+                <div className="inline-flex items-center gap-1 justify-end">
+                    <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); openModal(t); }}
+                        aria-label="Editar template"
+                        className="p-2 text-cafe-cinza-quente hover:text-coral-terra hover:bg-coral-wash rounded-md transition-colors"
+                    >
+                        <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleDelete(t); }}
+                        aria-label="Excluir template"
+                        className="p-2 text-cafe-cinza-quente hover:text-vermelho-tijolo hover:bg-[oklch(94%_0.025_28)] rounded-md transition-colors"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            ),
+        },
+    ];
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900">Gerenciar Templates</h3>
-                <button
-                    onClick={() => openModal()}
-                    className="px-4 py-2 bg-[#7c3aed] text-white text-sm font-medium rounded-md hover:bg-[#6d28d9] transition"
-                >
-                    Novo Template
-                </button>
-            </div>
+        <div className="space-y-6">
+            <PageHeader
+                title="Templates"
+                tagline={`${templates.length} ${templates.length === 1 ? 'template' : 'templates'} cadastrados na vitrine.`}
+                action={
+                    <button
+                        type="button"
+                        onClick={() => openModal()}
+                        className="inline-flex items-center gap-2 bg-coral-terra hover:bg-terracota-profundo text-papel-craft px-4 py-2.5 rounded-[10px] font-semibold text-sm transition-colors active:scale-[0.98] min-h-[40px]"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Novo template
+                    </button>
+                }
+            />
 
-            <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                    <thead className="bg-gray-50 text-gray-600">
-                        <tr>
-                            <th className="px-6 py-4 font-medium">Nome</th>
-                            <th className="px-6 py-4 font-medium">Descrição</th>
-                            <th className="px-6 py-4 font-medium">Repositório</th>
-                            <th className="px-6 py-4 font-medium text-right">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {loading ? (
-                            <tr><td colSpan={4} className="px-6 py-4 text-center">Carregando...</td></tr>
-                        ) : templates.length === 0 ? (
-                            <tr><td colSpan={4} className="px-6 py-4 text-center">Nenhum template cadastrado.</td></tr>
-                        ) : (
-                            templates.map(t => (
-                                <tr key={t.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-medium text-gray-900">{t.name}</td>
-                                    <td className="px-6 py-4 text-gray-500 whitespace-pre-wrap">{t.description}</td>
-                                    <td className="px-6 py-4 font-mono text-xs text-[#7c3aed]">{t.repo}</td>
-                                    <td className="px-6 py-4 text-right space-x-3">
+            <DataTable
+                columns={columns}
+                rows={templates.slice((page - 1) * TEMPLATES_PAGE_SIZE, page * TEMPLATES_PAGE_SIZE)}
+                rowKey={(t) => t.id}
+                loading={loading}
+                emptyState={
+                    <div className="text-center">
+                        <div className="w-12 h-12 rounded-full bg-coral-wash flex items-center justify-center mx-auto mb-3">
+                            <FileStack className="w-5 h-5 text-coral-terra" />
+                        </div>
+                        <p className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                            Nenhum template cadastrado.
+                        </p>
+                    </div>
+                }
+            />
+
+            <Pagination
+                page={page}
+                pageSize={TEMPLATES_PAGE_SIZE}
+                total={templates.length}
+                onPageChange={setPage}
+                label="templates"
+            />
+
+            <FormModal
+                open={isModalOpen}
+                title={editId ? 'Editar template' : 'Novo template'}
+                onClose={closeModal}
+                onSubmit={handleSave}
+                submitting={saving}
+                submitLabel={editId ? 'Atualizar' : 'Criar template'}
+                width="lg"
+            >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Nome do template" htmlFor="tpl-name">
+                        <Input
+                            id="tpl-name"
+                            type="text"
+                            required
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            placeholder="Ex: Landing Page SaaS"
+                        />
+                    </Field>
+                    <Field label="Repositório GitHub" htmlFor="tpl-repo">
+                        <Input
+                            id="tpl-repo"
+                            type="text"
+                            required
+                            value={repo}
+                            onChange={e => setRepo(e.target.value)}
+                            placeholder="usuario/repo-template"
+                            className="font-mono text-sm"
+                        />
+                    </Field>
+                </div>
+
+                <Field label="Link da prévia ao vivo" htmlFor="tpl-preview" optional>
+                    <Input
+                        id="tpl-preview"
+                        type="url"
+                        value={previewUrl}
+                        onChange={e => setPreviewUrl(e.target.value)}
+                        placeholder="https://exemplo.com"
+                    />
+                </Field>
+
+                <Field label="Descrição" htmlFor="tpl-desc">
+                    <Textarea
+                        id="tpl-desc"
+                        required
+                        rows={3}
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        placeholder="Descrição do template pra audiência leiga."
+                    />
+                </Field>
+
+                <Field label="Imagens da vitrine" htmlFor="tpl-images" helper="Primeira imagem vira capa principal.">
+                    <div className="space-y-3">
+                        {existingImages.length > 0 && (
+                            <div className="flex flex-wrap gap-2 bg-cream-elevated border border-borda-cafe rounded-[8px] p-3">
+                                {existingImages.map((url, idx) => (
+                                    <div key={idx} className="relative group">
+                                        <img src={url} alt={`img-${idx}`} className="h-16 w-24 object-cover rounded-[6px] border border-borda-cafe" />
                                         <button
-                                            onClick={() => openModal(t)}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            Editar
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(t.id)}
-                                            className="text-red-500 hover:underline"
-                                        >
-                                            Excluir
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
+                                            type="button"
+                                            onClick={() => setExistingImages(existingImages.filter((_, i) => i !== idx))}
+                                            aria-label="Remover imagem"
+                                            className="absolute -top-2 -right-2 bg-vermelho-tijolo hover:bg-[oklch(40%_0.130_28)] text-papel-craft w-6 h-6 rounded-full flex items-center justify-center text-xs shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >×</button>
+                                    </div>
+                                ))}
+                            </div>
                         )}
-                    </tbody>
-                </table>
-            </div>
 
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
-                        {/* BOTÃO FECHAR */}
-                        <button onClick={closeModal} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-                        </button>
+                        <label
+                            id="tpl-images"
+                            className="flex flex-col items-center justify-center gap-2 px-6 py-6 border border-dashed border-borda-cafe rounded-[8px] hover:bg-coral-wash/40 hover:border-coral-terra cursor-pointer transition-colors"
+                        >
+                            <Upload className="w-6 h-6 text-cafe-cinza-quente" />
+                            <span className="text-sm font-semibold text-coral-terra">Selecionar imagens</span>
+                            <span className="text-xs text-cafe-cinza-quente">Pode escolher várias</span>
+                            <input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                className="hidden"
+                                onChange={e => {
+                                    if (e.target.files) {
+                                        setNewImageFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                                    }
+                                }}
+                            />
+                        </label>
+                        {newImageFiles.length > 0 && (
+                            <p className="text-xs text-coral-terra font-semibold tabular-nums">
+                                + {newImageFiles.length} imagem{newImageFiles.length === 1 ? '' : 's'} na fila pra upload.
+                            </p>
+                        )}
+                    </div>
+                </Field>
 
-                        <h3 className="text-xl font-bold text-gray-900 mb-6">
-                            {editId ? 'Editar Template' : 'Cadastrar Template'}
-                        </h3>
-                        <form onSubmit={handleSave} className="space-y-5 text-left">
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Nome do Template</label>
+                <Field label="Categorias" htmlFor="tpl-cats" helper="Selecione um ou mais nichos.">
+                    {categories.length === 0 ? (
+                        <p className="text-sm text-cafe-cinza-quente italic">
+                            Nenhuma categoria cadastrada. Crie em "Categorias" no menu.
+                        </p>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-44 overflow-y-auto bg-cream-elevated border border-borda-cafe rounded-[8px] p-3">
+                            {categories.map(c => (
+                                <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer hover:text-coral-terra transition-colors">
                                     <input
-                                        type="text"
-                                        required
-                                        value={name}
-                                        onChange={e => setName(e.target.value)}
-                                        placeholder="Ex: Landing Page SaaS"
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#7c3aed] focus:border-[#7c3aed] sm:text-sm"
+                                        type="checkbox"
+                                        checked={selectedCategories.includes(c.id)}
+                                        onChange={e => {
+                                            if (e.target.checked) {
+                                                setSelectedCategories([...selectedCategories, c.id]);
+                                            } else {
+                                                setSelectedCategories(selectedCategories.filter(id => id !== c.id));
+                                            }
+                                        }}
+                                        className="w-4 h-4 accent-coral-terra"
                                     />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Repositório GitHub Original</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={repo}
-                                        onChange={e => setRepo(e.target.value)}
-                                        placeholder="seu_usuario/repo_template"
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm font-mono focus:ring-[#7c3aed] focus:border-[#7c3aed] sm:text-sm"
-                                    />
-                                </div>
-                            </div>
+                                    <span className="truncate text-carvao-quente">{c.name}</span>
+                                </label>
+                            ))}
+                        </div>
+                    )}
+                </Field>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Link da Prévia ao Vivo</label>
-                                <input
-                                    type="url"
-                                    value={previewUrl}
-                                    onChange={e => setPreviewUrl(e.target.value)}
-                                    placeholder="https://exemplo.com"
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#7c3aed] focus:border-[#7c3aed] sm:text-sm"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Descrição</label>
-                                <textarea
-                                    required
-                                    rows={3}
-                                    value={description}
-                                    onChange={e => setDescription(e.target.value)}
-                                    placeholder="Descrição do site para o usuário final..."
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#7c3aed] focus:border-[#7c3aed] sm:text-sm"
-                                />
-                            </div>
-
-                            <hr className="border-gray-100" />
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-3">Imagens do Carrossel da Vitrine</label>
-
-                                {/* Lista de imagens atuais cadastradas */}
-                                {existingImages.length > 0 && (
-                                    <div className="flex flex-wrap gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
-                                        {existingImages.map((url, idx) => (
-                                            <div key={idx} className="relative group">
-                                                <img src={url} alt={`img-${idx}`} className="h-20 w-32 object-cover rounded-md border shadow-sm" />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setExistingImages(existingImages.filter((_, i) => i !== idx))}
-                                                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm shadow-md transition-transform transform scale-0 group-hover:scale-100"
-                                                >×</button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Área de Drag & Drop Fake / Upload de novas fotos */}
-                                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-purple-50 hover:border-purple-300 transition relative">
-                                    <div className="space-y-1 text-center">
-                                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                        <div className="flex text-sm text-gray-600 justify-center">
-                                            <label className="relative cursor-pointer bg-transparent rounded-md font-medium text-[#7c3aed] hover:text-[#6d28d9] hover:underline focus-within:outline-none">
-                                                <span>Fazer upload de várias imagens</span>
-                                                <input
-                                                    type="file"
-                                                    multiple
-                                                    accept="image/*"
-                                                    className="sr-only"
-                                                    onChange={e => {
-                                                        if (e.target.files) {
-                                                            setNewImageFiles(prev => [...prev, ...Array.from(e.target.files!)]);
-                                                        }
-                                                    }}
-                                                />
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                                {newImageFiles.length > 0 && (
-                                    <p className="text-xs text-[#7c3aed] mt-2 font-semibold">
-                                        + {newImageFiles.length} imagem(ns) na fila para upload...
-                                    </p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Categorias / Tags</label>
-                                {categories.length === 0 ? (
-                                    <p className="text-xs text-gray-500">Nenhuma categoria cadastrada. Crie categorias primeiro no menu lateral.</p>
-                                ) : (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3 bg-gray-50">
-                                        {categories.map(c => (
-                                            <label key={c.id} className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedCategories.includes(c.id)}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setSelectedCategories([...selectedCategories, c.id]);
-                                                        } else {
-                                                            setSelectedCategories(selectedCategories.filter(id => id !== c.id));
-                                                        }
-                                                    }}
-                                                    className="rounded border-gray-300 text-[#7c3aed] focus:ring-[#7c3aed]"
-                                                />
-                                                <span className="truncate">{c.name}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <hr className="border-gray-100" />
-
-                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700">Travar Template (Em Desenvolvimento)</label>
-                                        <p className="text-xs text-gray-500">Ao travar, os botões de preview e criação de site ficarão desabilitados para o usuário.</p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsLocked(!isLocked)}
-                                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isLocked ? 'bg-[#7c3aed]' : 'bg-gray-200'}`}
-                                    >
-                                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isLocked ? 'translate-x-5' : 'translate-x-0'}`} />
-                                    </button>
-                                </div>
-
-                                {isLocked && (
-                                    <div className="mt-4 pt-4 border-t border-gray-200 animate-fade-in">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Data e Hora de Liberação</label>
-                                        <input
-                                            type="datetime-local"
-                                            value={releaseDate}
-                                            onChange={e => setReleaseDate(e.target.value)}
-                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#7c3aed] focus:border-[#7c3aed] sm:text-sm"
-                                        />
-                                        <p className="mt-1 text-[10px] text-gray-400">Opcional. Apenas informativo para o usuário na vitrine.</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex gap-3 justify-end mt-8 border-t border-gray-100 pt-6">
-                                <button type="button" onClick={closeModal} className="px-6 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancelar</button>
-                                <button type="submit" disabled={loading} className="px-6 py-2.5 text-sm bg-[#7c3aed] text-white rounded-lg font-bold shadow-md hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 disabled:transform-none transition">
-                                    {loading ? 'Salvando...' : 'Salvar Template'}
-                                </button>
-                            </div>
-                        </form>
-                    </div >
-                </div >
-            )
-            }
-        </div >
+                {/* Travamento */}
+                <div className="bg-cream-elevated border border-borda-cafe rounded-[10px] p-4 space-y-3">
+                    <label className="flex items-start justify-between gap-3 cursor-pointer">
+                        <div>
+                            <p className="text-sm font-semibold text-carvao-quente">Travar (em desenvolvimento)</p>
+                            <p className="text-xs text-cafe-medio mt-0.5">Template fica visível na vitrine mas botão "Publicar" desativa.</p>
+                        </div>
+                        <input
+                            type="checkbox"
+                            checked={isLocked}
+                            onChange={e => setIsLocked(e.target.checked)}
+                            className="w-5 h-5 accent-coral-terra mt-1 shrink-0"
+                        />
+                    </label>
+                    {isLocked && (
+                        <Field label="Data de liberação" htmlFor="release-date" optional helper="Aparece como aviso na vitrine.">
+                            <Input
+                                id="release-date"
+                                type="datetime-local"
+                                value={releaseDate}
+                                onChange={e => setReleaseDate(e.target.value)}
+                            />
+                        </Field>
+                    )}
+                </div>
+            </FormModal>
+        </div>
     );
 }

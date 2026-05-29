@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import TemplateCommunityPage from '../components/community/TemplateCommunityPage';
+---
+
+<DashboardLayout title="Comunidade">
+    <TemplateCommunityPage client:load />
+</DashboardLayout>

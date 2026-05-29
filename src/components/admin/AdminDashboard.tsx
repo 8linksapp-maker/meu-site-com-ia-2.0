@@ -1,26 +1,47 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import {
+    Globe, Users, FileStack, Tags, Trophy, RefreshCw,
+    UserPlus, Rocket, Sparkles, Loader2
+} from 'lucide-react';
+import { PageHeader } from '../ui/admin';
+import { Card } from '../ui';
+
+interface TemplateRow {
+    id: string;
+    name: string;
+    repo?: string;
+    image_url?: string | null;
+    clones?: number;
+}
+
+interface ActivityItem {
+    type: 'user' | 'deploy';
+    title: string;
+    desc: string;
+    date: Date;
+}
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState({
         totalTemplates: 0,
         totalUsers: 0,
         totalDeploys: 0,
-        totalCategories: 0
+        totalCategories: 0,
     });
-
-    const [activities, setActivities] = useState<any[]>([]);
-    const [topTemplates, setTopTemplates] = useState<any[]>([]);
+    const [activities, setActivities] = useState<ActivityItem[]>([]);
+    const [topTemplates, setTopTemplates] = useState<TemplateRow[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         loadDashboardData();
     }, []);
 
-    const loadDashboardData = async () => {
-        setLoading(true);
+    const loadDashboardData = async (isRefresh = false) => {
+        if (isRefresh) setRefreshing(true);
+        else setLoading(true);
         try {
-            // 1. Fetch Stats in parallel
             const [
                 { count: templatesCount },
                 { count: usersCount },
@@ -48,177 +69,219 @@ export default function AdminDashboard() {
                 totalCategories: catCount || 0,
             });
 
-            // Real ranking for Top Templates mathematically calculating occurrences
             if (allTemplates && allDeploys) {
-                const countMap = new Map();
-                allDeploys.forEach((d: any) => {
+                const countMap = new Map<string, number>();
+                allDeploys.forEach((d: { template_id?: string }) => {
                     if (d.template_id) {
                         countMap.set(d.template_id, (countMap.get(d.template_id) || 0) + 1);
                     }
                 });
 
-                const realRanking = [...allTemplates].map(t => ({
+                const realRanking = [...(allTemplates as TemplateRow[])].map(t => ({
                     ...t,
                     clones: countMap.get(t.id) || 0
-                })).sort((a, b) => b.clones - a.clones);
+                })).sort((a, b) => (b.clones ?? 0) - (a.clones ?? 0));
 
-                // Filtrar caso os clones sejam 0, a menos que haja poucos templates
-                const top5 = realRanking.slice(0, 5);
-                setTopTemplates(top5);
+                setTopTemplates(realRanking.slice(0, 5));
             }
 
-            // Merge activities
-            const acts: any[] = [];
+            const acts: ActivityItem[] = [];
             if (recentUsers) {
-                recentUsers.forEach(u => acts.push({
+                (recentUsers as Array<{ full_name: string | null; email: string | null; created_at: string }>).forEach(u => acts.push({
                     type: 'user',
-                    title: 'Novo usuário',
+                    title: 'Novo aluno',
                     desc: `${u.full_name || u.email || 'Alguém'} acabou de se cadastrar na plataforma.`,
                     date: new Date(u.created_at)
                 }));
             }
             if (recentSites) {
-                recentSites.forEach(s => acts.push({
+                (recentSites as Array<{ github_repo: string; created_at: string }>).forEach(s => acts.push({
                     type: 'deploy',
-                    title: 'Novo deploy gerado',
-                    desc: `Um site foi criado com o nome "${s.github_repo}".`,
+                    title: 'Novo site publicado',
+                    desc: `Site "${s.github_repo}" foi publicado agora.`,
                     date: new Date(s.created_at)
                 }));
             }
 
             acts.sort((a, b) => b.date.getTime() - a.date.getTime());
-            setActivities(acts.slice(0, 7));
-
+            setActivities(acts.slice(0, 8));
         } catch (e) {
-            console.error(e);
+            console.error('Erro carregando admin dashboard:', e);
         }
         setLoading(false);
+        setRefreshing(false);
     };
 
-    if (loading) return <div className="text-gray-500 p-8 flex justify-center text-sm animate-pulse">Carregando métricas da plataforma...</div>;
-
     const timeAgo = (date: Date) => {
-        const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-        if (seconds < 60) return `${seconds}s atrás`;
+        const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+        if (seconds < 60) return `${seconds}s`;
         const minutes = Math.floor(seconds / 60);
-        if (minutes < 60) return `${minutes}m atrás`;
+        if (minutes < 60) return `${minutes}min`;
         const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours}h atrás`;
-        return `${Math.floor(hours / 24)}d atrás`;
+        if (hours < 24) return `${hours}h`;
+        return `${Math.floor(hours / 24)}d`;
+    };
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-96 gap-3">
+                <Loader2 className="w-7 h-7 animate-spin text-coral-terra" />
+                <p className="text-cafe-medio text-sm">Carregando métricas…</p>
+            </div>
+        );
     }
 
+    const STAT_ITEMS = [
+        { icon: Rocket,     label: 'Sites publicados', value: stats.totalDeploys },
+        { icon: Users,      label: 'Alunos ativos',     value: stats.totalUsers },
+        { icon: FileStack,  label: 'Templates',         value: stats.totalTemplates },
+        { icon: Tags,       label: 'Categorias',        value: stats.totalCategories },
+    ];
+
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Visão Geral</h2>
-                    <p className="text-sm text-gray-500 mt-1">Métricas em tempo real do seu marketplace.</p>
-                </div>
-                <button onClick={loadDashboardData} className="p-2.5 bg-[#7c3aed]/5 text-[#7c3aed] hover:bg-[#7c3aed]/10 rounded-full transition" title="Atualizar Dados">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
-                </button>
+        <div className="space-y-6 pb-8">
+            <PageHeader
+                title="Visão geral"
+                tagline="Métricas em tempo real da plataforma."
+                action={
+                    <button
+                        type="button"
+                        onClick={() => loadDashboardData(true)}
+                        disabled={refreshing}
+                        title="Atualizar dados"
+                        aria-label="Atualizar dados"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-cream-elevated hover:bg-coral-wash text-cafe-medio hover:text-terracota-profundo border border-borda-cafe rounded-[10px] font-semibold text-sm transition-colors active:scale-[0.98] min-h-[40px] disabled:opacity-60"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                        Atualizar
+                    </button>
+                }
+            />
+
+            {/* Stats em linha editorial (igual padrão dashboard novo) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-borda-cafe border-y border-borda-cafe py-6">
+                {STAT_ITEMS.map((stat, i) => (
+                    <div key={i} className="flex flex-col items-start px-4 md:px-6">
+                        <div className="flex items-center gap-2 mb-2 text-cafe-cinza-quente">
+                            <stat.icon className="w-3.5 h-3.5" />
+                            <span className="text-xs font-semibold uppercase tracking-wide">{stat.label}</span>
+                        </div>
+                        <p className="font-display text-3xl md:text-4xl font-normal text-carvao-quente tabular-nums tracking-tight leading-none">
+                            {stat.value}
+                        </p>
+                    </div>
+                ))}
             </div>
 
-            {/* CARDS DE ESTATÍSTICA */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col relative overflow-hidden group">
-                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#7c3aed]/5 rounded-full transition-transform group-hover:scale-110"></div>
-                    <span className="text-sm font-semibold text-gray-500 mb-1 z-10">Total de Deploys</span>
-                    <span className="text-4xl font-extrabold text-[#7c3aed] z-10">{stats.totalDeploys}</span>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col relative overflow-hidden group">
-                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full transition-transform group-hover:scale-110"></div>
-                    <span className="text-sm font-semibold text-gray-500 mb-1 z-10">Usuários Ativos</span>
-                    <span className="text-4xl font-extrabold text-blue-600 z-10">{stats.totalUsers}</span>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col relative overflow-hidden group">
-                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full transition-transform group-hover:scale-110"></div>
-                    <span className="text-sm font-semibold text-gray-500 mb-1 z-10">Templates na Vitrine</span>
-                    <span className="text-4xl font-extrabold text-emerald-600 z-10">{stats.totalTemplates}</span>
-                </div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col relative overflow-hidden group">
-                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/5 rounded-full transition-transform group-hover:scale-110"></div>
-                    <span className="text-sm font-semibold text-gray-500 mb-1 z-10">Categorias</span>
-                    <span className="text-4xl font-extrabold text-amber-600 z-10">{stats.totalCategories}</span>
-                </div>
-            </div>
-
-            {/* DUAS COLUNAS EM BAIXO */}
+            {/* Grid 2/3 + 1/3 */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* TOP TEMPLATES */}
-                <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-900">Templates Mais Populares</h3>
-                            <p className="text-xs text-gray-500 mt-1">Ranking de conversão no marketplace (Top 5)</p>
-                        </div>
-                        <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                        </div>
-                    </div>
-                    <div className="divide-y divide-gray-50">
-                        {topTemplates.length > 0 ? topTemplates.map((t, idx) => (
-                            <div key={t.id} className="p-5 hover:bg-gray-50/50 transition flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className={`flex-shrink-0 w-8 text-center font-black text-lg ${idx === 0 ? 'text-amber-400' : idx === 1 ? 'text-gray-400' : idx === 2 ? 'text-amber-600' : 'text-gray-200'}`}>
-                                        #{idx + 1}
-                                    </div>
-                                    {t.image_url ? (
-                                        <div className="w-16 h-12 bg-gray-100 rounded-lg overflow-hidden relative shadow-[0_2px_10px_-4px_rgba(0,0,0,0.2)] border border-gray-200">
-                                            <img src={t.image_url} alt="" className="w-full h-full object-cover" />
-                                        </div>
-                                    ) : (
-                                        <div className="w-16 h-12 bg-[#7c3aed]/5 rounded-lg flex justify-center items-center text-[#7c3aed]/50 font-bold text-[10px] border border-[#7c3aed]/10">IMG</div>
-                                    )}
-                                    <div>
-                                        <h4 className="font-bold text-sm text-gray-900">{t.name}</h4>
-                                        <p className="text-[11px] text-gray-500 font-mono mt-0.5 opacity-70">{t.repo}</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-md shadow-sm">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
-                                        {t.clones} deploys
-                                    </span>
-                                </div>
+                {/* Top Templates */}
+                <div className="lg:col-span-2">
+                    <Card padding="md" className="!p-0 overflow-hidden">
+                        <div className="px-5 py-4 border-b border-borda-cafe flex items-center justify-between">
+                            <div>
+                                <h2 className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                                    Templates mais publicados
+                                </h2>
+                                <p className="text-xs text-cafe-medio mt-0.5">
+                                    Ranking de uso (top 5)
+                                </p>
                             </div>
-                        )) : (
-                            <div className="p-8 text-center text-gray-500 text-sm">Nenhum template cadastrado ainda.</div>
-                        )}
-                    </div>
-                </div>
+                            <div className="w-9 h-9 rounded-full bg-coral-wash flex items-center justify-center">
+                                <Trophy className="w-4 h-4 text-coral-terra" />
+                            </div>
+                        </div>
 
-                {/* FEED DE ATIVIDADES */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full max-h-[500px]">
-                    <div className="p-6 border-b border-gray-100 bg-gray-50/30">
-                        <h3 className="text-lg font-bold text-gray-900">Feed de Atividades</h3>
-                        <p className="text-xs text-gray-500 mt-1">Ações recentes na plataforma</p>
-                    </div>
-                    <div className="p-5 flex-1 overflow-y-auto">
-                        {activities.length > 0 ? (
-                            <div className="relative border-l-2 border-gray-100 ml-3 space-y-6 pb-4">
-                                {activities.map((act, i) => (
-                                    <div key={i} className="relative pl-6">
-                                        {/* Dot */}
-                                        <span className={`absolute -left-[11px] top-1 w-5 h-5 rounded-full border-4 border-white ${act.type === 'user' ? 'bg-blue-400' : 'bg-[#7c3aed]'} shadow-sm`}></span>
-
-                                        <div className="w-full text-left">
-                                            <div className="flex justify-between items-start mb-0.5">
-                                                <h4 className="font-bold text-xs text-gray-800">{act.title}</h4>
-                                                <span className="text-[10px] font-semibold text-gray-400 whitespace-nowrap ml-2 bg-gray-50 px-1.5 py-0.5 rounded">{timeAgo(act.date)}</span>
+                        {topTemplates.length > 0 ? (
+                            <ol>
+                                {topTemplates.map((t, idx) => (
+                                    <li key={t.id} className={idx > 0 ? 'border-t border-borda-cafe' : ''}>
+                                        <div className="px-5 py-3.5 flex items-center justify-between gap-3 hover:bg-coral-wash/30 transition-colors">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className={`flex-shrink-0 w-7 text-center font-display text-base tabular-nums ${
+                                                    idx === 0 ? 'text-mostarda-amber font-semibold' :
+                                                    idx === 1 ? 'text-cafe-medio font-semibold' :
+                                                    idx === 2 ? 'text-coral-terra font-semibold' :
+                                                    'text-cafe-cinza-quente'
+                                                }`}>
+                                                    {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                                                </div>
+                                                {t.image_url ? (
+                                                    <div className="w-14 h-10 bg-cream-elevated rounded-[6px] overflow-hidden border border-borda-cafe shrink-0">
+                                                        <img src={t.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-14 h-10 bg-cream-elevated rounded-[6px] flex items-center justify-center text-cafe-cinza-quente shrink-0">
+                                                        <Sparkles className="w-4 h-4" />
+                                                    </div>
+                                                )}
+                                                <div className="min-w-0">
+                                                    <p className="font-semibold text-sm text-carvao-quente truncate">{t.name}</p>
+                                                    {t.repo && (
+                                                        <p className="font-mono text-xs text-cafe-cinza-quente truncate mt-0.5">{t.repo}</p>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <p className="text-[11px] text-gray-600 leading-relaxed pr-2">{act.desc}</p>
+                                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-cafe-medio bg-cream-elevated px-2.5 py-1 rounded-full tabular-nums shrink-0">
+                                                <Rocket className="w-3 h-3" />
+                                                {t.clones} {t.clones === 1 ? 'publicação' : 'publicações'}
+                                            </span>
                                         </div>
-                                    </div>
+                                    </li>
                                 ))}
-                            </div>
+                            </ol>
                         ) : (
-                            <div className="text-center text-gray-400 text-xs py-8 bg-gray-50 rounded-lg border border-dashed border-gray-200 mt-4">Silêncio por aqui... nenhuma atividade ainda.</div>
+                            <div className="p-8 text-center text-cafe-cinza-quente text-sm italic">
+                                Nenhum template publicado ainda.
+                            </div>
                         )}
-                    </div>
+                    </Card>
                 </div>
 
+                {/* Feed atividades */}
+                <Card padding="md" className="!p-0 overflow-hidden flex flex-col h-full max-h-[520px]">
+                    <div className="px-5 py-4 border-b border-borda-cafe flex items-center justify-between">
+                        <div>
+                            <h2 className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                                Atividades recentes
+                            </h2>
+                            <p className="text-xs text-cafe-medio mt-0.5">
+                                Últimas ações na plataforma
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                        {activities.length > 0 ? (
+                            <ul>
+                                {activities.map((act, i) => (
+                                    <li key={i} className={`px-5 py-3.5 ${i > 0 ? 'border-t border-borda-cafe' : ''}`}>
+                                        <div className="flex items-start gap-3">
+                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                                                act.type === 'user' ? 'bg-coral-wash text-coral-terra' : 'bg-[oklch(94%_0.020_145)] text-[oklch(40%_0.060_145)]'
+                                            }`}>
+                                                {act.type === 'user' ? <UserPlus className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="text-sm font-semibold text-carvao-quente truncate">{act.title}</p>
+                                                    <span className="text-xs text-cafe-cinza-quente tabular-nums shrink-0">
+                                                        {timeAgo(act.date)}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-cafe-medio leading-relaxed mt-0.5">{act.desc}</p>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div className="p-8 text-center text-cafe-cinza-quente text-sm italic">
+                                Silêncio por aqui. Nenhuma atividade recente.
+                            </div>
+                        )}
+                    </div>
+                </Card>
             </div>
         </div>
     );

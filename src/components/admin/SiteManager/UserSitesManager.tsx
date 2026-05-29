@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { ExternalLink, Settings, LayoutDashboard, Globe, ShieldAlert, ArrowRight, Loader2, Plus } from 'lucide-react';
+import { ExternalLink, Globe, ArrowRight, Plus, LayoutDashboard, Loader2 } from 'lucide-react';
 import SalesPage from './SalesPage';
-import SiteDetails from './SiteDetails';
+import { Section, EmptyState, Card } from '../../ui';
 
 interface UserSite {
     id: string;
@@ -10,18 +10,15 @@ interface UserSite {
     github_repo: string;
     created_at: string;
     template_id?: string;
-    vercel_project_id?: string; // ID do projeto na Vercel
+    vercel_project_id?: string;
 }
 
 export default function UserSitesManager() {
     const [sites, setSites] = useState<UserSite[]>([]);
     const [hasAccess, setHasAccess] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(true);
-    const [selectedSite, setSelectedSite] = useState<UserSite | null>(null);
 
-    useEffect(() => {
-        fetchUserData();
-    }, []);
+    useEffect(() => { fetchUserData(); }, []);
 
     const fetchUserData = async () => {
         setLoading(true);
@@ -29,26 +26,19 @@ export default function UserSitesManager() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // 1. Verificar todos os acessos/produtos do usuário no perfil (Modelo Multi-Acesso)
             const { data: profileRecords } = await supabase.from('profiles')
                 .select('*')
                 .eq('id', user.id);
 
-            // Verifica se existe algum registro que dê acesso ao Upsell de Sites
-            // Verifica se existe algum registro que dê acesso (qualquer assinatura ativa)
             const hasActiveSubscription = profileRecords?.some(p => {
                 const isPaid = p.subscription_status === 'active';
                 const notExpired = !p.subscription_period_end || new Date(p.subscription_period_end) > new Date();
-
                 return isPaid && notExpired;
             });
 
-            // Se for admin, tem acesso por padrão
             const isAdmin = profileRecords?.some(p => p.role === 'admin');
-
             setHasAccess(hasActiveSubscription || isAdmin || false);
 
-            // 2. Buscar sites do usuário via API segura (Para contornar RLS em sites antigos)
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             const res = await fetch('/api/admin/my-sites', {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -67,164 +57,158 @@ export default function UserSitesManager() {
         }
     };
 
-    if (loading) return (
-        <div className="flex flex-col items-center justify-center h-96 gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-[#7c3aed]" />
-            <p className="text-gray-500 font-medium">Carregando seus sites...</p>
-        </div>
-    );
-
-    // Se o usuário selecionou um site para gerenciar (Tela Pro Estilo Vercel)
-    if (selectedSite) {
-        return <SiteDetails site={selectedSite} onBack={() => setSelectedSite(null)} />;
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-96 gap-3">
+                <Loader2 className="w-7 h-7 animate-spin text-coral-terra" />
+                <p className="text-cafe-medio text-sm">Carregando sua carteira…</p>
+            </div>
+        );
     }
 
-    // Se o usuário NÃO tem o Upsell (Mostra Página de Vendas)
     if (hasAccess === false) {
         return <SalesPage />;
     }
 
+    const totalSites = sites.length;
+    const tagline = totalSites === 0
+        ? 'Sua carteira ainda está vazia. Hora de publicar o primeiro.'
+        : totalSites === 1
+            ? '1 site no ar. Próximo passo: editar conteúdo ou criar mais.'
+            : `${totalSites} sites no ar. Gerencie cada um e crie o próximo.`;
+
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 className="text-2xl font-black text-gray-900">Gerenciar Meus Sites</h2>
-                    <p className="text-sm text-gray-500 font-medium mt-1">Controle seus deploys, domínios e configurações avançadas.</p>
-                </div>
-                <a href="/sites" className="flex items-center gap-2 bg-[#7c3aed] text-white px-5 py-2.5 rounded-2xl font-bold hover:bg-[#6d28d9] transition shadow-lg shadow-purple-500/20 active:scale-95">
-                    <Plus className="w-5 h-5" />
-                    Criar Novo Site
-                </a>
-            </div>
-
-            {sites.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {sites.map((site) => (
-                        <div key={site.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-[#7c3aed]/20 transition-all group overflow-hidden flex flex-col h-full">
-                            {/* Preview/Header do Card */}
-                            <div className="h-40 bg-slate-50 relative border-b border-gray-50 overflow-hidden group/img">
-                                {(() => {
-                                    const siteDomain = site.domain || `${site.github_repo.split('/').pop()}.vercel.app`;
-                                    // Usando Microlink que é muito estável e suporta HTTPS sem problemas
-                                    const screenshotUrl = `https://api.microlink.io/?url=https://${siteDomain}&screenshot=true&meta=false&embed=screenshot.url`;
-
-                                    return (
-                                        <>
-                                            {/* Imagem Real do Site via Screenshot Service */}
-                                            <img
-                                                src={screenshotUrl}
-                                                alt={site.github_repo}
-                                                className="w-full h-full object-cover object-top transition-transform duration-700 group-hover/img:scale-110"
-                                                loading="lazy"
-                                                onLoad={(e) => {
-                                                    const parent = (e.currentTarget as HTMLImageElement).parentElement;
-                                                    if (parent) {
-                                                        const placeholder = parent.querySelector('.screenshot-placeholder');
-                                                        if (placeholder) placeholder.classList.add('hidden');
-                                                    }
-                                                }}
-                                                onError={(e) => {
-                                                    console.warn(`[PREVIEW] Falha no primeiro serviço para: ${siteDomain}. Tentando fallback...`);
-                                                    const img = e.currentTarget as HTMLImageElement;
-
-                                                    // Fallback para thum.io (Backup)
-                                                    img.src = `https://image.thum.io/get/width/400/crop/800/https://${siteDomain}`;
-
-                                                    img.onerror = () => {
-                                                        img.style.display = 'none';
-                                                        const parent = img.parentElement;
-                                                        if (parent) {
-                                                            const placeholder = parent.querySelector('.screenshot-placeholder');
-                                                            if (placeholder) {
-                                                                placeholder.classList.remove('hidden');
-                                                                // Remove animação de pulse pois falhou mesmo
-                                                                const pulseIcon = placeholder.querySelector('.animate-pulse');
-                                                                if (pulseIcon) pulseIcon.classList.remove('animate-pulse');
-                                                            }
-                                                        }
-                                                    };
-                                                }}
-                                            />
-
-                                            {/* Loader/Placeholder visível durante o carregamento */}
-                                            <div className="screenshot-placeholder absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 z-[1]">
-                                                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-300 animate-pulse">
-                                                    <Globe className="w-6 h-6" />
-                                                </div>
-                                                <span className="text-[10px] text-gray-400 font-bold mt-2 tracking-widest uppercase">Capturando...</span>
-                                            </div>
-
-                                            {/* Overlay Gradiente */}
-                                            <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-black/20 to-transparent pointer-events-none z-[2]"></div>
-                                        </>
-                                    );
-                                })()}
-
-                                <div className="absolute top-4 right-4 z-[3]">
-                                    <span className="px-2.5 py-1 bg-emerald-500/90 text-white backdrop-blur-sm text-[10px] font-black rounded-full border border-emerald-400 shadow-lg">NO AR</span>
-                                </div>
-                            </div>
-
-                            <div className="p-6 flex-1 flex flex-col">
-                                <div className="flex items-center justify-between gap-2 mb-1">
-                                    <h3 className="text-lg font-bold text-gray-900 truncate" title={site.github_repo}>
-                                        {site.github_repo.split('/').pop()}
-                                    </h3>
-                                    <a
-                                        href={site.domain ? `https://${site.domain}` : `https://${site.github_repo}.vercel.app`}
-                                        target="_blank"
-                                        className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-[#7c3aed] hover:bg-purple-50 rounded-lg transition-colors shrink-0"
-                                        aria-label="Abrir site em nova aba"
-                                        title="Ver Site"
-                                    >
-                                        <ExternalLink className="w-4 h-4" />
-                                    </a>
-                                </div>
-                                <p className="text-xs text-gray-400 font-mono mb-6 truncate">
-                                    {site.domain || `${site.github_repo.split('/').pop()}.vercel.app`}
-                                </p>
-
-                                <div className="grid grid-cols-2 gap-2 mt-auto">
-                                    {/* Botão Admin (CMS) */}
-                                    <a
-                                        href={site.domain ? `https://${site.domain}/admin` : `https://${site.github_repo.split('/').pop()}.vercel.app/admin`}
-                                        target="_blank"
-                                        title="Abre seu painel de posts em nova aba"
-                                        className="flex items-center justify-center gap-1.5 py-3 min-h-[44px] bg-blue-50/50 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-100 transition"
-                                    >
-                                        <LayoutDashboard className="w-3.5 h-3.5" />
-                                        Painel CMS
-                                        <ExternalLink className="w-3 h-3" />
-                                    </a>
-
-                                    {/* Botão Gerenciar Pro (Vercel) */}
-                                    <button
-                                        onClick={() => setSelectedSite(site)}
-                                        className="flex items-center justify-center gap-1.5 py-3 min-h-[44px] bg-purple-50/30 text-[#7c3aed] rounded-xl text-sm font-bold hover:bg-purple-100 transition border border-purple-100/50"
-                                    >
-                                        <Settings className="w-3.5 h-3.5" />
-                                        Gerenciar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl p-12 text-center flex flex-col items-center justify-center gap-4">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-gray-300 shadow-sm">
-                        <Globe className="w-8 h-8" />
-                    </div>
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-800">Nenhum site encontrado</h3>
-                        <p className="text-gray-500 text-sm max-w-sm mt-1">Você ainda não criou nenhum site a partir da nossa aplicação. Seus sites ativos aparecerão aqui.</p>
-                    </div>
-                    <a href="/sites" className="mt-4 flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-[#7c3aed] transition shadow-xl active:scale-95">
-                        Começar Agora
-                        <ArrowRight className="w-5 h-5" />
+        <div className="space-y-6 pb-8">
+            <Section
+                title="Sua carteira"
+                tagline={tagline}
+                action={
+                    <a
+                        href="/sites"
+                        className="inline-flex items-center justify-center gap-2 bg-coral-terra hover:bg-terracota-profundo text-papel-craft px-5 py-2.5 rounded-[12px] font-semibold text-sm transition-colors active:scale-[0.98] whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra min-h-[44px]"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Criar novo site
                     </a>
-                </div>
-            )}
+                }
+            >
+                {sites.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {sites.map((site) => {
+                            const name = site.github_repo?.split('/').pop() || site.github_repo;
+                            const domain = site.domain || `${name}.vercel.app`;
+                            const screenshotUrl = `https://api.microlink.io/?url=https://${domain}&screenshot=true&meta=false&embed=screenshot.url`;
+                            const createdAt = new Date(site.created_at);
+                            const daysAgo = Math.max(1, Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)));
+
+                            return (
+                                <Card key={site.id} padding="sm" interactive className="!p-0 overflow-hidden flex flex-col">
+                                    {/* Screenshot */}
+                                    <a
+                                        href={`/meus-sites/${site.id}`}
+                                        className="block h-36 bg-cream-elevated relative overflow-hidden border-b border-borda-cafe focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-coral-terra"
+                                        aria-label={`Gerenciar ${name}`}
+                                    >
+                                        <img
+                                            src={screenshotUrl}
+                                            alt={`Captura de tela de ${name}`}
+                                            loading="lazy"
+                                            className="w-full h-full object-cover object-top"
+                                            onError={(e) => {
+                                                const img = e.currentTarget as HTMLImageElement;
+                                                img.src = `https://image.thum.io/get/width/400/crop/800/https://${domain}`;
+                                                img.onerror = () => { img.style.display = 'none'; };
+                                            }}
+                                        />
+                                        <span className="absolute top-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-verde-oliva text-papel-craft text-xs font-semibold rounded-full uppercase tracking-wide">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-papel-craft" />
+                                            Online
+                                        </span>
+                                    </a>
+
+                                    {/* Conteúdo */}
+                                    <div className="p-4 flex-1 flex flex-col">
+                                        <a
+                                            href={`/meus-sites/${site.id}`}
+                                            className="font-display text-lg font-normal text-carvao-quente tracking-tight truncate hover:text-coral-terra transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra rounded-sm"
+                                            title={name}
+                                        >
+                                            {name}
+                                        </a>
+                                        <p className="font-mono text-xs text-cafe-cinza-quente truncate mt-0.5">
+                                            {domain}
+                                        </p>
+                                        <p className="text-xs text-cafe-cinza-quente mt-2 tabular-nums">
+                                            No ar há {daysAgo} {daysAgo === 1 ? 'dia' : 'dias'}
+                                        </p>
+
+                                        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-borda-cafe">
+                                            <a
+                                                href={`https://${domain}/admin`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex-1 inline-flex items-center justify-center gap-1.5 bg-coral-terra hover:bg-terracota-profundo text-papel-craft px-3 py-2 rounded-[10px] font-semibold text-xs transition-colors active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra min-h-[40px]"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <LayoutDashboard className="w-3.5 h-3.5" />
+                                                Editar
+                                            </a>
+                                            <a
+                                                href={`/meus-sites/${site.id}`}
+                                                className="flex-1 inline-flex items-center justify-center gap-1.5 bg-cream-elevated hover:bg-coral-wash text-carvao-quente hover:text-terracota-profundo border border-borda-cafe px-3 py-2 rounded-[10px] font-semibold text-xs transition-colors active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra min-h-[40px]"
+                                            >
+                                                Configurar
+                                            </a>
+                                            <a
+                                                href={`https://${domain}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center justify-center w-10 h-10 text-cafe-cinza-quente hover:text-coral-terra hover:bg-coral-wash rounded-[10px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra"
+                                                onClick={(e) => e.stopPropagation()}
+                                                title="Abrir site em nova aba"
+                                                aria-label="Abrir site em nova aba"
+                                            >
+                                                <ExternalLink className="w-4 h-4" />
+                                            </a>
+                                        </div>
+                                    </div>
+                                </Card>
+                            );
+                        })}
+
+                        {/* + Criar novo */}
+                        <a
+                            href="/sites"
+                            className="bg-transparent rounded-[12px] border border-dashed border-borda-cafe hover:border-coral-terra hover:bg-cream-elevated transition-colors flex flex-col items-center justify-center gap-3 p-6 group min-h-[300px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra"
+                        >
+                            <div className="w-12 h-12 rounded-full border border-borda-cafe group-hover:border-coral-terra group-hover:bg-coral-wash flex items-center justify-center transition-colors">
+                                <Plus className="w-5 h-5 text-cafe-cinza-quente group-hover:text-coral-terra transition-colors" />
+                            </div>
+                            <div className="text-center">
+                                <p className="text-sm font-semibold text-cafe-medio group-hover:text-coral-terra transition-colors">
+                                    Criar novo site
+                                </p>
+                                <p className="text-xs text-cafe-cinza-quente mt-1">Pronto em 2 minutos</p>
+                            </div>
+                        </a>
+                    </div>
+                ) : (
+                    <EmptyState
+                        icon={Globe}
+                        title="Hora de publicar seu primeiro site"
+                        description="Sua carteira de sites começa com o primeiro. Escolha um template, dá um nome e publica em menos de 2 minutos."
+                        action={
+                            <a
+                                href="/sites"
+                                className="inline-flex items-center justify-center gap-2 bg-coral-terra hover:bg-terracota-profundo text-papel-craft px-6 py-3 rounded-[12px] font-semibold text-base transition-colors active:scale-[0.98] min-h-[44px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra"
+                            >
+                                Escolher um template
+                                <ArrowRight className="w-4 h-4" />
+                            </a>
+                        }
+                    />
+                )}
+            </Section>
         </div>
     );
 }

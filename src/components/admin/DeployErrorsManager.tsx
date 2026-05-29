@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import Pagination from '../ui/admin/Pagination';
 
 const supabase = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -26,17 +27,20 @@ interface DeployError {
 }
 
 const STAGE_LABELS: Record<string, { label: string; color: string }> = {
-    github_repo: { label: 'GitHub Repo', color: 'bg-gray-100 text-gray-700' },
-    vercel_project: { label: 'Vercel Project', color: 'bg-purple-100 text-purple-700' },
-    env_vars: { label: 'Env Vars', color: 'bg-yellow-100 text-yellow-700' },
-    deploy_trigger: { label: 'Deploy Trigger', color: 'bg-orange-100 text-orange-700' },
-    build_failed: { label: 'Build Failed', color: 'bg-red-100 text-red-700' },
+    github_repo:    { label: 'GitHub Repo',    color: 'bg-cream-elevated text-cafe-medio' },
+    vercel_project: { label: 'Vercel Project', color: 'bg-coral-wash text-coral-terra' },
+    env_vars:       { label: 'Env Vars',       color: 'bg-[oklch(94%_0.035_80)] text-[oklch(40%_0.110_80)]' },
+    deploy_trigger: { label: 'Deploy Trigger', color: 'bg-[oklch(94%_0.045_50)] text-[oklch(45%_0.120_50)]' },
+    build_failed:   { label: 'Build Failed',   color: 'bg-[oklch(94%_0.025_28)] text-vermelho-tijolo' },
 };
 
 export default function DeployErrorsManager() {
     const [errors, setErrors] = useState<DeployError[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const ERRORS_PAGE_SIZE = 20;
+    useEffect(() => { setPage(1); }, [search]);
     const [expanded, setExpanded] = useState<string | null>(null);
     const [total, setTotal] = useState(0);
     const [error, setError] = useState('');
@@ -96,122 +100,140 @@ export default function DeployErrorsManager() {
         );
     });
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Carregando erros...</div>;
+    if (loading) return <div className="p-8 text-center text-cafe-cinza-quente">Carregando erros…</div>;
 
     return (
-        <div>
+        <div className="pb-8">
             {/* Header */}
-            <div className="mb-4 flex flex-wrap gap-3 items-center">
-                <input
-                    type="text"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder="Buscar por código, email, repo ou erro..."
-                    className="flex-1 min-w-[250px] px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-violet-500"
-                />
+            <div className="mb-6 flex flex-wrap gap-3 items-center border-b border-borda-cafe pb-4">
+                <h1 className="font-display text-2xl md:text-[1.625rem] font-normal text-carvao-quente tracking-tight leading-tight mr-auto">
+                    Logs de erros
+                </h1>
+                <span className="text-sm text-cafe-cinza-quente tabular-nums">
+                    {total} {total === 1 ? 'erro' : 'erros'} {total > 50 && '(mostrando 50 mais recentes)'}
+                </span>
                 <button
+                    type="button"
                     onClick={load}
-                    className="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-cafe-medio hover:text-coral-terra hover:bg-coral-wash rounded-[8px] transition-colors min-h-[36px]"
                 >
                     Recarregar
                 </button>
-                <span className="text-sm text-gray-500">
-                    {total} erro{total !== 1 ? 's' : ''} {total > 50 && '(mostrando 50 mais recentes)'}
-                </span>
+            </div>
+
+            <div className="mb-4">
+                <input
+                    type="search"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Buscar por código, email, repo ou erro…"
+                    className="w-full max-w-md px-4 py-2.5 bg-cream-elevated text-carvao-quente text-sm font-normal rounded-[10px] border border-borda-cafe focus:border-coral-terra focus:outline-none transition-colors placeholder:text-cafe-cinza-quente min-h-[40px]"
+                />
             </div>
 
             {error && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                <div className="mb-4 p-4 bg-[oklch(94%_0.025_28)] border border-[oklch(80%_0.080_28)] rounded-[10px] text-sm text-vermelho-tijolo">
                     {error}
                 </div>
             )}
 
             {/* Lista */}
             {filtered.length === 0 ? (
-                <div className="bg-white rounded-lg border border-gray-200 p-12 text-center text-gray-500">
-                    Nenhum erro encontrado. 🎉
+                <div className="bg-cream-surface rounded-[12px] border border-borda-cafe p-12 text-center">
+                    <p className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                        Nenhum erro encontrado.
+                    </p>
+                    <p className="text-sm text-cafe-cinza-quente mt-1">Tudo rodando limpo por aqui.</p>
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {filtered.map(err => {
-                        const stage = STAGE_LABELS[err.stage] || { label: err.stage, color: 'bg-gray-100 text-gray-700' };
+                    {filtered.slice((page - 1) * ERRORS_PAGE_SIZE, page * ERRORS_PAGE_SIZE).map(err => {
+                        const stage = STAGE_LABELS[err.stage] || { label: err.stage, color: 'bg-cream-elevated text-cafe-medio' };
                         const isExpanded = expanded === err.refCode;
                         return (
-                            <div key={err.refCode} className="bg-white rounded-lg border border-red-200 shadow-sm overflow-hidden">
+                            <div key={err.refCode} className="bg-cream-surface rounded-[12px] border border-borda-cafe overflow-hidden">
                                 <div
-                                    className="p-4 flex items-start gap-4 cursor-pointer hover:bg-gray-50"
+                                    className="p-4 flex items-start gap-4 cursor-pointer hover:bg-cream-elevated transition-colors"
                                     onClick={() => setExpanded(isExpanded ? null : err.refCode)}
                                 >
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <code className="text-xs font-mono bg-slate-900 text-emerald-300 px-2 py-0.5 rounded">{err.refCode}</code>
+                                            <code className="text-xs font-mono bg-carvao-quente text-papel-craft px-2 py-0.5 rounded">{err.refCode}</code>
                                             <span className={`text-xs font-semibold px-2 py-0.5 rounded ${stage.color}`}>{stage.label}</span>
-                                            <span className="text-xs text-gray-500">
+                                            <span className="text-xs text-cafe-cinza-quente tabular-nums">
                                                 {new Date(err.timestamp).toLocaleString('pt-BR')}
                                             </span>
                                         </div>
-                                        <p className="text-sm font-medium text-gray-800 mt-1 line-clamp-2">{err.errorMessage}</p>
-                                        <p className="text-xs text-gray-500 mt-0.5">
+                                        <p className="text-sm font-semibold text-carvao-quente mt-1 line-clamp-2">{err.errorMessage}</p>
+                                        <p className="text-xs text-cafe-cinza-quente mt-0.5">
                                             {err.userEmail || 'sem email'}
                                             {err.repoName && <> · <span className="font-mono">{err.repoName}</span></>}
                                             {err.templateName && <> · {err.templateName}</>}
                                         </p>
                                     </div>
-                                    <button className="text-gray-400 hover:text-gray-600 shrink-0 text-lg">
+                                    <button type="button" className="text-cafe-cinza-quente hover:text-coral-terra shrink-0 text-lg" aria-label={isExpanded ? 'Colapsar' : 'Expandir'}>
                                         {isExpanded ? '▼' : '▶'}
                                     </button>
                                 </div>
 
                                 {isExpanded && (
-                                    <div className="border-t border-gray-100 p-4 bg-gray-50 space-y-4">
+                                    <div className="border-t border-borda-cafe p-4 bg-cream-elevated/50 space-y-4">
                                         <div className="grid grid-cols-2 gap-4 text-xs">
-                                            {err.httpStatus && <div><span className="font-semibold text-gray-600">HTTP:</span> <span className="font-mono">{err.httpStatus}</span></div>}
-                                            {err.errorCode && <div><span className="font-semibold text-gray-600">Code:</span> <span className="font-mono">{err.errorCode}</span></div>}
+                                            {err.httpStatus && <div><span className="font-semibold text-cafe-medio">HTTP:</span> <span className="font-mono text-carvao-quente">{err.httpStatus}</span></div>}
+                                            {err.errorCode && <div><span className="font-semibold text-cafe-medio">Code:</span> <span className="font-mono text-carvao-quente">{err.errorCode}</span></div>}
                                         </div>
 
                                         <div>
-                                            <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Mensagem de Erro</p>
-                                            <pre className="text-xs bg-white border border-gray-200 rounded p-3 overflow-x-auto whitespace-pre-wrap text-red-700">{err.errorMessage}</pre>
+                                            <p className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-[0.12em] mb-1">Mensagem de erro</p>
+                                            <pre className="text-xs bg-cream-surface border border-borda-cafe rounded-[8px] p-3 overflow-x-auto whitespace-pre-wrap text-vermelho-tijolo">{err.errorMessage}</pre>
                                         </div>
 
                                         {err.buildLog && (
                                             <div>
-                                                <p className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Build Log</p>
-                                                <pre className="text-xs bg-slate-900 text-slate-100 rounded p-3 overflow-x-auto whitespace-pre-wrap max-h-64">{err.buildLog}</pre>
+                                                <p className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-[0.12em] mb-1">Build log</p>
+                                                <pre className="text-xs bg-carvao-quente text-papel-craft rounded-[8px] p-3 overflow-x-auto whitespace-pre-wrap max-h-64">{err.buildLog}</pre>
                                             </div>
                                         )}
 
                                         {err.rawResponse && (
                                             <details>
-                                                <summary className="text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer">Raw Response</summary>
-                                                <pre className="text-xs bg-white border border-gray-200 rounded p-3 overflow-x-auto whitespace-pre-wrap mt-2">{JSON.stringify(err.rawResponse, null, 2)}</pre>
+                                                <summary className="text-xs font-bold text-cafe-cinza-quente uppercase tracking-[0.12em] cursor-pointer hover:text-coral-terra">Raw response</summary>
+                                                <pre className="text-xs bg-cream-surface border border-borda-cafe rounded-[8px] p-3 overflow-x-auto whitespace-pre-wrap mt-2 text-carvao-quente">{JSON.stringify(err.rawResponse, null, 2)}</pre>
                                             </details>
                                         )}
 
                                         <div className="flex gap-3 flex-wrap">
                                             {err.inspectorUrl && (
-                                                <a href={err.inspectorUrl} target="_blank" rel="noopener" className="text-xs font-semibold text-violet-600 hover:text-violet-800">
-                                                    → Ver log no Vercel
+                                                <a href={err.inspectorUrl} target="_blank" rel="noopener" className="text-xs font-semibold text-coral-terra hover:text-terracota-profundo underline">
+                                                    Ver log no Vercel →
                                                 </a>
                                             )}
                                             {err.githubRepoUrl && (
-                                                <a href={err.githubRepoUrl} target="_blank" rel="noopener" className="text-xs font-semibold text-violet-600 hover:text-violet-800">
-                                                    → Repositório GitHub
+                                                <a href={err.githubRepoUrl} target="_blank" rel="noopener" className="text-xs font-semibold text-coral-terra hover:text-terracota-profundo underline">
+                                                    Repositório GitHub →
                                                 </a>
                                             )}
                                         </div>
 
                                         <button
+                                            type="button"
                                             onClick={() => markResolved(err.refCode)}
-                                            className="px-4 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700"
+                                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-verde-oliva text-papel-craft rounded-[10px] hover:bg-[oklch(35%_0.075_145)] transition-colors min-h-[40px]"
                                         >
-                                            Marcar como Resolvido
+                                            Marcar como resolvido
                                         </button>
                                     </div>
                                 )}
                             </div>
                         );
                     })}
+                    <Pagination
+                        page={page}
+                        pageSize={ERRORS_PAGE_SIZE}
+                        total={filtered.length}
+                        onPageChange={setPage}
+                        label="erros"
+                    />
                 </div>
             )}
         </div>

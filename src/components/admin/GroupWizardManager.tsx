@@ -230,16 +230,16 @@ export default function GroupWizardManager() {
         document.body.removeChild(link);
     };
 
-    if (loading) return <div className="text-center p-12 text-gray-500 animate-pulse">Carregando gerenciador do grupo...</div>;
+    if (loading) return <div className="text-center p-12 text-cafe-cinza-quente animate-pulse">Carregando gerenciador do grupo...</div>;
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
 
             {/* Tabs Trigger */}
-            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-2xl w-fit mx-auto shadow-inner">
+            <div className="flex items-center gap-1 bg-cream-elevated p-1 rounded-[12px] w-fit mx-auto shadow-inner">
                 <button
                     onClick={() => setActiveTab('config')}
-                    className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-white text-[#7c3aed] shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`px-6 py-2.5 rounded-[10px] font-semibold text-[11px] uppercase tracking-widest transition-all ${activeTab === 'config' ? 'bg-cream-surface text-coral-terra shadow-md' : 'text-cafe-cinza-quente hover:text-cafe-medio'}`}
                 >
                     <div className="flex items-center gap-2">
                         <Settings className="w-3.5 h-3.5" />
@@ -248,7 +248,7 @@ export default function GroupWizardManager() {
                 </button>
                 <button
                     onClick={() => setActiveTab('results')}
-                    className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all ${activeTab === 'results' ? 'bg-white text-[#7c3aed] shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`px-6 py-2.5 rounded-[10px] font-semibold text-[11px] uppercase tracking-widest transition-all ${activeTab === 'results' ? 'bg-cream-surface text-coral-terra shadow-md' : 'text-cafe-cinza-quente hover:text-cafe-medio'}`}
                 >
                     <div className="flex items-center gap-2">
                         <UsersIcon className="w-3.5 h-3.5" />
@@ -260,54 +260,54 @@ export default function GroupWizardManager() {
             {activeTab === 'config' ? (
                 <>
                     {/* Header com Link do whats */}
-                    <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-8 overflow-hidden relative">
+                    <div className="bg-cream-surface rounded-[24px] shadow-sm border border-borda-cafe p-8 overflow-hidden relative">
                         <div className="absolute top-0 right-0 p-8 opacity-5">
-                            <MessageSquare className="w-32 h-32 text-[#7c3aed]" />
+                            <MessageSquare className="w-32 h-32 text-coral-terra" />
                         </div>
 
                         <div className="flex items-center gap-4 mb-8">
-                            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center shadow-inner">
+                            <div className="w-12 h-12 bg-emerald-100 text-[oklch(40%_0.060_145)] rounded-[12px] flex items-center justify-center shadow-inner">
                                 <Smartphone className="w-6 h-6" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-gray-900 tracking-tight">Link do WhatsApp</h2>
-                                <p className="text-sm text-gray-500 font-medium">Configure o link oficial que o usuário verá no final do Wizard.</p>
+                                <h2 className="text-xl font-semibold text-carvao-quente tracking-tight">Link do WhatsApp</h2>
+                                <p className="text-sm text-cafe-cinza-quente font-medium">Configure o link oficial que o usuário verá no final do Wizard.</p>
                             </div>
                         </div>
 
                         <div className="space-y-6">
                             <div className="flex flex-col sm:flex-row gap-4 items-end">
                                 <div className="flex-1 w-full space-y-2">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">URL do Grupo (chat.whatsapp.com...)</label>
+                                    <label className="text-[10px] font-bold text-cafe-cinza-quente uppercase tracking-widest ml-1">URL do Grupo (chat.whatsapp.com...)</label>
                                     <input
                                         type="text"
                                         value={whatsappUrl}
                                         onChange={(e) => setWhatsappUrl(e.target.value)}
                                         placeholder="https://chat.whatsapp.com/Gpx..."
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7c3aed] focus:border-transparent transition text-sm font-medium"
+                                        className="w-full px-4 py-3 bg-cream-elevated border border-borda-cafe rounded-[10px] focus:ring-2 focus:ring-coral-terra focus:border-transparent transition text-sm font-medium"
                                     />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-50">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Título de Sucesso (Final)</label>
+                                    <label className="text-[10px] font-bold text-cafe-cinza-quente uppercase tracking-widest ml-1">Título de Sucesso (Final)</label>
                                     <input
                                         type="text"
                                         value={successTitle}
                                         onChange={(e) => setSuccessTitle(e.target.value)}
                                         placeholder="Tudo pronto! 🚀"
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7c3aed] focus:border-transparent transition text-sm font-bold"
+                                        className="w-full px-4 py-3 bg-cream-elevated border border-borda-cafe rounded-[10px] focus:ring-2 focus:ring-coral-terra focus:border-transparent transition text-sm font-bold"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Descrição de Sucesso (Final)</label>
+                                    <label className="text-[10px] font-bold text-cafe-cinza-quente uppercase tracking-widest ml-1">Descrição de Sucesso (Final)</label>
                                     <input
                                         type="text"
                                         value={successDesc}
                                         onChange={(e) => setSuccessDesc(e.target.value)}
                                         placeholder="Você foi qualificado com sucesso..."
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#7c3aed] focus:border-transparent transition text-sm font-medium"
+                                        className="w-full px-4 py-3 bg-cream-elevated border border-borda-cafe rounded-[10px] focus:ring-2 focus:ring-coral-terra focus:border-transparent transition text-sm font-medium"
                                     />
                                 </div>
                             </div>
@@ -318,12 +318,12 @@ export default function GroupWizardManager() {
                     <div className="space-y-4">
                         <div className="flex items-center justify-between px-2">
                             <div className="flex items-center gap-2">
-                                <ListFilter className="w-5 h-5 text-[#7c3aed]" />
-                                <h3 className="text-lg font-black text-gray-900 tracking-tight">Perguntas do Wizard</h3>
+                                <ListFilter className="w-5 h-5 text-coral-terra" />
+                                <h3 className="text-lg font-semibold text-carvao-quente tracking-tight">Perguntas do Wizard</h3>
                             </div>
                             <button
                                 onClick={addQuestion}
-                                className="bg-[#7c3aed] text-white px-4 py-2 rounded-xl font-black text-[10px] hover:bg-[#6d28d9] transition-all flex items-center gap-2 shadow-md shadow-purple-200"
+                                className="bg-coral-terra text-papel-craft px-4 py-2 rounded-[10px] font-semibold text-[10px] hover:bg-terracota-profundo transition-all flex items-center gap-2 shadow-md shadow-purple-200"
                             >
                                 <Plus className="w-3.5 h-3.5" />
                                 ADICIONAR PERGUNTA
@@ -332,20 +332,20 @@ export default function GroupWizardManager() {
 
                         <div className="space-y-4">
                             {questions.length === 0 ? (
-                                <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl p-12 text-center">
-                                    <Info className="w-10 h-10 text-gray-300 mx-auto mb-4" />
-                                    <p className="text-gray-500 font-bold text-sm">Nenhuma pergunta configurada.</p>
-                                    <p className="text-gray-400 text-xs mt-1">Clique no botão acima para começar a qualificar seus leads.</p>
+                                <div className="bg-cream-elevated border-2 border-dashed border-borda-cafe rounded-3xl p-12 text-center">
+                                    <Info className="w-10 h-10 text-borda-cafe mx-auto mb-4" />
+                                    <p className="text-cafe-cinza-quente font-bold text-sm">Nenhuma pergunta configurada.</p>
+                                    <p className="text-cafe-cinza-quente text-xs mt-1">Clique no botão acima para começar a qualificar seus leads.</p>
                                 </div>
                             ) : (
                                 questions.map((q, index) => (
-                                    <div key={q.id} className="bg-white border border-gray-100 rounded-[28px] p-6 shadow-sm hover:shadow-md transition-shadow group">
+                                    <div key={q.id} className="bg-cream-surface border border-borda-cafe rounded-[28px] p-6 shadow-sm hover:shadow-md transition-shadow group">
                                         <div className="flex gap-6">
                                             <div className="flex flex-col items-center gap-2 pt-1">
-                                                <div className="w-10 h-10 bg-gray-900 rounded-2xl text-white flex items-center justify-center font-black text-xs shadow-lg">
+                                                <div className="w-10 h-10 bg-gray-900 rounded-[12px] text-white flex items-center justify-center font-semibold text-xs shadow-lg">
                                                     #{index + 1}
                                                 </div>
-                                                <div className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors">
+                                                <div className="cursor-grab active:cursor-grabbing text-borda-cafe hover:text-cafe-cinza-quente transition-colors">
                                                     <GripVertical className="w-5 h-5" />
                                                 </div>
                                             </div>
@@ -353,26 +353,26 @@ export default function GroupWizardManager() {
                                             <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6">
                                                 <div className="md:col-span-8 space-y-4">
                                                     <div className="space-y-2">
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Texto da Pergunta</label>
+                                                        <label className="text-[10px] font-bold text-cafe-cinza-quente uppercase tracking-widest ml-1">Texto da Pergunta</label>
                                                         <input
                                                             type="text"
                                                             value={q.question_text}
                                                             onChange={(e) => updateQuestion(q.id, { question_text: e.target.value })}
                                                             placeholder="Qual seu principal objetivo?"
-                                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#7c3aed] transition text-sm font-bold"
+                                                            className="w-full px-4 py-3 bg-cream-elevated border border-borda-cafe rounded-[10px] focus:bg-cream-surface focus:ring-2 focus:ring-coral-terra transition text-sm font-bold"
                                                         />
                                                     </div>
 
                                                     {(q.question_type === 'single_choice' || q.question_type === 'multiple_choice') && (
                                                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex justify-between items-center">
+                                                            <label className="text-[10px] font-bold text-cafe-cinza-quente uppercase tracking-widest ml-1 flex justify-between items-center">
                                                                 Alternativas de Resposta
                                                                 <button
                                                                     onClick={() => {
                                                                         const newOptions = [...q.options, ''];
                                                                         updateQuestion(q.id, { options: newOptions });
                                                                     }}
-                                                                    className="text-[#7c3aed] hover:text-[#6d28d9] flex items-center gap-1 normal-case"
+                                                                    className="text-coral-terra hover:text-terracota-profundo flex items-center gap-1 normal-case"
                                                                 >
                                                                     <Plus className="w-3 h-3" />
                                                                     Adicionar Opção
@@ -391,14 +391,14 @@ export default function GroupWizardManager() {
                                                                                 updateQuestion(q.id, { options: newOptions });
                                                                             }}
                                                                             placeholder={`Opção ${optIdx + 1}`}
-                                                                            className="flex-1 px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg focus:bg-white focus:ring-2 focus:ring-[#7c3aed] transition text-sm font-medium"
+                                                                            className="flex-1 px-4 py-2 bg-cream-elevated border border-borda-cafe rounded-[8px] focus:bg-cream-surface focus:ring-2 focus:ring-coral-terra transition text-sm font-medium"
                                                                         />
                                                                         <button
                                                                             onClick={() => {
                                                                                 const newOptions = q.options.filter((_, i) => i !== optIdx);
                                                                                 updateQuestion(q.id, { options: newOptions });
                                                                             }}
-                                                                            className="p-2 text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all opacity-0 group-hover/opt:opacity-100"
+                                                                            className="p-2 text-borda-cafe hover:text-rose-500 hover:bg-rose-50 rounded-[8px] transition-all opacity-0 group-hover/opt:opacity-100"
                                                                         >
                                                                             <Trash2 className="w-4 h-4" />
                                                                         </button>
@@ -411,11 +411,11 @@ export default function GroupWizardManager() {
 
                                                 <div className="md:col-span-4 space-y-4">
                                                     <div className="space-y-2">
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Tipo de Resposta</label>
+                                                        <label className="text-[10px] font-bold text-cafe-cinza-quente uppercase tracking-widest ml-1">Tipo de Resposta</label>
                                                         <select
                                                             value={q.question_type}
                                                             onChange={(e) => updateQuestion(q.id, { question_type: e.target.value as any })}
-                                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#7c3aed] transition text-xs font-bold appearance-none"
+                                                            className="w-full px-4 py-3 bg-cream-elevated border border-borda-cafe rounded-[10px] focus:bg-cream-surface focus:ring-2 focus:ring-coral-terra transition text-xs font-bold appearance-none"
                                                         >
                                                             <option value="text">Texto Aberto</option>
                                                             <option value="single_choice">Escolha Única</option>
@@ -429,14 +429,14 @@ export default function GroupWizardManager() {
                                                                 type="checkbox"
                                                                 checked={q.is_required}
                                                                 onChange={(e) => updateQuestion(q.id, { is_required: e.target.checked })}
-                                                                className="w-5 h-5 rounded-lg border-gray-300 text-[#7c3aed] focus:ring-[#7c3aed]"
+                                                                className="w-5 h-5 rounded-[8px] border-borda-cafe text-coral-terra focus:ring-coral-terra"
                                                             />
-                                                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-tight">Obrigatório</span>
+                                                            <span className="text-[11px] font-bold text-cafe-cinza-quente uppercase tracking-tight">Obrigatório</span>
                                                         </label>
 
                                                         <button
                                                             onClick={() => removeQuestion(q.id)}
-                                                            className="p-2.5 text-gray-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                                                            className="p-2.5 text-borda-cafe hover:text-rose-500 hover:bg-rose-50 rounded-[10px] transition-all"
                                                         >
                                                             <Trash2 className="w-5 h-5" />
                                                         </button>
@@ -453,7 +453,7 @@ export default function GroupWizardManager() {
                     {/* Floating Save Status */}
                     <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-4">
                         {status && (
-                            <div className={`px-6 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300 font-bold text-sm ${status.includes('❌') ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+                            <div className={`px-6 py-3 rounded-[12px] shadow-2xl border flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300 font-bold text-sm ${status.includes('❌') ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-[oklch(94%_0.020_145)] border-emerald-100 text-[oklch(40%_0.060_145)]'}`}>
                                 {status.includes('✅') ? <CheckCircle className="w-5 h-5" /> : <Info className="w-5 h-5" />}
                                 {status}
                             </div>
@@ -462,7 +462,7 @@ export default function GroupWizardManager() {
                         <button
                             onClick={handleSave}
                             disabled={saving || questions.length === 0}
-                            className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-10 py-4 rounded-[22px] font-black text-sm shadow-[0_15px_30px_-5px_rgba(124,58,237,0.4)] hover:shadow-[0_20px_40px_-5px_rgba(124,58,237,0.5)] transition-all hover:-translate-y-1 active:scale-95 disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed flex items-center gap-3"
+                            className="bg-coral-terra hover:bg-terracota-profundo text-white px-10 py-4 rounded-[22px] font-semibold text-sm shadow-[0_15px_30px_-5px_rgba(124,58,237,0.4)] hover:shadow-[0_20px_40px_-5px_rgba(124,58,237,0.5)] transition-all hover:-translate-y-1 active:scale-95 disabled:bg-gray-300 disabled:shadow-none disabled:cursor-not-allowed flex items-center gap-3"
                         >
                             <Save className="w-5 h-5" />
                             {saving ? 'SALVANDO ALTERAÇÕES...' : 'SALVAR TODA A ESTRUTURA'}
@@ -473,26 +473,26 @@ export default function GroupWizardManager() {
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-2">
-                            <UsersIcon className="w-5 h-5 text-[#7c3aed]" />
-                            <h3 className="text-lg font-black text-gray-900 tracking-tight">Leads Qualificados</h3>
+                            <UsersIcon className="w-5 h-5 text-coral-terra" />
+                            <h3 className="text-lg font-semibold text-carvao-quente tracking-tight">Leads Qualificados</h3>
                         </div>
                         <button
                             onClick={downloadCSV}
-                            className="bg-emerald-500 text-white px-4 py-2 rounded-xl font-black text-[10px] hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-md shadow-emerald-200"
+                            className="bg-[oklch(94%_0.020_145)]0 text-white px-4 py-2 rounded-[10px] font-semibold text-[10px] hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-md shadow-emerald-200"
                         >
                             <Download className="w-3.5 h-3.5" />
                             EXPORTAR CSV (.CSV)
                         </button>
                     </div>
 
-                    <div className="bg-white rounded-[28px] border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
+                    <div className="bg-cream-surface rounded-[28px] border border-borda-cafe shadow-sm overflow-hidden overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-gray-50/50 border-b border-gray-100">
-                                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Data</th>
-                                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Usuário</th>
+                                <tr className="bg-cream-elevated/50 border-b border-borda-cafe">
+                                    <th className="px-6 py-4 text-[10px] font-semibold text-cafe-cinza-quente uppercase tracking-widest">Data</th>
+                                    <th className="px-6 py-4 text-[10px] font-semibold text-cafe-cinza-quente uppercase tracking-widest">Usuário</th>
                                     {questions.map(q => (
-                                        <th key={q.id} className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest min-w-[200px]">
+                                        <th key={q.id} className="px-6 py-4 text-[10px] font-semibold text-cafe-cinza-quente uppercase tracking-widest min-w-[200px]">
                                             {q.question_text}
                                         </th>
                                     ))}
@@ -501,23 +501,23 @@ export default function GroupWizardManager() {
                             <tbody className="divide-y divide-gray-50">
                                 {responses.length === 0 ? (
                                     <tr>
-                                        <td colSpan={3 + questions.length} className="px-6 py-12 text-center text-gray-400 font-medium text-sm">
+                                        <td colSpan={3 + questions.length} className="px-6 py-12 text-center text-cafe-cinza-quente font-medium text-sm">
                                             Nenhuma resposta encontrada ainda.
                                         </td>
                                     </tr>
                                 ) : (
                                     responses.map(res => (
-                                        <tr key={res.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <tr key={res.id} className="hover:bg-cream-elevated/50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-2 text-gray-500 font-bold text-xs">
+                                                <div className="flex items-center gap-2 text-cafe-cinza-quente font-bold text-xs">
                                                     <Calendar className="w-3 h-3" />
                                                     {new Date(res.created_at).toLocaleDateString('pt-BR')}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-gray-900 text-xs">{res.display_name}</span>
-                                                    {res.display_email && <span className="text-[10px] text-gray-400 font-medium">{res.display_email}</span>}
+                                                    <span className="font-bold text-carvao-quente text-xs">{res.display_name}</span>
+                                                    {res.display_email && <span className="text-[10px] text-cafe-cinza-quente font-medium">{res.display_email}</span>}
                                                 </div>
                                             </td>
                                             {questions.map(q => {
@@ -526,9 +526,9 @@ export default function GroupWizardManager() {
                                                     <td key={q.id} className="px-6 py-4">
                                                         <div className="flex items-start gap-2">
                                                             <div className="mt-1">
-                                                                <Eye className="w-3 h-3 text-gray-300" />
+                                                                <Eye className="w-3 h-3 text-borda-cafe" />
                                                             </div>
-                                                            <span className="text-gray-600 text-xs font-medium line-clamp-3">
+                                                            <span className="text-cafe-medio text-xs font-medium line-clamp-3">
                                                                 {Array.isArray(answer) ? answer.join(', ') : (answer || '-')}
                                                             </span>
                                                         </div>

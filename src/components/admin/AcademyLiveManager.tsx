@@ -1,77 +1,51 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Trash2, Edit2, CheckCircle, X, Video, Save } from 'lucide-react';
+import {
+    Radio, Save, Loader2, UploadCloud, Trash2, Info, ExternalLink, ArrowRight,
+} from 'lucide-react';
+import PageHeader from '../ui/admin/PageHeader';
+import { Card, Banner, Field, Input, Textarea } from '../ui';
 
-interface LiveSettings {
-    next_live_title: string;
-    next_live_date: string;
-    next_live_description: string;
-    next_live_thumb: string;
-    next_live_link: string;
-}
-
-interface Replay {
-    id: string;
-    title: string;
-    description: string;
-    video_url: string;
-    display_order: number;
-    module_id: string;
-}
-
+/**
+ * AcademyLiveManager — apenas configura a PRÓXIMA live ao vivo
+ * (platform_settings.next_live_*). Replays vivem na trilha `aulas-ao-vivo`
+ * dentro de TrailsManager (/admin/aulas).
+ */
 export default function AcademyLiveManager() {
-    const [liveTitle, setLiveTitle] = useState('');
-    const [liveDate, setLiveDate] = useState('');
-    const [liveDescription, setLiveDescription] = useState('');
-    const [liveThumb, setLiveThumb] = useState('');
-    const [liveLink, setLiveLink] = useState('');
+    const [title, setTitle] = useState('');
+    const [date, setDate] = useState('');
+    const [description, setDescription] = useState('');
+    const [link, setLink] = useState('');
+    const [thumb, setThumb] = useState('');
+
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [uploadingThumb, setUploadingThumb] = useState(false);
-    const [savingLive, setSavingLive] = useState(false);
-    const [liveStatus, setLiveStatus] = useState('');
+    const [status, setStatus] = useState<{ kind: 'success' | 'error'; msg: string } | null>(null);
 
-    const [replays, setReplays] = useState<Replay[]>([]);
-    const [featuredModuleId, setFeaturedModuleId] = useState<string | null>(null);
-    const [loadingReplays, setLoadingReplays] = useState(true);
+    useEffect(() => { load(); }, []);
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentReplay, setCurrentReplay] = useState<Partial<Replay> | null>(null);
-    const [replayTitle, setReplayTitle] = useState('');
-    const [replayDescription, setReplayDescription] = useState('');
-    const [replayVideoUrl, setReplayVideoUrl] = useState('');
-    const [uploading, setUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
-    const [savingReplay, setSavingReplay] = useState(false);
-
-    useEffect(() => { fetchAll(); }, []);
-
-    const fetchAll = async () => {
-        setLoadingReplays(true);
-        const [{ data: ps }, { data: mods }] = await Promise.all([
-            supabase.from('platform_settings').select('next_live_title, next_live_date, next_live_description, next_live_thumb, next_live_link').eq('id', 1).maybeSingle(),
-            supabase.from('modules').select('id').eq('is_featured', true).limit(1),
-        ]);
-
-        if (ps) {
-            setLiveTitle(ps.next_live_title || '');
-            setLiveDate(ps.next_live_date ? new Date(ps.next_live_date).toISOString().slice(0, 16) : '');
-            setLiveDescription(ps.next_live_description || '');
-            setLiveThumb(ps.next_live_thumb || '');
-            setLiveLink(ps.next_live_link || '');
+    async function load() {
+        setLoading(true);
+        try {
+            const { data } = await supabase
+                .from('platform_settings')
+                .select('next_live_title, next_live_date, next_live_description, next_live_thumb, next_live_link')
+                .eq('id', 1)
+                .maybeSingle();
+            if (data) {
+                setTitle(data.next_live_title || '');
+                setDate(data.next_live_date ? new Date(data.next_live_date).toISOString().slice(0, 16) : '');
+                setDescription(data.next_live_description || '');
+                setThumb(data.next_live_thumb || '');
+                setLink(data.next_live_link || '');
+            }
+        } finally {
+            setLoading(false);
         }
+    }
 
-        if (mods?.[0]) {
-            setFeaturedModuleId(mods[0].id);
-            const { data: lsns } = await supabase
-                .from('lessons')
-                .select('id, title, description, video_url, display_order, module_id')
-                .eq('module_id', mods[0].id)
-                .order('display_order', { ascending: false });
-            setReplays(lsns || []);
-        }
-        setLoadingReplays(false);
-    };
-
-    const handleThumbUpload = async (file: File) => {
+    async function handleThumbUpload(file: File) {
         setUploadingThumb(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -86,315 +60,233 @@ export default function AcademyLiveManager() {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-            setLiveThumb(data.url);
-        } catch (err: any) {
-            alert(`Erro no upload: ${err.message}`);
+            setThumb(data.url);
+        } catch (e: unknown) {
+            alert('Upload: ' + (e instanceof Error ? e.message : 'falhou'));
         } finally {
             setUploadingThumb(false);
         }
-    };
+    }
 
-    const handleSaveLive = async (e: React.FormEvent) => {
+    async function handleSave(e: React.FormEvent) {
         e.preventDefault();
-        setSavingLive(true);
-        setLiveStatus('');
+        setSaving(true);
+        setStatus(null);
         try {
             const { error } = await supabase.from('platform_settings').upsert({
                 id: 1,
-                next_live_title: liveTitle.trim() || null,
-                next_live_date: liveDate ? new Date(liveDate).toISOString() : null,
-                next_live_description: liveDescription.trim() || null,
-                next_live_thumb: liveThumb.trim() || null,
-                next_live_link: liveLink.trim() || null,
+                next_live_title: title.trim() || null,
+                next_live_date: date ? new Date(date).toISOString() : null,
+                next_live_description: description.trim() || null,
+                next_live_thumb: thumb.trim() || null,
+                next_live_link: link.trim() || null,
             });
             if (error) throw error;
-            setLiveStatus('Salvo!');
-            setTimeout(() => setLiveStatus(''), 2000);
-        } catch (err: any) {
-            setLiveStatus(`Erro: ${err.message}`);
+            setStatus({ kind: 'success', msg: 'Salvo. A próxima live já tá visível pra todos os alunos.' });
+            setTimeout(() => setStatus(null), 4000);
+        } catch (e: unknown) {
+            setStatus({ kind: 'error', msg: e instanceof Error ? e.message : 'Erro ao salvar' });
         } finally {
-            setSavingLive(false);
+            setSaving(false);
         }
-    };
+    }
 
-    const handleVideoUpload = async (file: File) => {
-        setUploading(true);
-        setUploadProgress(0);
+    async function handleClear() {
+        if (!confirm('Limpar próxima live? Vai sumir do dashboard dos alunos.')) return;
+        setSaving(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error('Não autenticado');
-
-            const authRes = await fetch('/api/admin/b2-auth', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${session.access_token}` },
+            await supabase.from('platform_settings').upsert({
+                id: 1,
+                next_live_title: null,
+                next_live_date: null,
+                next_live_description: null,
+                next_live_thumb: null,
+                next_live_link: null,
             });
-            const authData = await authRes.json();
-            if (!authRes.ok) throw new Error(authData.error || 'Falha na autenticação B2');
-            const { uploadUrl, uploadAuthToken, publicUrlBase } = authData;
-
-            const sha1 = await crypto.subtle.digest('SHA-1', await file.arrayBuffer())
-                .then(h => Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join(''));
-
-            const xhr = new XMLHttpRequest();
-            await new Promise((resolve, reject) => {
-                xhr.open('POST', uploadUrl, true);
-                xhr.setRequestHeader('Authorization', uploadAuthToken);
-                xhr.setRequestHeader('X-Bz-File-Name', encodeURIComponent(file.name));
-                xhr.setRequestHeader('Content-Type', file.type || 'b2/x-auto');
-                xhr.setRequestHeader('X-Bz-Content-Sha1', sha1);
-                xhr.upload.onprogress = (e) => { if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100)); };
-                xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve(JSON.parse(xhr.responseText)) : reject(new Error(xhr.statusText));
-                xhr.onerror = () => reject(new Error('Erro de conexão'));
-                xhr.send(file);
-            }).then((data: any) => setReplayVideoUrl(`${publicUrlBase}/${data.fileName}`));
-        } catch (err: any) {
-            alert(`Erro no upload: ${err.message}`);
+            setTitle('');
+            setDate('');
+            setDescription('');
+            setThumb('');
+            setLink('');
+            setStatus({ kind: 'success', msg: 'Próxima live limpa. Aluno cai no fallback "Sexta 19h".' });
+            setTimeout(() => setStatus(null), 4000);
         } finally {
-            setUploading(false);
-            setUploadProgress(0);
+            setSaving(false);
         }
-    };
+    }
 
-    const openModal = (replay?: Replay) => {
-        setCurrentReplay(replay || null);
-        setReplayTitle(replay?.title || '');
-        setReplayDescription(replay?.description || '');
-        setReplayVideoUrl(replay?.video_url || '');
-        setIsModalOpen(true);
-    };
-
-    const closeModal = () => {
-        setIsModalOpen(false);
-        setCurrentReplay(null);
-        setReplayTitle('');
-        setReplayDescription('');
-        setReplayVideoUrl('');
-    };
-
-    const handleSaveReplay = async () => {
-        if (!featuredModuleId) { alert('Módulo "Aulas ao Vivo" não encontrado. Rode o SQL de is_featured.'); return; }
-        if (!replayTitle.trim()) { alert('Título obrigatório'); return; }
-        setSavingReplay(true);
-        try {
-            const nextOrder = currentReplay?.id ? currentReplay.display_order : replays.length;
-            const { error } = await supabase.from('lessons').upsert({
-                id: currentReplay?.id || undefined,
-                module_id: featuredModuleId,
-                title: replayTitle.trim(),
-                description: replayDescription.trim(),
-                video_url: replayVideoUrl.trim(),
-                display_order: nextOrder,
-            });
-            if (error) throw error;
-            closeModal();
-            fetchAll();
-        } catch (err: any) {
-            alert(`Erro ao salvar: ${err.message}`);
-        } finally {
-            setSavingReplay(false);
-        }
-    };
-
-    const handleDeleteReplay = async (id: string) => {
-        if (!confirm('Excluir este replay?')) return;
-        await supabase.from('lessons').delete().eq('id', id);
-        setReplays(prev => prev.filter(r => r.id !== id));
-    };
-
-    const fieldClass = 'block w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30 focus:border-[#7c3aed] transition';
-    const labelClass = 'block text-sm font-semibold text-gray-700 mb-1.5';
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-24 gap-3">
+                <Loader2 className="w-6 h-6 animate-spin text-coral-terra" />
+                <p className="text-cafe-medio text-sm">Carregando configuração…</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="space-y-8 max-w-3xl">
+        <div className="space-y-6 max-w-3xl pb-8">
+            <PageHeader
+                icon={<Radio className="w-5 h-5" />}
+                title="Próxima aula ao vivo"
+                tagline="Configura o que aparece no dashboard como próxima live agendada."
+            />
 
-            {/* ── PRÓXIMA AULA ── */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6">
-                <h3 className="text-base font-black text-gray-900 mb-5 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    Próxima Aula Ao Vivo
-                </h3>
-                <form onSubmit={handleSaveLive} className="space-y-4">
-                    <div>
-                        <label className={labelClass}>Título</label>
-                        <input type="text" value={liveTitle} onChange={e => setLiveTitle(e.target.value)}
-                            placeholder="Ex: Encontro 15 — Como criar uma landing page"
-                            className={fieldClass} />
+            {/* Aviso sobre replays */}
+            <Banner tone="info" icon={<Info className="w-5 h-5" />}>
+                <span>
+                    <strong>Replays não vivem aqui.</strong> Eles agora são lessons da trilha{' '}
+                    <code className="font-mono bg-cream-surface px-1.5 py-0.5 rounded text-xs">aulas-ao-vivo</code>
+                    {' '}em{' '}
+                    <a href="/admin/aulas" className="font-semibold text-coral-terra hover:text-terracota-profundo underline">
+                        /admin/aulas
+                    </a>
+                    . Após cada live, adicione lá.
+                </span>
+            </Banner>
+
+            <Card padding="lg">
+                <form onSubmit={handleSave} className="space-y-5">
+                    <Field label="Título da live" htmlFor="live-title">
+                        <Input
+                            id="live-title"
+                            value={title}
+                            onChange={e => setTitle(e.target.value)}
+                            placeholder="Ex: Lançamento template Sushi Bar + Q&A"
+                            maxLength={120}
+                        />
+                    </Field>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Field label="Data e hora" htmlFor="live-date" helper="Padrão MSIA: sexta às 19h BRT.">
+                            <input
+                                id="live-date"
+                                type="datetime-local"
+                                value={date}
+                                onChange={e => setDate(e.target.value)}
+                                className="w-full bg-cream-surface text-carvao-quente text-base font-normal rounded-[12px] px-4 py-3 border border-borda-cafe focus:border-coral-terra focus:outline-none transition-colors min-h-[44px]"
+                            />
+                        </Field>
+                        <Field label="Link (YouTube / Zoom)" htmlFor="live-link">
+                            <Input
+                                id="live-link"
+                                type="url"
+                                value={link}
+                                onChange={e => setLink(e.target.value)}
+                                placeholder="https://youtube.com/watch?v=…"
+                            />
+                        </Field>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className={labelClass}>Data e Horário</label>
-                            <input type="datetime-local" value={liveDate} onChange={e => setLiveDate(e.target.value)} className={fieldClass} />
-                        </div>
-                        <div>
-                            <label className={labelClass}>Link (Zoom / YouTube)</label>
-                            <input type="url" value={liveLink} onChange={e => setLiveLink(e.target.value)}
-                                placeholder="https://zoom.us/j/..." className={fieldClass} />
-                        </div>
-                    </div>
-                    <div>
-                        <label className={labelClass}>Descrição curta</label>
-                        <textarea value={liveDescription} onChange={e => setLiveDescription(e.target.value)}
-                            placeholder="O que será abordado nesta aula..." rows={2}
-                            className={`${fieldClass} resize-none`} />
-                    </div>
-                    <div>
-                        <label className={labelClass}>Thumbnail</label>
-                        {liveThumb ? (
+
+                    <Field label="Descrição curta" htmlFor="live-description" optional helper="Aparece embaixo do título no dashboard.">
+                        <Textarea
+                            id="live-description"
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            placeholder="O que será abordado nessa aula…"
+                            rows={3}
+                        />
+                    </Field>
+
+                    <Field label="Thumbnail" htmlFor="live-thumb" optional helper="Aparece em /aulas-ao-vivo. 1280×720 ideal.">
+                        {thumb ? (
                             <div className="relative">
-                                <img src={liveThumb} className="w-full h-40 object-cover rounded-xl border border-gray-100" />
-                                <button type="button" onClick={() => setLiveThumb('')}
-                                    className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg hover:bg-red-600 transition">
-                                    Remover
+                                <img src={thumb} alt="" className="w-full max-h-48 object-cover rounded-[10px] border border-borda-cafe" />
+                                <button
+                                    type="button"
+                                    onClick={() => setThumb('')}
+                                    className="absolute top-2 right-2 inline-flex items-center gap-1 bg-cream-surface/95 text-vermelho-tijolo hover:bg-[oklch(94%_0.025_28)] px-2.5 py-1 rounded-md text-xs font-semibold"
+                                >
+                                    <Trash2 className="w-3 h-3" /> Remover
                                 </button>
                             </div>
                         ) : uploadingThumb ? (
-                            <p className="text-sm text-[#7c3aed] animate-pulse py-2">Enviando...</p>
+                            <div className="flex items-center justify-center gap-2 h-24 bg-cream-elevated border border-dashed border-borda-cafe rounded-[10px]">
+                                <Loader2 className="w-4 h-4 animate-spin text-coral-terra" />
+                                <span className="text-sm text-cafe-medio">Enviando…</span>
+                            </div>
                         ) : (
-                            <input type="file" accept="image/*"
-                                onChange={e => { const f = e.target.files?.[0]; if (f) handleThumbUpload(f); }}
-                                className="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#7c3aed]/10 file:text-[#7c3aed] hover:file:bg-[#7c3aed]/20 cursor-pointer" />
+                            <label className="flex flex-col items-center justify-center gap-2 h-24 bg-cream-elevated hover:bg-coral-wash border border-dashed border-borda-cafe hover:border-coral-terra/40 rounded-[10px] cursor-pointer transition-colors">
+                                <UploadCloud className="w-5 h-5 text-cafe-cinza-quente" />
+                                <span className="text-xs font-semibold text-cafe-medio">Clique pra enviar imagem</span>
+                                <input
+                                    id="live-thumb"
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={e => { const f = e.target.files?.[0]; if (f) handleThumbUpload(f); }}
+                                />
+                            </label>
                         )}
-                    </div>
-                    <div className="flex items-center gap-3 pt-2">
-                        <button type="submit" disabled={savingLive}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-[#7c3aed] text-white text-sm font-bold rounded-xl hover:bg-[#6d28d9] transition disabled:opacity-50">
-                            <Save className="w-4 h-4" />
-                            {savingLive ? 'Salvando...' : 'Salvar'}
+                    </Field>
+
+                    {status && (
+                        <Banner tone={status.kind === 'success' ? 'success' : 'error'}>
+                            {status.msg}
+                        </Banner>
+                    )}
+
+                    <div className="flex items-center justify-between gap-3 pt-3 border-t border-borda-cafe">
+                        <button
+                            type="button"
+                            onClick={handleClear}
+                            disabled={saving}
+                            className="inline-flex items-center gap-2 text-vermelho-tijolo hover:bg-[oklch(94%_0.025_28)] px-3 py-2 rounded-[10px] font-semibold text-sm transition-colors disabled:opacity-50"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Limpar próxima live
                         </button>
-                        {liveStatus && (
-                            <span className={`text-sm font-semibold ${liveStatus.startsWith('Erro') ? 'text-red-500' : 'text-emerald-600'}`}>
-                                {liveStatus}
-                            </span>
-                        )}
+
+                        <div className="flex items-center gap-3">
+                            <a
+                                href="/aulas"
+                                className="inline-flex items-center gap-1.5 text-cafe-medio hover:text-coral-terra font-semibold text-sm transition-colors"
+                            >
+                                Ver na home
+                                <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="inline-flex items-center gap-2 bg-coral-terra hover:bg-terracota-profundo text-papel-craft px-5 py-2.5 rounded-[10px] font-semibold text-sm transition-colors active:scale-[0.98] disabled:opacity-60 min-h-[44px]"
+                            >
+                                {saving ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" /> Salvando…</>
+                                ) : (
+                                    <><Save className="w-4 h-4" /> Salvar</>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </form>
-            </div>
+            </Card>
 
-            {/* ── REPLAYS ── */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6">
-                <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-base font-black text-gray-900">
-                        Replays · {replays.length} {replays.length === 1 ? 'gravação' : 'gravações'}
-                    </h3>
-                    <button
-                        onClick={() => openModal()}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#7c3aed] text-white text-sm font-bold rounded-xl hover:bg-[#6d28d9] transition"
-                    >
-                        <Plus className="w-4 h-4" /> Adicionar Replay
-                    </button>
-                </div>
-
-                {!featuredModuleId && !loadingReplays && (
-                    <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-700">
-                        Módulo "Aulas ao Vivo" não encontrado. Rode o SQL:<br />
-                        <code className="font-mono text-xs mt-1 block">ALTER TABLE modules ADD COLUMN IF NOT EXISTS is_featured boolean DEFAULT false;<br />UPDATE modules SET is_featured = true WHERE title ILIKE '%ao vivo%';</code>
+            {/* Atalho útil */}
+            <Card padding="md">
+                <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-coral-wash flex items-center justify-center shrink-0">
+                        <Radio className="w-5 h-5 text-coral-terra" />
                     </div>
-                )}
-
-                {loadingReplays ? (
-                    <div className="space-y-2">
-                        {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />)}
-                    </div>
-                ) : replays.length === 0 ? (
-                    <div className="py-12 text-center">
-                        <Video className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                        <p className="text-sm text-gray-400 font-medium">Nenhum replay ainda. Adicione o primeiro!</p>
-                    </div>
-                ) : (
-                    <div className="space-y-2">
-                        {replays.map((replay, i) => (
-                            <div key={replay.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-[#7c3aed]/20 hover:bg-gray-50/50 transition group">
-                                <div className="w-8 h-8 rounded-lg bg-[#7c3aed]/10 flex items-center justify-center shrink-0">
-                                    <span className="text-[#7c3aed] text-xs font-black">{replays.length - i}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">{replay.title}</p>
-                                    {replay.description && (
-                                        <p className="text-xs text-gray-400 truncate">{replay.description}</p>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
-                                    {replay.video_url && (
-                                        <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">Vídeo ✓</span>
-                                    )}
-                                    <button onClick={() => openModal(replay)}
-                                        className="p-1.5 text-gray-400 hover:text-[#7c3aed] hover:bg-[#7c3aed]/10 rounded-lg transition">
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button onClick={() => handleDeleteReplay(replay.id)}
-                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* ── MODAL REPLAY ── */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
-                        <div className="px-6 pt-6 pb-4 border-b border-gray-100 flex items-center justify-between">
-                            <h3 className="text-lg font-black">{currentReplay ? 'Editar Replay' : 'Novo Replay'}</h3>
-                            <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded-xl transition">
-                                <X className="w-5 h-5 text-gray-500" />
-                            </button>
-                        </div>
-                        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
-                            <div>
-                                <label className={labelClass}>Título *</label>
-                                <input type="text" value={replayTitle} onChange={e => setReplayTitle(e.target.value)}
-                                    placeholder="Ex: Encontro 14 — Criando landing page" className={fieldClass} />
-                            </div>
-                            <div>
-                                <label className={labelClass}>Descrição</label>
-                                <textarea value={replayDescription} onChange={e => setReplayDescription(e.target.value)}
-                                    placeholder="O que foi abordado nesta aula..." rows={2}
-                                    className={`${fieldClass} resize-none`} />
-                            </div>
-                            <div>
-                                <label className={labelClass}>Vídeo da gravação</label>
-                                <input type="file" accept="video/*" disabled={uploading}
-                                    onChange={e => { const f = e.target.files?.[0]; if (f) handleVideoUpload(f); }}
-                                    className="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#7c3aed]/10 file:text-[#7c3aed] hover:file:bg-[#7c3aed]/20 cursor-pointer" />
-                                {uploading && (
-                                    <div className="mt-2">
-                                        <div className="w-full bg-gray-100 rounded-full h-1.5">
-                                            <div className="bg-[#7c3aed] h-1.5 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
-                                        </div>
-                                        <p className="text-[11px] text-gray-400 mt-1">Enviando... {uploadProgress}%</p>
-                                    </div>
-                                )}
-                                {replayVideoUrl && !uploading && (
-                                    <div className="mt-2 p-2.5 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-2">
-                                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                                        <span className="text-xs text-emerald-700 font-semibold truncate">{replayVideoUrl.split('/').pop()}</span>
-                                        <button onClick={() => setReplayVideoUrl('')} className="ml-auto text-xs text-red-400 hover:text-red-600 font-bold">Remover</button>
-                                    </div>
-                                )}
-                                {!replayVideoUrl && !uploading && (
-                                    <div className="mt-2">
-                                        <p className="text-xs text-gray-400 mb-1">ou cole a URL diretamente:</p>
-                                        <input type="url" value={replayVideoUrl} onChange={e => setReplayVideoUrl(e.target.value)}
-                                            placeholder="https://..." className={`${fieldClass} font-mono text-xs`} />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-                            <button onClick={closeModal} className="px-4 py-2 text-gray-600 font-medium text-sm hover:bg-gray-50 rounded-xl transition">
-                                Cancelar
-                            </button>
-                            <button onClick={handleSaveReplay} disabled={savingReplay || uploading}
-                                className="px-6 py-2 bg-[#7c3aed] text-white text-sm font-bold rounded-xl hover:bg-[#6d28d9] transition disabled:opacity-50">
-                                {savingReplay ? 'Salvando...' : 'Salvar Replay'}
-                            </button>
-                        </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                            Acabou a live? Hora de adicionar o replay
+                        </p>
+                        <p className="text-sm text-cafe-medio mt-1 leading-relaxed">
+                            Vá em <strong>/admin/aulas</strong>, abra a trilha{' '}
+                            <code className="font-mono bg-cream-elevated px-1 py-0.5 rounded text-xs">aulas-ao-vivo</code>
+                            {' '}e adicione uma nova aula com o vídeo da gravação.
+                            Aparece automaticamente em <strong>/aulas-ao-vivo</strong> pra todos os alunos.
+                        </p>
+                        <a
+                            href="/admin/aulas"
+                            className="inline-flex items-center gap-2 mt-3 bg-cream-elevated hover:bg-coral-wash text-carvao-quente hover:text-terracota-profundo border border-borda-cafe px-4 py-2 rounded-[10px] font-semibold text-xs transition-colors min-h-[36px]"
+                        >
+                            Abrir TrailsManager
+                            <ArrowRight className="w-3 h-3" />
+                        </a>
                     </div>
                 </div>
-            )}
+            </Card>
         </div>
     );
 }
