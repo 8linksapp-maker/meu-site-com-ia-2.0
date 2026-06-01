@@ -31,3 +31,6 @@ pnpm-debug.log*
 # agent-teams local config
 .team.yaml
 
+
+# Personas: notas e handoffs locais (nao versionar)
+.agents/
