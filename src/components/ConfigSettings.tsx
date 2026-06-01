@@ -198,12 +198,19 @@ export default function ConfigSettings() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Sessão expirada');
-            const { error } = await supabase.from('profiles').update({
+            // upsert garante que mesmo sem row prévia em profiles, o token é salvo.
+            // Bug histórico: .update() em 0 rows não retornava erro, UI mostrava sucesso
+            // mas nada era persistido. Detectado via ticket bfe73a62 (moiclub, 2026-06-01).
+            const { data: upserted, error } = await supabase.from('profiles').upsert({
+                id: user.id,
                 github_token: githubToken,
                 vercel_token: vercelToken,
                 updated_at: new Date().toISOString(),
-            }).eq('id', user.id);
+            }, { onConflict: 'id' }).select('id');
             if (error) throw error;
+            if (!upserted || upserted.length === 0) {
+                throw new Error('Falha silenciosa ao salvar tokens — nenhuma linha afetada.');
+            }
             setSaveStatus('success');
             setSaveMsg('Suas contas estão conectadas. Agora dá pra criar seu primeiro site.');
         } catch (err: unknown) {
