@@ -81,6 +81,7 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
     // ── Delete confirm ──
     const [deleteInput, setDeleteInput] = useState('');
     const [deleting, setDeleting] = useState(false);
+    const [deleteDone, setDeleteDone] = useState<{ orphanRepo: string } | null>(null);
 
     const vercelProjectId = site?.vercel_project_id || site?.github_repo?.split('/').pop() || 'meu-site';
     const siteName = site?.github_repo?.split('/').pop() || 'meu-site';
@@ -89,6 +90,17 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
     const showToast = (msg: string, tone: 'success' | 'error' | 'info' = 'success') => {
         setToast({ tone, msg });
         setTimeout(() => setToast(null), 4000);
+    };
+
+    // Extrai mensagem de erro da API cobrindo os 2 formatos:
+    // { error: "texto" } (auth/validação nossa) e { error: { message } } (erro repassado da Vercel).
+    const extractApiError = (body: unknown, fallback: string): string => {
+        const err = (body as { error?: unknown })?.error;
+        if (typeof err === 'string') return err;
+        if (err && typeof err === 'object' && typeof (err as { message?: unknown }).message === 'string') {
+            return (err as { message: string }).message;
+        }
+        return fallback;
     };
 
     // ── Carregar site por ID ──
@@ -130,10 +142,14 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
             const res = await fetch(`/api/admin/vercel-proxy?projectId=${vercelProjectId}&type=${type}`, {
                 headers: { 'Authorization': `Bearer ${session?.access_token}` }
             });
-            const data = await res.json();
-            if (type === 'domains') setDomains(data.domains || []);
-            if (type === 'deploys') setDeploys(data.deployments || []);
-            if (type === 'envs') setEnvs(data.envs || []);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                showToast(extractApiError(data, 'Não conseguimos carregar esses dados.'), 'error');
+            } else {
+                if (type === 'domains') setDomains(data.domains || []);
+                if (type === 'deploys') setDeploys(data.deployments || []);
+                if (type === 'envs') setEnvs(data.envs || []);
+            }
         } catch (err) {
             console.error(`Erro ao buscar ${type}:`, err);
         }
@@ -199,8 +215,8 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
                     setDnsMethod(prev => ({ ...prev, [addedDomain]: 'records' }));
                 }, 500);
             } else {
-                const err = await res.json();
-                showToast(err.error?.message || 'Erro ao adicionar domínio.', 'error');
+                const err = await res.json().catch(() => ({}));
+                showToast(extractApiError(err, 'Erro ao adicionar domínio.'), 'error');
             }
         } catch {
             showToast('Falha na conexão.', 'error');
@@ -218,6 +234,9 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
             if (res.ok) {
                 showToast(`Domínio ${domain} removido.`);
                 fetchTabData('domains');
+            } else {
+                const err = await res.json().catch(() => ({}));
+                showToast(extractApiError(err, 'Erro ao remover domínio.'), 'error');
             }
         } catch {
             showToast('Erro ao remover.', 'error');
@@ -259,8 +278,8 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
                 showToast('Variável adicionada.');
                 fetchTabData('envs');
             } else {
-                const err = await res.json();
-                showToast(err.error?.message || 'Erro ao adicionar variável.', 'error');
+                const err = await res.json().catch(() => ({}));
+                showToast(extractApiError(err, 'Erro ao adicionar variável.'), 'error');
             }
         } catch {
             showToast('Erro de conexão.', 'error');
@@ -278,6 +297,9 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
             if (res.ok) {
                 showToast('Variável removida.');
                 fetchTabData('envs');
+            } else {
+                const err = await res.json().catch(() => ({}));
+                showToast(extractApiError(err, 'Erro ao remover variável.'), 'error');
             }
         } catch {
             showToast('Erro ao remover variável.', 'error');
@@ -302,8 +324,8 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
                 setEditingEnv(null);
                 fetchTabData('envs');
             } else {
-                const err = await res.json();
-                showToast(err.error?.message || 'Erro ao atualizar.', 'error');
+                const err = await res.json().catch(() => ({}));
+                showToast(extractApiError(err, 'Erro ao atualizar.'), 'error');
             }
         } catch {
             showToast('Erro de conexão.', 'error');
@@ -323,12 +345,21 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${session?.access_token}` }
             });
-            if (res.ok) {
-                showToast('Site excluído.', 'success');
-                setTimeout(() => { window.location.href = '/meus-sites'; }, 1200);
+            const data = await res.json().catch(() => ({}));
+
+            if (res.ok && data.success) {
+                // Site saiu da Vercel e da carteira. Se o repo GitHub ficou órfão
+                // (githubDeleted === false), não redireciona: o usuário precisa ler
+                // o nome do repo pra apagar manualmente — toast efêmero não daria tempo.
+                if (data.githubDeleted === false && data.orphanRepo) {
+                    setDeleteDone({ orphanRepo: data.orphanRepo });
+                } else {
+                    showToast('Site excluído.', 'success');
+                    setTimeout(() => { window.location.href = '/meus-sites'; }, 1200);
+                }
             } else {
-                const err = await res.json();
-                showToast(err.error || 'Erro ao excluir site.', 'error');
+                // 502 (site segue no ar), 500, 401/403/409 — backend manda { error: "texto" }.
+                showToast(extractApiError(data, 'Erro ao excluir site.'), 'error');
             }
         } catch {
             showToast('Falha crítica na conexão.', 'error');
@@ -363,6 +394,37 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
                 >
                     <ArrowLeft className="w-4 h-4" /> Voltar para minha carteira
                 </a>
+            </div>
+        );
+    }
+
+    // ── Conclusão: site excluído mas repo GitHub ficou órfão ──
+    if (deleteDone) {
+        return (
+            <div className="max-w-2xl mx-auto pt-8 space-y-5">
+                <Banner tone="warning" title="Site excluído, mas o repositório no GitHub ficou">
+                    Removemos o site da Vercel e da sua carteira. Só o repositório{' '}
+                    <span className="font-mono text-sm">{deleteDone.orphanRepo}</span> não pôde ser apagado
+                    automaticamente, provavelmente porque seu token do GitHub não tem permissão pra apagar
+                    repositórios. Se quiser, apague ele manualmente:
+                </Banner>
+                <div className="flex flex-col sm:flex-row gap-3">
+                    <a
+                        href={`https://github.com/${deleteDone.orphanRepo}/settings`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 bg-cream-elevated hover:bg-coral-wash text-carvao-quente hover:text-terracota-profundo border border-borda-cafe px-5 py-3 rounded-[12px] font-semibold text-sm transition-colors active:scale-[0.98] min-h-[44px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra"
+                    >
+                        <ExternalLink className="w-4 h-4" />
+                        Abrir repositório no GitHub
+                    </a>
+                    <a
+                        href="/meus-sites"
+                        className="inline-flex items-center justify-center gap-2 bg-coral-terra hover:bg-terracota-profundo text-papel-craft px-6 py-3 rounded-[12px] font-semibold text-sm transition-colors active:scale-[0.98] min-h-[44px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-terra"
+                    >
+                        Voltar para minha carteira
+                    </a>
+                </div>
             </div>
         );
     }
