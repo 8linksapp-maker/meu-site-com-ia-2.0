@@ -198,18 +198,39 @@ export default function ConfigSettings() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Sessão expirada');
-            // upsert garante que mesmo sem row prévia em profiles, o token é salvo.
-            // Bug histórico: .update() em 0 rows não retornava erro, UI mostrava sucesso
-            // mas nada era persistido. Detectado via ticket bfe73a62 (moiclub, 2026-06-01).
-            const { data: upserted, error } = await supabase.from('profiles').upsert({
-                id: user.id,
-                github_token: githubToken,
-                vercel_token: vercelToken,
-                updated_at: new Date().toISOString(),
-            }, { onConflict: 'id' }).select('id');
-            if (error) throw error;
-            if (!upserted || upserted.length === 0) {
-                throw new Error('Falha silenciosa ao salvar tokens — nenhuma linha afetada.');
+            // Histórico: .update() em 0 rows não retornava erro, UI mostrava sucesso silencioso.
+            // .upsert() simples também falhava porque PostgREST sempre tenta INSERT primeiro
+            // e product_id (NOT NULL) sem default violava constraint antes do conflict check.
+            // Detectado via tickets bfe73a62 + dc32c0b9 (moiclub, 2026-06-01/02).
+            // Fix: detectar row existente e branchar update vs insert (com defaults).
+            const { data: existing } = await supabase
+                .from('profiles').select('id').eq('id', user.id).maybeSingle();
+            const tsNow = new Date().toISOString();
+            if (existing) {
+                const { data, error } = await supabase.from('profiles').update({
+                    github_token: githubToken,
+                    vercel_token: vercelToken,
+                    updated_at: tsNow,
+                }).eq('id', user.id).select('id');
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    throw new Error('Falha silenciosa ao atualizar tokens.');
+                }
+            } else {
+                const { data, error } = await supabase.from('profiles').insert({
+                    id: user.id,
+                    github_token: githubToken,
+                    vercel_token: vercelToken,
+                    product_id: 'main_product',
+                    product_name: 'Meu site com IA 2.0',
+                    role: 'user',
+                    subscription_status: 'inactive',
+                    updated_at: tsNow,
+                }).select('id');
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    throw new Error('Falha silenciosa ao criar perfil.');
+                }
             }
             setSaveStatus('success');
             setSaveMsg('Suas contas estão conectadas. Agora dá pra criar seu primeiro site.');
