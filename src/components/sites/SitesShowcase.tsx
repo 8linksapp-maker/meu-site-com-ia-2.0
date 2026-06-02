@@ -10,6 +10,7 @@ interface Template {
     id: string;
     name: string;
     image_url: string | null;
+    preview_url?: string | null;
     images?: string[] | null;
     description?: string | null;
     repo?: string;
@@ -501,9 +502,9 @@ function TemplateModal({
                                 Conectar contas pra publicar
                             </a>
                         )}
-                        {template.image_url && (
+                        {template.preview_url && (
                             <a
-                                href={template.image_url}
+                                href={template.preview_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center justify-center gap-2 bg-cream-elevated hover:bg-coral-wash text-carvao-quente hover:text-terracota-profundo border border-borda-cafe px-5 py-3 rounded-[12px] font-semibold text-sm transition-colors active:scale-[0.98] min-h-[44px]"
