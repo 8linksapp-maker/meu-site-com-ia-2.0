@@ -15,9 +15,12 @@ export interface CreateHookResult {
     lastError?: string;
 }
 
+/** Builds ?teamId=X query string se teamId for fornecido (contas Vercel novas só têm Team). */
+const teamQs = (teamId?: string) => (teamId ? `?teamId=${teamId}` : '');
+
 /** Lê os deploy hooks já existentes no projeto Vercel. */
-export async function fetchExistingHook(vercelToken: string, projectId: string): Promise<string | null> {
-    const r = await fetch(`https://api.vercel.com/v9/projects/${projectId}`, {
+export async function fetchExistingHook(vercelToken: string, projectId: string, teamId?: string): Promise<string | null> {
+    const r = await fetch(`https://api.vercel.com/v9/projects/${projectId}${teamQs(teamId)}`, {
         headers: { Authorization: `Bearer ${vercelToken}` },
     });
     if (!r.ok) return null;
@@ -33,7 +36,8 @@ export async function fetchExistingHook(vercelToken: string, projectId: string):
 export async function createDeployHookWithRetry(
     vercelToken: string,
     projectId: string,
-    opts: { tries?: number } = {}
+    opts: { tries?: number } = {},
+    teamId?: string
 ): Promise<CreateHookResult> {
     const tries = opts.tries ?? 3;
     const delays = [1000, 3000, 5000]; // ms entre tentativas
@@ -41,7 +45,7 @@ export async function createDeployHookWithRetry(
 
     for (let i = 0; i < tries; i++) {
         try {
-            const r = await fetch(`https://api.vercel.com/v1/projects/${projectId}/deploy-hooks`, {
+            const r = await fetch(`https://api.vercel.com/v1/projects/${projectId}/deploy-hooks${teamQs(teamId)}`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: HOOK_NAME, ref: 'main' }),
@@ -70,9 +74,11 @@ export async function createDeployHookWithRetry(
 export async function ensureDeployHookEnv(
     vercelToken: string,
     projectId: string,
-    hookUrl: string
+    hookUrl: string,
+    teamId?: string
 ): Promise<{ ok: boolean; mode: 'created' | 'updated' | 'failed'; lastError?: string }> {
-    const post = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env`, {
+    const qs = teamQs(teamId);
+    const post = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env${qs}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -87,12 +93,12 @@ export async function ensureDeployHookEnv(
     const txt = await post.text().catch(() => '');
     if (post.status === 409 || /already exists/i.test(txt)) {
         // Já existe: descobre o id e faz PATCH
-        const list = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env`, {
+        const list = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env${qs}`, {
             headers: { Authorization: `Bearer ${vercelToken}` },
         }).then(r => r.json()).catch(() => ({}));
         const cur = (list.envs || []).find((e: any) => e.key === ENV_KEY);
         if (!cur) return { ok: false, mode: 'failed', lastError: 'POST 409 mas GET não encontrou env' };
-        const patch = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env/${cur.id}`, {
+        const patch = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env/${cur.id}${qs}`, {
             method: 'PATCH',
             headers: { Authorization: `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -124,22 +130,23 @@ export interface EnsureHookResult {
  */
 export async function ensureProjectHasDeployHook(
     vercelToken: string,
-    projectId: string
+    projectId: string,
+    teamId?: string
 ): Promise<EnsureHookResult> {
     // 1. Env já existe?
-    const list = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env`, {
+    const list = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env${teamQs(teamId)}`, {
         headers: { Authorization: `Bearer ${vercelToken}` },
     }).then(r => r.json()).catch(() => ({}));
     const existingEnv = (list.envs || []).find((e: any) => e.key === ENV_KEY);
     if (existingEnv) return { ok: true, alreadyHad: true, hookUrl: null, attempts: 0 };
 
     // 2. Tem hook salvo no projeto mas falta env (raro, mas possível)?
-    let hookUrl = await fetchExistingHook(vercelToken, projectId);
+    let hookUrl = await fetchExistingHook(vercelToken, projectId, teamId);
     let attempts = 0;
 
     // 3. Se não tem hook, cria com retry
     if (!hookUrl) {
-        const created = await createDeployHookWithRetry(vercelToken, projectId);
+        const created = await createDeployHookWithRetry(vercelToken, projectId, {}, teamId);
         attempts = created.attempts;
         if (!created.url) {
             return { ok: false, alreadyHad: false, hookUrl: null, attempts, lastError: created.lastError };
@@ -148,7 +155,7 @@ export async function ensureProjectHasDeployHook(
     }
 
     // 4. Cria env DEPLOY_HOOK_URL
-    const envSet = await ensureDeployHookEnv(vercelToken, projectId, hookUrl);
+    const envSet = await ensureDeployHookEnv(vercelToken, projectId, hookUrl, teamId);
     if (!envSet.ok) {
         return { ok: false, alreadyHad: false, hookUrl, attempts, lastError: envSet.lastError };
     }

@@ -36,13 +36,30 @@ async function deleteGithubRepo(octokit: InstanceType<typeof Octokit>, owner: st
     try { await octokit.repos.delete({ owner, repo }); } catch { /* best-effort */ }
 }
 
-async function deleteVercelProject(token: string, projectId: string) {
+async function deleteVercelProject(token: string, projectId: string, teamId?: string) {
     try {
-        await fetch(`https://api.vercel.com/v9/projects/${projectId}`, {
+        const qs = teamId ? `?teamId=${teamId}` : '';
+        await fetch(`https://api.vercel.com/v9/projects/${projectId}${qs}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` },
         });
     } catch { /* best-effort */ }
+}
+
+/**
+ * Detecta o team do usuario na Vercel. Contas novas Vercel sao criadas direto
+ * em Team (Hobby pessoal foi desativado pra new accounts). Sem teamId, chamadas
+ * /v9/projects retornam 401/403 "not_authorized" mesmo com token valido.
+ */
+async function detectVercelTeam(token: string): Promise<string> {
+    try {
+        const r = await fetch('https://api.vercel.com/v2/teams', {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!r.ok) return '';
+        const { teams } = await r.json();
+        return teams?.[0]?.id || '';
+    } catch { return ''; }
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -57,6 +74,7 @@ export const POST: APIRoute = async ({ request }) => {
     let templateId_ = '';
     let templateName_ = '';
     let vercelToken_ = '';
+    let vercelTeamId_ = '';
 
     try {
         const rawBody = await request.json();
@@ -94,6 +112,11 @@ export const POST: APIRoute = async ({ request }) => {
         } catch {
             return new Response(JSON.stringify({ error: 'Token do GitHub inválido ou expirado. Atualize-o em Configurações > Integração.' }), { status: 401 });
         }
+
+        // Detectar Team Vercel — contas novas exigem teamId em todas chamadas /v9/projects
+        const vercelTeamId = await detectVercelTeam(vercelToken);
+        vercelTeamId_ = vercelTeamId;
+        const teamQs = vercelTeamId ? `?teamId=${vercelTeamId}` : '';
 
         safeRepoName = newRepoName
             .toLowerCase()
@@ -147,7 +170,7 @@ export const POST: APIRoute = async ({ request }) => {
 
         // 2. Criar Projeto na Vercel
         try {
-            const vercelRes = await fetch('https://api.vercel.com/v9/projects', {
+            const vercelRes = await fetch(`https://api.vercel.com/v9/projects${teamQs}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${vercelToken}`,
@@ -260,7 +283,7 @@ export const POST: APIRoute = async ({ request }) => {
         // Se falhar TODAS as 3 tentativas, loggamos como warning mas NÃO abortamos —
         // o site funciona sem hook (só perde "Salvar dispara redeploy" no admin),
         // e o endpoint /api/admin/ensure-deploy-hook permite recuperar depois.
-        const hookResult = await createDeployHookWithRetry(vercelToken, projectId);
+        const hookResult = await createDeployHookWithRetry(vercelToken, projectId, {}, vercelTeamId);
         let deployHookWarning: string | null = null;
         if (!hookResult.url) {
             const refCode = await logDeployError({
@@ -283,7 +306,7 @@ export const POST: APIRoute = async ({ request }) => {
             envVars.push({ key: 'ADMIN_SECRET', value: adminPassword, type: 'encrypted', target: ['production', 'preview', 'development'] });
         }
 
-        const envRes = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env`, {
+        const envRes = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env${teamQs}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(envVars)
@@ -291,14 +314,14 @@ export const POST: APIRoute = async ({ request }) => {
 
         if (!envRes.ok) {
             // Rollback: deletar projeto Vercel + repo GitHub
-            if (vercelProjectCreated) await deleteVercelProject(vercelToken, projectId);
+            if (vercelProjectCreated) await deleteVercelProject(vercelToken, projectId, vercelTeamId);
             if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
             return new Response(JSON.stringify({ error: 'Erro ao configurar o projeto. Tente novamente ou atualize seus tokens.' }), { status: 500 });
         }
 
         // 3.5. Setar DEPLOY_HOOK_URL via helper idempotente (suporta POST + PATCH se existir).
         if (hookResult.url) {
-            const envSet = await ensureDeployHookEnv(vercelToken, projectId, hookResult.url);
+            const envSet = await ensureDeployHookEnv(vercelToken, projectId, hookResult.url, vercelTeamId);
             if (!envSet.ok) {
                 // env não foi setada mas hook existe — site funciona, só não tem deploy manual.
                 // Loggamos pra recovery posterior.
@@ -318,7 +341,7 @@ export const POST: APIRoute = async ({ request }) => {
         // independente do hook ter sido criado com sucesso).
         await new Promise(r => setTimeout(r, 3000));
 
-        const deployRes = await fetch(`https://api.vercel.com/v13/deployments`, {
+        const deployRes = await fetch(`https://api.vercel.com/v13/deployments${teamQs}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -362,7 +385,7 @@ export const POST: APIRoute = async ({ request }) => {
             await deleteGithubRepo(octokit, githubUsername, safeRepoName);
         }
         if (projectId && vercelProjectCreated && vercelToken_) {
-            await deleteVercelProject(vercelToken_, projectId);
+            await deleteVercelProject(vercelToken_, projectId, vercelTeamId_);
         }
         return new Response(JSON.stringify({ error: 'Erro inesperado ao criar o site. Tente novamente.' }), { status: 500 });
     }

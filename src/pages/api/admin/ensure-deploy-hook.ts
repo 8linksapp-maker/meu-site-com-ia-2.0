@@ -46,7 +46,19 @@ export const POST: APIRoute = async ({ request }) => {
             .single();
         if (!profile?.vercel_token) throw new Error('Dono do site não tem vercel_token configurado');
 
-        const result = await ensureProjectHasDeployHook(profile.vercel_token, projectId);
+        // Detecta team Vercel pra passar nas chamadas /v9/projects (contas novas exigem)
+        let vercelTeamId = '';
+        try {
+            const teamsRes = await fetch('https://api.vercel.com/v2/teams', {
+                headers: { Authorization: `Bearer ${profile.vercel_token}` },
+            });
+            if (teamsRes.ok) {
+                const { teams } = await teamsRes.json();
+                vercelTeamId = teams?.[0]?.id || '';
+            }
+        } catch { /* fallback pra conta pessoal */ }
+
+        const result = await ensureProjectHasDeployHook(profile.vercel_token, projectId, vercelTeamId);
 
         return new Response(JSON.stringify(result), { status: result.ok ? 200 : 500 });
     } catch (err: any) {
