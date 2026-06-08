@@ -129,6 +129,7 @@ function PlayerView({
     const [comments, setComments] = useState<LessonComment[]>([]);
     const [newComment, setNewComment] = useState('');
     const [postingComment, setPostingComment] = useState(false);
+    const [signedVideoUrl, setSignedVideoUrl] = useState<string | null>(null);
 
     useEffect(() => {
         if (!currentLesson) return;
@@ -138,13 +139,25 @@ function PlayerView({
         setNextLesson(currentIdx >= 0 && currentIdx < allLessons.length - 1 ? allLessons[currentIdx + 1] : null);
     }, [currentLesson, allModules]);
 
-    // Reset estado ao trocar de aula. Player nativo cuida do buffering/seek.
+    // Gera signed URL pra vídeo do B2
     useEffect(() => {
-        if (!currentLesson?.video_url) return;
+        if (!currentLesson?.video_url) {
+            setSignedVideoUrl(null);
+            return;
+        }
         progressLoadedRef.current = null;
         lastSavedTimeRef.current = 0;
         setVideoState('loading');
-    }, [currentLesson?.id]);
+
+        if (currentLesson.video_url.includes('backblazeb2.com')) {
+            fetch(`/api/admin/b2-signed-url?fileUrl=${encodeURIComponent(currentLesson.video_url)}&expiresIn=${4 * 60 * 60}`)
+                .then(r => r.json())
+                .then(d => setSignedVideoUrl(d.signedUrl || currentLesson.video_url))
+                .catch(() => setSignedVideoUrl(currentLesson.video_url));
+        } else {
+            setSignedVideoUrl(currentLesson.video_url);
+        }
+    }, [currentLesson?.id, currentLesson?.video_url]);
 
     const handleTimeUpdate = () => {
         const v = videoRef.current;
@@ -289,9 +302,10 @@ function PlayerView({
                         <video
                             ref={videoRef}
                             key={currentLesson.id + ':' + retryCount}
-                            src={currentLesson.video_url}
+                            src={signedVideoUrl || currentLesson.video_url}
                             className="w-full h-full"
                             controls
+                            controlsList="nodownload"
                             autoPlay
                             playsInline
                             preload="metadata"

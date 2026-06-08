@@ -7,6 +7,10 @@ export const GET: APIRoute = async ({ request }) => {
     try {
         await verifyAdmin(request);
 
+        // Parsear query params
+        const url = new URL(request.url);
+        const prefix = url.searchParams.get('prefix') || '';
+
         // Buscar configurações do B2 no banco
         const { data: settings, error: settingsError } = await supabaseAdmin
             .from('platform_settings')
@@ -47,7 +51,7 @@ export const GET: APIRoute = async ({ request }) => {
             bucketId = bucket.bucketId;
         }
 
-        // 3. Listar Arquivos
+        // 3. Listar Arquivos com prefixo (pasta atual)
         const listFilesResponse = await fetch(`${apiUrl}/b2api/v2/b2_list_file_names`, {
             method: 'POST',
             headers: {
@@ -56,7 +60,8 @@ export const GET: APIRoute = async ({ request }) => {
             },
             body: JSON.stringify({
                 bucketId,
-                maxFileCount: 1000
+                maxFileCount: 1000,
+                prefix: prefix || undefined
             })
         });
 
@@ -67,16 +72,57 @@ export const GET: APIRoute = async ({ request }) => {
 
         const listData = await listFilesResponse.json();
 
-        // 3. Formatar resposta com URL pública
-        const files = listData.files.map((file: any) => ({
-            name: file.fileName,
-            url: `${settings.b2_public_url_base}/${file.fileName}`,
-            size: file.contentLength,
-            type: file.contentType,
-            uploaded_at: file.uploadTimestamp
+        // 4. Extrair subpastas únicas do nível atual
+        // Ex: se prefix="aulas/", extrai "aulas/intro/", "aulas/avancado/", etc.
+        const subfolders = new Set<string>();
+        const files: any[] = [];
+
+        for (const file of listData.files || []) {
+            const fileName = file.fileName;
+            // Remove o prefixo atual do nome
+            const relativePath = prefix ? fileName.slice(prefix.length) : fileName;
+
+            // Se tem "/" no caminho restante, é uma subpasta
+            if (relativePath.includes('/')) {
+                const firstSegment = relativePath.split('/')[0];
+                const subfolderPath = prefix + firstSegment + '/';
+                subfolders.add(subfolderPath);
+            }
+
+            // Se não tem "/" ou é arquivo direto no nível atual
+            if (!relativePath.includes('/')) {
+                files.push({
+                    name: fileName,
+                    url: `${settings.b2_public_url_base}/${fileName}`,
+                    size: file.contentLength,
+                    type: file.contentType,
+                    uploaded_at: file.uploadTimestamp,
+                    isFolder: false,
+                });
+            }
+        }
+
+        // Converte Set para array de objetos de pasta
+        const folders = Array.from(subfolders).map(folderPath => ({
+            name: folderPath,
+            // Extrai só o nome da pasta (último segmento antes do /)
+            folderName: folderPath.slice(prefix.length).replace(/\/$/, ''),
+            url: null,
+            size: 0,
+            type: 'folder',
+            uploaded_at: 0,
+            isFolder: true,
         }));
 
-        return new Response(JSON.stringify(files), { status: 200 });
+        // Ordena: pastas primeiro (alfabético), depois arquivos (alfabético)
+        folders.sort((a, b) => a.folderName.localeCompare(b.folderName));
+        files.sort((a, b) => a.name.localeCompare(b.name));
+
+        return new Response(JSON.stringify({
+            folders,
+            files,
+            currentPrefix: prefix,
+        }), { status: 200 });
 
     } catch (err: any) {
         console.error('Error in b2-list:', err.message);

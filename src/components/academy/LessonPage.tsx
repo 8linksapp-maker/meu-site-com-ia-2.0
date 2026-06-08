@@ -125,6 +125,7 @@ export default function LessonPage({ trailSlug, lessonId }: LessonPageProps) {
     const saveProgressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const autoplayTimer = useRef<ReturnType<typeof setInterval> | null>(null);
     const lastSavedPercent = useRef(0);
+    const [signedVideoUrl, setSignedVideoUrl] = useState<string | null>(null);
 
     useEffect(() => {
         loadAll();
@@ -220,6 +221,13 @@ export default function LessonPage({ trailSlug, lessonId }: LessonPageProps) {
             }
             setLesson(currentLessonData as Lesson);
 
+            // Gera signed URL se tiver video_url do B2
+            if (currentLessonData.video_url && currentLessonData.video_url.includes('backblazeb2.com')) {
+                getSignedUrl(currentLessonData.video_url);
+            } else {
+                setSignedVideoUrl(currentLessonData.video_url);
+            }
+
             const completedIds = new Set(progressData.filter(p => p.is_completed).map(p => p.lesson_id));
             setIsComplete(completedIds.has(lessonId));
 
@@ -254,6 +262,20 @@ export default function LessonPage({ trailSlug, lessonId }: LessonPageProps) {
             setError(err instanceof Error ? err.message : 'Erro ao carregar.');
         } finally {
             setLoading(false);
+        }
+    }
+
+    // ── Gera signed URL pra vídeo do B2 ──
+    async function getSignedUrl(fileUrl: string) {
+        try {
+            const res = await fetch(`/api/admin/b2-signed-url?fileUrl=${encodeURIComponent(fileUrl)}&expiresIn=${4 * 60 * 60}`);
+            if (!res.ok) throw new Error(await res.text());
+            const data = await res.json();
+            setSignedVideoUrl(data.signedUrl);
+        } catch (err) {
+            console.error('Erro ao gerar signed URL:', err);
+            // Fallback: usa URL original mesmo (pode dar 401)
+            setSignedVideoUrl(fileUrl);
         }
     }
 
@@ -484,11 +506,13 @@ export default function LessonPage({ trailSlug, lessonId }: LessonPageProps) {
                         {lesson.video_url ? (
                             <video
                                 ref={videoRef}
-                                src={lesson.video_url}
+                                src={signedVideoUrl || lesson.video_url}
                                 controls
+                                controlsList="nodownload"
                                 playsInline
                                 preload="metadata"
                                 className="w-full h-full"
+                                onContextMenu={(e) => e.preventDefault()}
                                 onLoadedMetadata={handleVideoLoadedMetadata}
                                 onTimeUpdate={handleTimeUpdate}
                                 onEnded={handleVideoEnded}

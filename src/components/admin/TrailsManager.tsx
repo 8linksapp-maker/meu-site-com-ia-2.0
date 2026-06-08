@@ -1389,52 +1389,130 @@ function LessonFormModal({
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// VIDEO LIBRARY MODAL
+// VIDEO LIBRARY MODAL (com navegação por pastas)
 // ─────────────────────────────────────────────────────────────────────────
 
+interface B2File {
+    name: string;
+    url: string;
+    size: number;
+    type: string;
+    uploaded_at: number;
+    isFolder?: boolean;
+    folderName?: string;
+}
+
+interface B2ListResponse {
+    folders: B2File[];
+    files: B2File[];
+    currentPrefix: string;
+}
+
 function VideoLibraryModal({ onClose, onPick }: { onClose: () => void; onPick: (url: string) => void }) {
-    // Shape do /api/admin/b2-list: { name, url, size, type, uploaded_at }
-    const [files, setFiles] = useState<{ name: string; url: string; size: number; type: string; uploaded_at: number }[]>([]);
+    const [data, setData] = useState<B2ListResponse>({ folders: [], files: [], currentPrefix: '' });
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 20;
 
-    useEffect(() => { load(); }, []);
-    useEffect(() => { setPage(1); }, [search]);
+    useEffect(() => { load(); }, [data.currentPrefix]);
+    useEffect(() => { setPage(1); }, [search, data.currentPrefix]);
 
-    async function load() {
+    async function load(prefix?: string) {
         setLoading(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
-            const res = await fetch('/api/admin/b2-list', {
+            const p = prefix !== undefined ? prefix : data.currentPrefix;
+            const url = `/api/admin/b2-list?prefix=${encodeURIComponent(p)}`;
+            const res = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${session.access_token}` },
             });
-            if (res.ok) setFiles(await res.json());
+            if (res.ok) setData(await res.json());
         } finally {
             setLoading(false);
         }
+    }
+
+    function handleEnterFolder(folderPath: string) {
+        setSearch('');
+        load(folderPath);
+    }
+
+    function handleGoUp() {
+        const parts = data.currentPrefix.slice(0, -1).split('/');
+        parts.pop();
+        const parentPrefix = parts.length > 0 ? parts.join('/') + '/' : '';
+        setSearch('');
+        load(parentPrefix);
     }
 
     function normalize(t: string) {
         return t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     }
 
-    const filtered = search.trim()
-        ? files.filter(f => normalize(f.name).includes(normalize(search)))
-        : files;
+    // Filtra apenas arquivos (não filtra pastas na busca)
+    const filteredFiles = search.trim()
+        ? data.files.filter(f => normalize(f.name).includes(normalize(search)))
+        : data.files;
 
-    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    const paginatedFiles = filteredFiles.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    //Breadcrumb
+    const breadcrumbParts = data.currentPrefix
+        .split('/')
+        .filter(Boolean)
+        .map((part, i) => {
+            const parts = data.currentPrefix.split('/').filter(Boolean).slice(0, i + 1);
+            const prefix = parts.join('/') + '/';
+            return { name: part, prefix };
+        });
 
     return (
         <FormModal
             open
             title="Biblioteca de vídeos"
-            description="Vídeos já enviados ao B2. Clique pra reusar em qualquer aula."
+            description="Vídeos já enviados ao B2. Navegue por pastas ou clique pra reusar em qualquer aula."
             onClose={onClose}
             width="lg"
         >
+            {/* Breadcrumb + Voltar */}
+            {data.currentPrefix && (
+                <div className="flex items-center gap-2 mb-3">
+                    <button
+                        type="button"
+                        onClick={handleGoUp}
+                        className="flex items-center gap-1 text-xs font-semibold text-coral-terra hover:text-terracota-profundo transition-colors"
+                    >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        Voltar
+                    </button>
+                    <span className="text-xs text-cafe-cinza-quente">/</span>
+                    <div className="flex flex-wrap items-center gap-1 text-xs">
+                        <button
+                            type="button"
+                            onClick={() => load('')}
+                            className="text-cafe-medio hover:text-coral-terra transition-colors"
+                        >
+                            Raiz
+                        </button>
+                        {breadcrumbParts.map((part, i) => (
+                            <span key={part.prefix} className="flex items-center gap-1">
+                                <span className="text-cafe-cinza-quente">/</span>
+                                <button
+                                    type="button"
+                                    onClick={() => load(part.prefix)}
+                                    className="text-carvao-quente hover:text-coral-terra transition-colors font-medium"
+                                >
+                                    {part.name}
+                                </button>
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Busca */}
             <div className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-cafe-cinza-quente shrink-0" />
                 <Input
@@ -1449,14 +1527,33 @@ function VideoLibraryModal({ onClose, onPick }: { onClose: () => void; onPick: (
                     <Loader2 className="w-4 h-4 animate-spin text-coral-terra" />
                     <span className="text-sm text-cafe-medio">Carregando biblioteca…</span>
                 </div>
-            ) : filtered.length === 0 ? (
+            ) : data.folders.length === 0 && filteredFiles.length === 0 ? (
                 <p className="text-sm text-cafe-medio italic py-6 text-center">
-                    {search ? 'Nenhum vídeo encontrado pra essa busca.' : 'Biblioteca vazia.'}
+                    {search ? 'Nenhum vídeo encontrado pra essa busca.' : 'Pasta vazia.'}
                 </p>
             ) : (
                 <>
                     <ul className="space-y-1.5">
-                        {paginated.map(f => {
+                        {/* Pastas */}
+                        {!search && data.folders.map(folder => (
+                            <li key={folder.name}>
+                                <button
+                                    type="button"
+                                    onClick={() => handleEnterFolder(folder.name)}
+                                    className="w-full flex items-center gap-3 p-3 bg-cream-elevated hover:bg-coral-wash text-left rounded-[10px] transition-colors group"
+                                >
+                                    <FolderOpen className="w-4 h-4 text-coral-terra shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-carvao-quente truncate">{folder.folderName}</p>
+                                        <p className="text-xs text-cafe-cinza-quente">Pasta</p>
+                                    </div>
+                                    <ArrowLeft className="w-4 h-4 text-cafe-cinza-quente group-hover:text-coral-terra shrink-0 rotate-180" />
+                                </button>
+                            </li>
+                        ))}
+
+                        {/* Arquivos */}
+                        {paginatedFiles.map(f => {
                             const cleanName = decodeURIComponent(f.name || '')
                                 .replace(/^\d{13}-/, '')
                                 .replace(/\.(mp4|mov|avi|wmv|mkv)$/i, '');
@@ -1479,13 +1576,17 @@ function VideoLibraryModal({ onClose, onPick }: { onClose: () => void; onPick: (
                             );
                         })}
                     </ul>
-                    <Pagination
-                        page={page}
-                        pageSize={PAGE_SIZE}
-                        total={filtered.length}
-                        onPageChange={setPage}
-                        label="vídeos"
-                    />
+
+                    {/* Paginação (só aparece se tiver arquivos) */}
+                    {filteredFiles.length > PAGE_SIZE && (
+                        <Pagination
+                            page={page}
+                            pageSize={PAGE_SIZE}
+                            total={filteredFiles.length}
+                            onPageChange={setPage}
+                            label="vídeos"
+                        />
+                    )}
                 </>
             )}
         </FormModal>
