@@ -83,6 +83,12 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
     const [deleting, setDeleting] = useState(false);
     const [deleteDone, setDeleteDone] = useState<{ orphanRepo: string } | null>(null);
 
+    // ── Reset admin password ──
+    const [resettingAdmin, setResettingAdmin] = useState(false);
+    const [newAdminPassword, setNewAdminPassword] = useState<string | null>(null);
+    const [passwordCopied, setPasswordCopied] = useState(false);
+    const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+
     const vercelProjectId = site?.vercel_project_id || site?.github_repo?.split('/').pop() || 'meu-site';
     const siteName = site?.github_repo?.split('/').pop() || 'meu-site';
     const siteUrl = site?.domain || `${siteName}.vercel.app`;
@@ -330,6 +336,74 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
         } catch {
             showToast('Erro de conexão.', 'error');
         }
+    };
+
+    // ── Handler resetar senha admin (regenera ADMIN_SECRET + redeploy) ──
+    const handleResetAdminSecret = async () => {
+        setResettingAdmin(true);
+        setNewAdminPassword(null);
+        setPasswordCopied(false);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch('/api/admin/reset-admin-secret', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId: vercelProjectId }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.ok && data.newPassword) {
+                setNewAdminPassword(data.newPassword);
+                setResetConfirmOpen(false);
+                showToast(data.message || 'Senha resetada.', 'success');
+            } else {
+                showToast(extractApiError(data, 'Não foi possível resetar a senha.'), 'error');
+            }
+        } catch {
+            showToast('Erro de conexão.', 'error');
+        } finally {
+            setResettingAdmin(false);
+        }
+    };
+
+    const copyNewPassword = async () => {
+        if (!newAdminPassword) return;
+        const text = newAdminPassword;
+
+        // 1) Tenta clipboard API moderna (HTTPS + secure context)
+        try {
+            await navigator.clipboard.writeText(text);
+            setPasswordCopied(true);
+            setTimeout(() => setPasswordCopied(false), 2500);
+            return;
+        } catch { /* cai pro fallback */ }
+
+        // 2) Fallback execCommand (funciona mesmo em contextos restritos / browser privacy mode)
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.top = '0';
+            ta.style.left = '0';
+            ta.style.opacity = '0';
+            ta.style.pointerEvents = 'none';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            ta.setSelectionRange(0, text.length);
+            const ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (ok) {
+                setPasswordCopied(true);
+                setTimeout(() => setPasswordCopied(false), 2500);
+                return;
+            }
+        } catch { /* segue pro último recurso */ }
+
+        // 3) Último recurso: seleciona o campo de senha visível pro aluno copiar com Ctrl+C
+        const input = document.querySelector<HTMLInputElement>('input[readonly][value="' + text + '"]');
+        if (input) { input.focus(); input.select(); }
+        showToast('O navegador bloqueou a cópia. O campo já está selecionado — pressione Ctrl+C (ou Cmd+C no Mac) pra copiar.', 'error');
     };
 
     // ── Handler delete site ──
@@ -795,6 +869,102 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
             {/* ── CONFIGURAÇÕES ─────────────────────────────────── */}
             {activeTab === 'settings' && (
                 <div className="space-y-5 max-w-2xl">
+                    {/* Senha do admin do site (ADMIN_SECRET) */}
+                    <Card padding="md">
+                        <div className="flex items-start gap-3 mb-4">
+                            <ShieldAlert className="w-5 h-5 text-coral-terra shrink-0 mt-0.5" />
+                            <div>
+                                <p className="font-display text-lg font-normal text-carvao-quente tracking-tight">
+                                    Senha do admin do site
+                                </p>
+                                <p className="text-xs text-cafe-medio mt-1 leading-relaxed">
+                                    A senha que você usa pra entrar em <code className="bg-cream-surface px-1 rounded">{siteUrl}/admin</code>.
+                                    Esqueceu? Gere uma nova — o site reinicia automaticamente em ~2 min com a senha nova.
+                                </p>
+                            </div>
+                        </div>
+
+                        {newAdminPassword ? (
+                            <div className="bg-mostarda-amber/15 border border-mostarda-amber/40 rounded-[8px] p-4 space-y-3">
+                                <p className="text-xs font-bold text-carvao-quente uppercase tracking-[0.12em]">
+                                    Nova senha — anote agora
+                                </p>
+                                <p className="text-xs text-cafe-cinza-quente leading-relaxed">
+                                    Essa senha aparece <strong>uma única vez</strong>. Copia agora e guarda em lugar seguro
+                                    (gerenciador de senhas, anotação). Se fechar esta tela, não consigo mostrar de novo
+                                    — você teria que resetar de novo.
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        readOnly
+                                        value={newAdminPassword}
+                                        className="font-mono text-sm flex-1"
+                                        onFocus={(e) => e.currentTarget.select()}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={copyNewPassword}
+                                        className="inline-flex items-center gap-1.5 bg-carvao-quente hover:bg-carvao-quente/90 text-papel-craft px-3 py-2 rounded-[8px] text-sm font-semibold transition-colors shrink-0 min-h-[40px]"
+                                    >
+                                        {passwordCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                        {passwordCopied ? 'Copiado' : 'Copiar'}
+                                    </button>
+                                </div>
+                                <p className="text-xs text-cafe-medio mt-2">
+                                    O deploy do site começa agora. Aguarde 1-2 min antes de tentar logar em{' '}
+                                    <a href={`https://${siteUrl}/admin`} target="_blank" rel="noopener noreferrer" className="text-coral-terra hover:underline">
+                                        {siteUrl}/admin
+                                    </a>.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setNewAdminPassword(null)}
+                                    className="text-xs text-cafe-cinza-quente hover:text-carvao-quente underline mt-2"
+                                >
+                                    Já anotei, esconder
+                                </button>
+                            </div>
+                        ) : !resetConfirmOpen ? (
+                            <button
+                                type="button"
+                                onClick={() => setResetConfirmOpen(true)}
+                                className="inline-flex items-center gap-2 bg-cream-surface hover:bg-borda-cafe/40 border border-borda-cafe text-carvao-quente px-4 py-2.5 rounded-[8px] text-sm font-semibold transition-colors min-h-[44px]"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                Gerar nova senha
+                            </button>
+                        ) : (
+                            <div className="bg-cream-surface border border-borda-cafe rounded-[8px] p-4 space-y-3">
+                                <p className="text-sm text-carvao-quente">
+                                    Vai gerar uma <strong>senha nova</strong> e disparar um deploy. A senha atual deixa
+                                    de funcionar e qualquer pessoa logada agora vai precisar entrar de novo.
+                                </p>
+                                <p className="text-xs text-cafe-medio">
+                                    Continua?
+                                </p>
+                                <div className="flex items-center gap-2 pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={handleResetAdminSecret}
+                                        disabled={resettingAdmin}
+                                        className="inline-flex items-center gap-2 bg-coral-terra hover:bg-terracota-profundo disabled:opacity-60 disabled:cursor-not-allowed text-papel-craft px-4 py-2 rounded-[8px] text-sm font-semibold transition-colors min-h-[40px]"
+                                    >
+                                        {resettingAdmin ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                                        {resettingAdmin ? 'Gerando…' : 'Sim, gerar nova senha'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setResetConfirmOpen(false)}
+                                        disabled={resettingAdmin}
+                                        className="text-sm text-cafe-cinza-quente hover:text-carvao-quente px-3 py-2 disabled:opacity-50"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </Card>
+
                     {/* Toggle Opções técnicas */}
                     <Card padding="md">
                         <button
