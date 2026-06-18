@@ -295,7 +295,7 @@ export default function DeployWizard({ templateId }: DeployWizardProps) {
                         </a>
                     }
                 >
-                    {statusMsg}
+                    <span className="block whitespace-pre-line break-words">{statusMsg}</span>
                     {errorRefCode && (
                         <span className="block mt-1.5 font-mono text-xs">
                             Código: <strong>{errorRefCode}</strong> — passe pro suporte se precisar.

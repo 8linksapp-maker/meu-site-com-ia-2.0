@@ -156,6 +156,54 @@ export const POST: APIRoute = async ({ request }) => {
             if (msg.includes('Not Found')) {
                 return new Response(JSON.stringify({ error: 'Template não encontrado. Entre em contato com o suporte.' }), { status: 404 });
             }
+            // Token GitHub sem permissão pra criar repos a partir de template.
+            // Acontece com PAT fine-grained sem "Administration: Read and write",
+            // ou com PAT clássico sem o escopo `repo`. Detalhamos a causa pra
+            // o aluno não precisar abrir ticket — passo a passo pronto.
+            const noPermission = msg.includes('Resource not accessible by personal access token')
+                || msg.includes('Resource not accessible by integration')
+                || (err.status === 403 && /token|permission|scope/i.test(msg));
+            if (noPermission) {
+                return new Response(JSON.stringify({
+                    error: [
+                        '🔒 Seu token do GitHub não tem permissão pra criar repositórios novos.',
+                        '',
+                        'Isso acontece quando o token foi criado sem o escopo certo. A solução mais rápida é gerar um token clássico novo:',
+                        '',
+                        '1. Acesse: https://github.com/settings/tokens/new',
+                        '2. Note: MeuSiteComIA',
+                        '3. Expiration: 1 year (ou No expiration)',
+                        '4. Marque o escopo "repo" (vai habilitar tudo dentro dele)',
+                        '5. Clique "Generate token" no fim da página',
+                        '6. Copie o token (começa com ghp_...)',
+                        '7. Volte aqui em Configurações → cole no campo Token do GitHub → Salvar',
+                        '8. Volte em Publicar template e tente de novo',
+                        '',
+                        'Se preferiu fine-grained: edite seu token em https://github.com/settings/personal-access-tokens e marque "Administration: Read and write" nas Repository permissions.',
+                    ].join('\n'),
+                    code: 'github_token_no_permission',
+                }), { status: 403 });
+            }
+            // Token GitHub expirou ou foi revogado.
+            const tokenInvalid = err.status === 401
+                || msg.includes('Bad credentials')
+                || msg.includes('token expired');
+            if (tokenInvalid) {
+                return new Response(JSON.stringify({
+                    error: [
+                        '🔑 Seu token do GitHub expirou ou foi revogado.',
+                        '',
+                        'Gere um novo:',
+                        '1. Acesse: https://github.com/settings/tokens/new',
+                        '2. Note: MeuSiteComIA',
+                        '3. Expiration: 1 year (ou No expiration)',
+                        '4. Marque o escopo "repo"',
+                        '5. Clique "Generate token"',
+                        '6. Copie e cole em Configurações → Token do GitHub → Salvar',
+                    ].join('\n'),
+                    code: 'github_token_invalid',
+                }), { status: 401 });
+            }
             // Erros reais — logar
             const refCode = await logDeployError({
                 userId, userEmail, stage: 'github_repo',

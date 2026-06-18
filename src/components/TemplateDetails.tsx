@@ -260,8 +260,8 @@ export default function TemplateDetails({ templateId }: { templateId: string }) 
                             </div>
 
                             {status && (
-                                <div className={`p-3 rounded-lg text-xs leading-relaxed ${status.includes('Erro') || status.includes('❌') ? 'bg-red-500/10 text-red-400 border border-red-500/20' : status.includes('✅') ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-[#a78bfa]/10 text-[#a78bfa] border border-[#a78bfa]/20'}`}>
-                                    <div className="font-semibold mb-1">{status}</div>
+                                <div className={`p-3 rounded-lg text-xs leading-relaxed ${status.includes('Erro') || status.includes('❌') || status.includes('🔒') || status.includes('🔑') ? 'bg-red-500/10 text-red-400 border border-red-500/20' : status.includes('✅') ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-[#a78bfa]/10 text-[#a78bfa] border border-[#a78bfa]/20'}`}>
+                                    <div className="font-semibold whitespace-pre-line break-words">{status}</div>
                                     {loading && (
                                         <div className="w-full bg-black/50 rounded-full h-1 mt-2 overflow-hidden relative">
                                             <div className="absolute top-0 bottom-0 left-0 bg-[#a78bfa] w-1/2 rounded-full animate-pulse"></div>
