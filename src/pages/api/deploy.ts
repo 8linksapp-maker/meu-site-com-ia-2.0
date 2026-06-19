@@ -292,6 +292,17 @@ export const POST: APIRoute = async ({ request }) => {
                     }), { status: 403 });
                 }
 
+                // Cota Vercel atingida (plano Hobby tem limite de deploys/dia, projetos, etc).
+                if (vercelRes.status === 402 || errCode === 'payment_required' || errCode === 'too_many_requests' || lowerMsg.includes('resource is limited') || lowerMsg.includes('try again in')) {
+                    if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
+                    const resetMs = errData?.error?.limit?.reset ? Math.max(0, errData.error.limit.reset - Date.now()) : null;
+                    const resetHrs = resetMs ? Math.ceil(resetMs / 3600000) : null;
+                    return new Response(JSON.stringify({
+                        error: `💳 Sua conta Vercel atingiu o limite do plano gratuito (Hobby).\n\n${errMsg}\n${resetHrs ? `\nReset estimado: em ~${resetHrs}h.\n` : ''}\n📋 Como resolver:\n• Aguarde o reset (24h por padrão)\n• OU faça upgrade pra Vercel Pro: https://vercel.com/account/billing\n• OU use outra conta Vercel`,
+                        code: 'vercel_quota_exceeded',
+                    }), { status: 402 });
+                }
+
                 // Logar erro real (best-effort)
                 const refCode = await logDeployError({
                     userId, userEmail, stage: 'vercel_project',
@@ -410,10 +421,35 @@ export const POST: APIRoute = async ({ request }) => {
         }
 
         if (!deployRes || !deployRes.ok) {
-            // Trigger manual falhou — mas o WEBHOOK AUTOMÁTICO do Vercel (criado quando
-            // ligamos gitRepository no project) dispara o primeiro deploy sozinho em ~30s.
-            // Não bloqueamos o save — só logamos pra recovery se webhook também falhar.
             const errBody = deployRes ? await deployRes.text().catch(() => '') : '';
+            // Cota do plano Hobby atingida — webhook automático TAMBÉM vai falhar.
+            // Aluno precisa saber que precisa esperar reset ou fazer upgrade.
+            const isQuota = deployRes?.status === 402
+                || /resource is limited|try again in|api-deployments-free-per-day|payment_required/i.test(errBody);
+            if (isQuota) {
+                let resetHrs: number | null = null;
+                try {
+                    const parsed = JSON.parse(errBody);
+                    const resetMs = parsed?.error?.limit?.reset ? Math.max(0, parsed.error.limit.reset - Date.now()) : null;
+                    resetHrs = resetMs ? Math.ceil(resetMs / 3600000) : null;
+                } catch {}
+                // Site foi criado (repo + projeto). Deixa no banco — quando reset vier, dispara manual.
+                if (userId && supabaseUrl && serviceKey) {
+                    const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+                    await supabaseAdmin.from('user_sites').insert({
+                        user_id: userId,
+                        template_id: templateId || null,
+                        github_owner: githubUsername,
+                        github_repo: safeRepoName,
+                        vercel_project_id: projectId
+                    }).then(() => {}).catch(() => {});
+                }
+                return new Response(JSON.stringify({
+                    error: `💳 Sua conta Vercel atingiu o limite do plano gratuito (Hobby): 100 deploys/dia.${resetHrs ? `\n\nReset estimado em ~${resetHrs}h.` : ''}\n\nO site foi criado (repositório GitHub + projeto Vercel) e aparece em "Meus Sites" — mas o primeiro deploy não pôde rodar.\n\n📋 Como resolver:\n• Aguarde o reset (24h) e o deploy vai disparar automaticamente\n• OU faça upgrade pra Vercel Pro em vercel.com/account/billing\n• OU acesse o projeto na Vercel e dispare "Redeploy" manualmente quando a cota liberar`,
+                    code: 'vercel_quota_exceeded',
+                }), { status: 402 });
+            }
+            // Outro erro — confia no webhook git da Vercel. Não bloqueia o save.
             await logDeployError({
                 userId, userEmail, stage: 'deploy_trigger',
                 templateId: templateId_, templateName: templateName_, repoName: safeRepoName,
