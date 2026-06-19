@@ -384,25 +384,44 @@ export const POST: APIRoute = async ({ request }) => {
             }
         }
 
-        // 4. Disparar Deploy inicial via gitSource API (não usa hook —
-        // queremos garantir que o primeiro deploy roda automaticamente
-        // independente do hook ter sido criado com sucesso).
-        await new Promise(r => setTimeout(r, 3000));
+        // 4. Disparar Deploy inicial via gitSource API. A integração Vercel<>GitHub
+        // leva alguns segundos pra indexar o repo recém-criado — fazemos retry com
+        // backoff antes de desistir. Mesmo se TODOS os retries falharem, o webhook
+        // automático do Vercel cuida do primeiro deploy (não bloqueia o save).
+        let deployRes: Response | null = null;
+        let deployBody: any = null;
+        const backoff = [3000, 5000, 8000, 12000];
+        for (const wait of backoff) {
+            await new Promise(r => setTimeout(r, wait));
+            deployRes = await fetch(`https://api.vercel.com/v13/deployments${teamQs}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: safeRepoName,
+                    project: projectId,
+                    target: 'production',
+                    gitSource: { type: 'github', repoId: githubRepoId, ref: 'main' }
+                })
+            });
+            if (deployRes.ok) { deployBody = await deployRes.json().catch(() => null); break; }
+            // 400/404 nos primeiros segundos = ainda indexando, vale re-tentar.
+            // Qualquer outro status = erro real, desiste.
+            if (![400, 404].includes(deployRes.status)) break;
+        }
 
-        const deployRes = await fetch(`https://api.vercel.com/v13/deployments${teamQs}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: safeRepoName,
-                project: projectId,
-                target: 'production',
-                gitSource: { type: 'github', repoId: githubRepoId, ref: 'main' }
-            })
-        });
-
-        if (!deployRes.ok) {
-            // Não faz rollback aqui — repo e projeto já estão criados e podem ser reusados
-            return new Response(JSON.stringify({ error: 'Repositório e projeto criados, mas o deploy inicial falhou. Acesse a Vercel para redeployar manualmente.' }), { status: 500 });
+        if (!deployRes || !deployRes.ok) {
+            // Trigger manual falhou — mas o WEBHOOK AUTOMÁTICO do Vercel (criado quando
+            // ligamos gitRepository no project) dispara o primeiro deploy sozinho em ~30s.
+            // Não bloqueamos o save — só logamos pra recovery se webhook também falhar.
+            const errBody = deployRes ? await deployRes.text().catch(() => '') : '';
+            await logDeployError({
+                userId, userEmail, stage: 'deploy_trigger',
+                templateId: templateId_, templateName: templateName_, repoName: safeRepoName,
+                errorMessage: `Manual deploy trigger failed after retries — relying on Vercel git webhook. Last status: ${deployRes?.status} ${errBody.slice(0, 200)}`,
+                httpStatus: deployRes?.status,
+                githubRepoUrl: newRepoHtmlUrl,
+            });
+            // continua o fluxo — não retorna erro pro aluno
         }
 
         // 5. Salvar no banco
@@ -417,12 +436,10 @@ export const POST: APIRoute = async ({ request }) => {
             }).then(() => {}).catch(() => {});
         }
 
-        const deployData = await deployRes.json();
-
         return new Response(JSON.stringify({
             success: true,
             repoUrl: newRepoHtmlUrl,
-            deploymentId: deployData.id,
+            deploymentId: deployBody?.id ?? null,
             siteSlug: safeRepoName,
             githubOwner: githubUsername,
             ...(deployHookWarning ? { warning: deployHookWarning } : {}),
