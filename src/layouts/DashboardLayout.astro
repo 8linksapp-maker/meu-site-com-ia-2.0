@@ -3,6 +3,7 @@ import '../styles/global.css';
 import { LogOut, LayoutDashboard, Settings, Shield, Menu, X, GraduationCap, Globe, LifeBuoy, Vote, DollarSign, HelpCircle } from 'lucide-react';
 import GroupWizard from '../components/GroupWizard';
 import TokenGate from '../components/TokenGate';
+import SubscriptionGate from '../components/SubscriptionGate';
 
 interface Props {
 	title: string;
@@ -247,6 +248,7 @@ const pathname = new URL(Astro.request.url).pathname;
 
       <GroupWizard client:load />
       <TokenGate client:load />
+      <SubscriptionGate client:load />
     </main>
 
     {/* ── FAB Ajuda (Job #3: tirar dúvida rápida quando trava) ── */}

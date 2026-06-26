@@ -149,7 +149,7 @@ export default function Login() {
                 if (error) throw error;
                 window.location.href = '/dashboard';
             } else if (mode === 'magic_link') {
-                const { error } = await supabase.auth.signInWithOtp({ email });
+                const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
                 if (error) throw error;
                 setSuccess('Link enviado! Verifique sua caixa de entrada.');
                 // Inicia cooldown de 60s (mesmo cooldown interno do Supabase)
@@ -192,6 +192,7 @@ export default function Login() {
                 'Invalid login credentials': 'E-mail ou senha incorretos.',
                 'Email not confirmed': 'Confirme seu e-mail antes de entrar.',
                 'rate limit exceeded': 'Muitas tentativas. Aguarde alguns minutos.',
+                'Signups not allowed': 'E-mail não cadastrado. Verifique se digitou o mesmo e-mail usado na compra ou entre em contato com o suporte.',
             };
             const friendly = Object.entries(ERR_MAP).find(([k]) => msg.includes(k))?.[1]
                 ?? (msg || 'Erro ao entrar. Tente novamente.');
