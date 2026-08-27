@@ -54,7 +54,9 @@ export const GET: APIRoute = async ({ request }) => {
                     if (!r.ok) return;
                     const proj: any = await r.json();
                     const prodAliases: string[] = proj.targets?.production?.alias || proj.alias?.map((a: any) => typeof a === 'string' ? a : a.domain) || [];
-                    const pick = prodAliases.find(a => !a.includes('-git-')) || prodAliases[0];
+                    const customDomain = prodAliases.find(a => !a.includes('-git-') && !a.endsWith('.vercel.app'));
+                    const vercelDomain = prodAliases.find(a => !a.includes('-git-'));
+                    const pick = customDomain || vercelDomain || prodAliases[0];
                     if (pick) site.domain = pick;
                 } catch {}
             }));
