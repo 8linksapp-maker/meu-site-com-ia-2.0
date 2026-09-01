@@ -3,9 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { Send, ArrowLeft, Search, RefreshCw } from 'lucide-react';
 import Pagination from '../ui/admin/Pagination';
 
-const supabase = createClient(
-    import.meta.env.PUBLIC_SUPABASE_URL,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+const getSupabase = () => createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL || '',
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY || ''
 );
 
 interface SupportTicket {
@@ -90,7 +90,7 @@ export default function SupportAdmin() {
     useEffect(() => { loadTickets(); }, [statusFilter]);
 
     const getToken = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await getSupabase().auth.getSession();
         return session?.access_token || '';
     };
 
