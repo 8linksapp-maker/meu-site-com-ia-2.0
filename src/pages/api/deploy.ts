@@ -375,7 +375,12 @@ export const POST: APIRoute = async ({ request }) => {
         const envVars: Array<{ key: string; value: string; type: string; target: string[] }> = [
             { key: 'GITHUB_TOKEN', value: githubToken, type: 'encrypted', target: ['production', 'preview', 'development'] },
             { key: 'GITHUB_OWNER', value: githubUsername, type: 'plain', target: ['production', 'preview', 'development'] },
-            { key: 'GITHUB_REPO', value: safeRepoName, type: 'plain', target: ['production', 'preview', 'development'] }
+            { key: 'GITHUB_REPO', value: safeRepoName, type: 'plain', target: ['production', 'preview', 'development'] },
+            // VERCEL_TOKEN + PROJECT_ID permitem ao admin do site consultar o status REAL
+            // do último deploy (API Vercel) em vez de GitHub Deployments — evita o banner
+            // falso de "alteração não publicada" que levava a cliques repetidos (deploy duplicado).
+            { key: 'VERCEL_TOKEN', value: vercelToken, type: 'encrypted', target: ['production', 'preview', 'development'] },
+            { key: 'PROJECT_ID', value: projectId, type: 'plain', target: ['production', 'preview', 'development'] }
         ];
         if (adminPassword) {
             envVars.push({ key: 'ADMIN_SECRET', value: adminPassword, type: 'encrypted', target: ['production', 'preview', 'development'] });
