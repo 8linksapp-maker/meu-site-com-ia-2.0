@@ -295,10 +295,13 @@ export const POST: APIRoute = async ({ request }) => {
                         error: 'Seu token da Vercel expirou ou está inválido. Gere um novo em https://vercel.com/account/tokens e atualize em Configurações > Integração.',
                     }), { status: 401 });
                 }
-                if (errCode === 'not_found' || lowerMsg.includes('not found') || lowerMsg.includes('repo not found')) {
+                // repo_not_found: a integração Vercel<>GitHub existe, mas foi instalada em OUTRA
+                // conta GitHub (ex.: login/instalação em `empresa`, repos criados em `aluno`).
+                // Sem esse match a Vercel enxerga o repo como inexistente.
+                if (errCode === 'repo_not_found' || errCode === 'not_found' || lowerMsg.includes('not found') || lowerMsg.includes('repo not found') || lowerMsg.includes("couldn't be found")) {
                     if (repoCreated) await deleteGithubRepo(octokit, githubUsername, safeRepoName);
                     return new Response(JSON.stringify({
-                        error: '⚠️ A Vercel não conseguiu acessar seu repositório GitHub. Isso quase sempre significa que a integração do Vercel com GitHub não está instalada (ou não tem permissão pra ver este repo).\n\n📋 Passo a passo (2 min):\n\n1. Acesse: https://github.com/apps/vercel/installations/new\n2. Escolha sua conta do GitHub e clique em "Configure"\n3. Em "Repository access" marque "All repositories"\n4. Salve — vai pedir pra vincular à sua conta Vercel; escolha a mesma da plataforma\n5. Volte aqui e clique em Publicar de novo',
+                        error: `⚠️ A Vercel não conseguiu acessar o repositório "${githubUsername}/${safeRepoName}" no GitHub.\n\nIsso acontece quando a integração do GitHub com a Vercel está instalada em OUTRA conta do GitHub — por exemplo, os repositórios são criados na conta "${githubUsername}", mas a integração foi autorizada em outra conta do GitHub. Pra Vercel, o repositório simplesmente não existe.\n\n📋 Passo a passo (2 min):\n\n1. Saia da sua conta Vercel no navegador e entre no GitHub com a conta "${githubUsername}" (atenção: precisa ser essa conta, a mesma que você usa aqui na plataforma)\n2. Acesse: https://github.com/apps/vercel/installations/new\n3. Clique em "Install" e escolha a conta "${githubUsername}"\n4. Em "Repository access" marque "All repositories"\n5. Clique em "Install & Authorize" — quando pedir, vincule à sua conta Vercel (a mesma que você usa aqui)\n6. Se já existir uma instalação em outra conta, ela pode continuar — a Vercel aceita mais de uma\n7. Volte aqui e clique em Publicar de novo\n\nEsse passo é feito uma vez só. Depois, todos os próximos sites publicam sem esse erro.`,
                     }), { status: 400 });
                 }
                 if (errCode === 'missing_scope' || lowerMsg.includes('scope')) {
