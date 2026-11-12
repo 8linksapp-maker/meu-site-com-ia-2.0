@@ -83,6 +83,47 @@ async function authorizeSite(request: Request, projectId: string): Promise<AuthC
     return { userId, site, vercelToken, supabaseAdmin };
 }
 
+/**
+ * O endpoint /v9/projects/{id}/domains NÃO devolve `configured` — só `verified`.
+ * A UI lia `dom.configured`, que vinha sempre `undefined`, então o badge
+ * "Falta configurar DNS" aparecia pra sempre mesmo com o domínio verificado e
+ * servindo (ticket f0493081). O estado real do DNS está em
+ * /v9/domains/{domain}/config (misconfigured + configuredBy + cnames/aValues):
+ * enriquecemos a listagem aqui pra UI ter um booleano confiável.
+ */
+async function enrichDomainsWithDnsConfig(vercelToken: string, data: any) {
+    const domains = Array.isArray(data?.domains) ? data.domains : null;
+    if (!domains) return data;
+
+    await Promise.all(domains.map(async (d: any) => {
+        if (!d?.name) return;
+        if (d.name.endsWith('.vercel.app')) {
+            d.configured = true;
+            d.misconfigured = false;
+            return;
+        }
+        try {
+            const res = await fetch(`https://api.vercel.com/v9/domains/${encodeURIComponent(d.name)}/config`, {
+                headers: { 'Authorization': `Bearer ${vercelToken}` }
+            });
+            if (!res.ok) throw new Error(`config ${res.status}`);
+            const cfg = await res.json();
+            d.configuredBy = cfg.configuredBy ?? null;
+            d.cnames = cfg.cnames ?? [];
+            d.aValues = cfg.aValues ?? [];
+            d.misconfigured = cfg.misconfigured === true;
+            // `configured` = DNS de fato apontando (o `verified` sozinho não basta).
+            d.configured = !d.misconfigured;
+        } catch {
+            // Sem o detalhe, cai no único sinal que a Vercel dá na listagem.
+            d.configured = d.verified === true;
+            d.misconfigured = d.verified !== true;
+        }
+    }));
+
+    return data;
+}
+
 export const GET: APIRoute = async ({ request, url }) => {
     try {
         const projectId = url.searchParams.get('projectId');
@@ -115,6 +156,12 @@ export const GET: APIRoute = async ({ request, url }) => {
         });
 
         const data = await response.json();
+        if (type === 'domains' && response.ok) {
+            return new Response(JSON.stringify(await enrichDomainsWithDnsConfig(vercelToken, data)), {
+                status: response.status,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
         return new Response(JSON.stringify(data), { status: response.status });
 
     } catch (err: any) {

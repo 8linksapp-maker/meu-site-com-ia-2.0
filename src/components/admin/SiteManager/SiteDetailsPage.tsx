@@ -30,6 +30,7 @@ interface VercelDomain {
     name: string;
     verified?: boolean;
     configured?: boolean;
+    misconfigured?: boolean;
 }
 
 interface VercelEnv {
@@ -179,10 +180,12 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
         }
     }, [showTechnical, site]);
 
-    // Auto-expand DNS config pra domínios não-vercel não verificados
+    // Auto-expand DNS config pra domínios não-vercel com DNS pendente.
+    // `configured === false` é o sinal explícito do proxy (misconfigured na Vercel);
+    // `undefined` (resposta antiga) NÃO deve reabrir o painel.
     useEffect(() => {
         if (activeTab === 'domain' && domains.length > 0) {
-            const unconfigured = domains.filter(d => !d.name.endsWith('.vercel.app') && (!d.verified || !d.configured));
+            const unconfigured = domains.filter(d => !d.name.endsWith('.vercel.app') && (!d.verified || d.configured === false));
             if (unconfigured.length > 0) {
                 const newState: Record<string, boolean> = {};
                 unconfigured.forEach(d => {
@@ -722,7 +725,9 @@ export default function SiteDetailsPage({ siteId }: SiteDetailsPageProps) {
                         ) : (
                             domains.map((dom, i) => {
                                 const isVercelDomain = dom.name.endsWith('.vercel.app');
-                                const isVerified = isVercelDomain || (dom.verified && dom.configured);
+                                // DNS ok = verificado pela Vercel E sem misconfiguração.
+                                // `configured` undefined (payload antigo) não pode virar "falta configurar".
+                                const isVerified = isVercelDomain || (dom.verified === true && dom.configured !== false);
                                 return (
                                     <Card key={i} padding="md" className="!p-0 overflow-hidden">
                                         <div className="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
